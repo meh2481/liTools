@@ -1,0 +1,89 @@
+//What we were given from Allan
+
+#ifndef LIDECOMPRESS_H
+#define LIDECOMPRESS_H
+
+#include <cstdio>
+#include <stdint.h>
+#define i32 int32_t
+#define u32 uint32_t
+
+typedef struct 
+{
+	i32 pakVersion;
+	i32 numItems;
+} blobHeader;
+
+typedef struct
+{
+	u32 id;
+	u32 flags;
+	u32 offset;
+	u32 size;
+} resourceHeader;
+
+typedef struct
+{
+	i32 compressedSizeBytes;
+	i32 uncompressedSizeBytes;
+} compressedHeader;
+
+#define FLAG_NOCOMPRESSION	0x00
+#define FLAG_ZLIBCOMPRESSED	0x01
+
+//Mark II structures
+
+typedef struct
+{
+	i32 count;
+	i32 offset;
+} BinHdrPtr;
+
+typedef struct
+{
+	BinHdrPtr maps;
+	BinHdrPtr stringTableBytes;
+} DebugPakHeader;
+
+typedef struct
+{
+	u32 resId;
+	i32 strId;
+} MappingHeader;
+
+typedef struct
+{
+	i32 numStrings;
+	i32 numPointers;
+} StringTableHeader;
+
+typedef struct
+{
+	i32 pointerIndex;
+	i32 pointerCount;
+} StringTableEntry;
+
+typedef struct
+{
+	u32 languageId;
+	i32 offset;
+} StringPointerEntry;
+
+#define GREYSCALE_PNG	0x08
+#define STANDARD_PNG	0x01
+
+typedef struct
+{
+	u32 width;
+	u32 height;
+	u32 flags;
+} ImageHeader;
+
+//Extern functions
+int compdecomp(const char* cIn, const char* cOut, int iCompress = false);
+int binaryToOgg( const char* in, const char* out );
+int oggToBinary( const char* in, const char* out );
+
+
+
+#endif
