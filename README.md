@@ -9,7 +9,7 @@ RUN ALL THESE PROGRAMS OFF A BACKUP COPY OF YOUR GAME, NOT THE ORIGINAL VERSION!
 
 Also please note that it's best to have the the input files (Such as the Little Inferno executable, or the pak files you want to extract) in the same directory as these tools when running them. It'll save you a lot of hassle if you're using the command line, and it'll alleviate potential working directory issues if you're clicking and dragging files into executables.
 
-USAGE
+Usage
 =====
 
 First, you'll need the three resource files "resource.pak", "embed.pak", and "frontend.pak" extracted from your game's executable. You can do this with 7zip or ResourceHacker (the files you want are in the subfolder 20480, resources 1, 2, and 3 respectively) if you so choose. liDecompress provides a tool to help out with this, however. Simply run:
@@ -36,7 +36,7 @@ liCompress.exe resource.pak embed.pak frontend.pak
 
 Please note that these files .pak might not exist beforehand (they don't have to). If they do exist, you can click-drag them into the executable as usual. liCompress looks for each pakfile a filename in the form [pakfile].pak.filelist.txt to know what files go inside that particular .pak file. You can create your own .pak files this way. liDecompress will autogenerate these .filelist.txt files when decompressing, so to save yourself a lot of typing, decompress first before compressing so all the .filelist.txt files are there. For now, this is how it works; probably will change in a later version to become more user-friendly.
 
-CHANGELOG
+Changelog
 =========
 Version 0.1:
 	- Initial release
@@ -57,8 +57,8 @@ Version 0.3:
 	- Added util/repack.exe program for repacking .pak files into the game's exe
 
 
-BUILDING (For my reference, may not make sense to sane humans)
-==============================================================
+Building (For my reference, makefile coming soon)
+=================================================
 build with:
 	g++ -Wall liDecompress.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
 	g++ -Wall liCompress.cpp ogg.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
@@ -67,7 +67,7 @@ build with:
 	
 Apologies for hastily-thrown-together code that isn't commented much at all.
 
-UTILITIES ("util" subdirectory)
+Utilities ("util" subdirectory)
 ===============================
 
 pullpakfiles.exe
