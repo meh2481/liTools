@@ -61,7 +61,7 @@ Building (For my reference, makefile coming 'soon')
 ===================================================
 Build with:
 	g++ -Wall liDecompress.cpp threadDecompress.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
-	g++ -Wall liCompress.cpp ogg.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
+	g++ -Wall liCompress.cpp threadCompress.cpp ogg.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
 	g++ -Wall strip.cpp -O2 -o strip.exe
 	g++ -Wall repack.cpp -O2 -o repack.exe -lttvfs
 	

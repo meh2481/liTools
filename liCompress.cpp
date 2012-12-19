@@ -4,6 +4,7 @@
 #include <VFSTools.h>
 #include <iostream>
 #include <list>
+#include <stack>
 #include <map>
 #include <vector>
 #include <string>
@@ -20,12 +21,7 @@ vector<StringPointerEntry> g_stringPointerList;
 vector<char> g_stringList;
 ttvfs::VFSHelper vfs;
 
-typedef struct
-{
-	compressedHeader cH;
-	u32 id;
-	bool bCompressed;
-} pakHelper;
+extern stack<ThreadConvertHelper> g_sThreadedResources;	//Declared in threadCompress.cpp, used for multi-threaded compression
 
 map<string, pakHelper> g_pakHelping;
 
@@ -382,26 +378,28 @@ int main(int argc, char** argv)
 		for(list<string>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
 		{
 			iCurFilePaking++;
-			cout << "Compressing file " << iCurFilePaking << " of " << lstrFilesToPak.size() << ": " << *i << endl;
-			const char* cName = i->c_str();
+			//cout << "Compressing file " << iCurFilePaking << " of " << lstrFilesToPak.size() << ": " << *i << endl;
+			//const char* cName = i->c_str();
 			u32 repakName = g_repakMappings[*i];
 			char cIDFilename[256];
 			sprintf(cIDFilename, "temp/%u", repakName);
 			
-			//If this was an OGG sound
+			ThreadConvertHelper tch;
+			tch.sIn = *i;
+			tch.sFilename = cIDFilename;
+			//We don't care about compression
+			g_sThreadedResources.push(tch);	//Add this to our queue to compress
+		}
+		
+		threadedCompress();	//Compress everything
+			
+		/*	//If this was an OGG sound
 			if(strstr(cName, ".flac") != NULL ||
 			   strstr(cName, ".FLAC") != NULL)
 			{
 				string s = *i + ".ogg";
-				//string o = s + ".temp";
 				oggToBinary(s.c_str(), cIDFilename);
-				//compdecomp(o.c_str(), cIDFilename, 1);
-				g_pakHelping[*i].bCompressed = false;
-				
-				//g_pakHelping[*i].bCompressed = true;	//TODO: Figure out why uncompressed isn't working
-				//g_pakHelping[*i].cH.uncompressedSizeBytes = ttvfs::GetFileSize(o.c_str());	//Hang onto these for compressed header stuff
-				//g_pakHelping[*i].cH.compressedSizeBytes = ttvfs::GetFileSize(cIDFilename);
-				//unlink(o.c_str());	//Delete temp file
+				g_pakHelping[*i].bCompressed = false;	//No compression for OGG streams, since these are compressed already
 			}
 			//If this was a PNG image
 			else if(strstr(cName, ".png") != NULL ||
@@ -427,7 +425,7 @@ int main(int argc, char** argv)
 				g_pakHelping[*i].cH.compressedSizeBytes = ttvfs::GetFileSize(cIDFilename);
 				
 			}
-		}
+		}*/
 		
 		//Ok, now we have all the compressed files in temp/ . Stick them in the .pak file and call it a day
 		ttvfs::StringList slFiles;

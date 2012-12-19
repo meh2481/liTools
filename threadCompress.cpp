@@ -1,9 +1,10 @@
-//~ 3:08 when single-threaded
-//~ 1:43 when multi-threaded
+//~  when single-threaded
+//~  when multi-threaded
 
 #include "pakDataTypes.h"
 #include <iostream>
 #include <stack>
+#include <map>
 #include <string>
 #include <cstring>
 #include <stdlib.h>
@@ -11,11 +12,21 @@
 using namespace std;
 
 stack<ThreadConvertHelper> g_sThreadedResources;
+extern map<string, pakHelper> g_pakHelping;	//in liCompress.cpp, used for packing stuff into the .pak files
 u32 iCurResource;
 u32 iNumResources;
 HANDLE ghMutex;
 
-DWORD WINAPI decompressResource(LPVOID lpParam)
+i32 getFileSize(const char* cFilename)	//Since TTVFS isn't totally threadsafe, we need some way of determining file size
+{
+	FILE *f = fopen(cFilename, "rb");
+	fseek(f, 0, SEEK_END);
+    i32 iSz = ftell(f);
+    fclose(f);
+	return iSz;
+}
+
+DWORD WINAPI compressResource(LPVOID lpParam)
 {
 	for(bool bDone = false;!bDone;)	//Loop until we're done
 	{
@@ -38,7 +49,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 				
 				//Let user know which resource we're converting now
 				if(!bDone)
-					cout << "Converting resource " << ++iCurResource << " out of " << iNumResources << ": " << tch.sFilename << endl;
+					cout << "Compressing resource " << ++iCurResource << " out of " << iNumResources << ": " << tch.sIn << endl;
 				
 				// Release ownership of the mutex object
 				if (!ReleaseMutex(ghMutex)) 
@@ -56,36 +67,45 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		}
 		if(bDone)
 			continue;	//Stop here if done
-			
-		if(tch.bCompressed)
-			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str());
 		
-		const char* cName = tch.sFilename.c_str();
+		const char* cName = tch.sIn.c_str();
 			
-		//See if this was a PNG image
-		if(strstr(cName, ".png") != NULL ||
-		   strstr(cName, ".PNG") != NULL ||
-		   strstr(cName, "coloritemicon") != NULL ||
-		   strstr(cName, "colorbgicon") != NULL ||
-		   strstr(cName, "greybgicon") != NULL)			//Also would include .png.normal files as well
-		{
-			convertPNG(cName);	//Do the conversion
-		}
-		
-		//Convert .flac binary files to OGG
 		if(strstr(cName, ".flac") != NULL ||
 		   strstr(cName, ".FLAC") != NULL)
 		{
-			string s = cName;
-			s += ".ogg";
-			binaryToOgg(cName, s.c_str());
-			unlink(cName);	//Delete temporary .flac file
+			string s = tch.sIn + ".ogg";
+			oggToBinary(s.c_str(), tch.sFilename.c_str());
+			g_pakHelping[tch.sIn].bCompressed = false;	//No compression for OGG streams, since these are compressed already
+		}
+		//If this was a PNG image
+		else if(strstr(cName, ".png") != NULL ||
+			    strstr(cName, ".PNG") != NULL ||
+			    strstr(cName, "coloritemicon") != NULL ||
+			    strstr(cName, "colorbgicon") != NULL ||
+			    strstr(cName, "greybgicon") != NULL)			//Also would include .png.normal files as well
+		{
+			convertFromPNG(cName);	//Do the conversion
+			
+			string s = tch.sIn + ".temp";	//Use the decompressed PNG for this
+			compdecomp(s.c_str(), tch.sFilename.c_str(), 1);
+			g_pakHelping[tch.sIn].bCompressed = true;
+			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(s.c_str());	//Hang onto these for compressed header stuff
+			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
+			unlink(s.c_str());	//Remove the temporary file
+		}
+		else
+		{
+			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1);	
+			g_pakHelping[tch.sIn].bCompressed = true;
+			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(tch.sIn.c_str());	//Hang onto these for compressed header stuff
+			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
+			
 		}
 	}
 	return 0;
 }
 
-void threadedDecompress()
+void threadedCompress()
 {
 	iCurResource = 0;
 	iNumResources = g_sThreadedResources.size();
@@ -97,7 +117,7 @@ void threadedDecompress()
 
     if (ghMutex == NULL) 
     {
-        cout << "ERROR: Unable to create mutex for multithreded decompression. Aborting..." << endl;
+        cout << "ERROR: Unable to create mutex for multithreded compression. Aborting..." << endl;
         return;
     }
 	
@@ -116,7 +136,7 @@ void threadedDecompress()
         aThread[i] = CreateThread( 
                      NULL,       // default security attributes
                      0,          // default stack size
-                     (LPTHREAD_START_ROUTINE) decompressResource, 
+                     (LPTHREAD_START_ROUTINE) compressResource, 
                      NULL,       // no thread function arguments
                      0,          // default creation flags
                      NULL); 	 // no thread identifier

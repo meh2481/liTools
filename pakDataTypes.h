@@ -85,19 +85,26 @@ typedef struct
 //Structures for my use
 typedef struct
 {
+	compressedHeader cH;
+	u32 id;
+	bool bCompressed;
+} pakHelper;
+
+typedef struct
+{
 	string sIn;
 	string sFilename;
 	bool bCompressed;
 } ThreadConvertHelper;
-
-extern list<ThreadConvertHelper> g_lThreadedResources;
 
 //helper functions
 int compdecomp(const char* cIn, const char* cOut, int iCompress = false);
 int binaryToOgg( const char* in, const char* out );
 int oggToBinary( const char* in, const char* out );
 void threadedDecompress();
+void threadedCompress();
 bool convertPNG(const char* cFilename);
+bool convertFromPNG(const char* cFilename);
 
 
 

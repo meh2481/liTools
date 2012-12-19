@@ -4,6 +4,7 @@
 #include <VFSTools.h>
 #include <iostream>
 #include <list>
+#include <stack>
 #include <map>
 #include <vector>
 #include <string>
@@ -12,6 +13,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 using namespace std;
+
+extern stack<ThreadConvertHelper> g_sThreadedResources;
 
 map<u32,i32> g_IDMappings;
 vector<StringTableEntry> g_stringTableList;
@@ -454,7 +457,7 @@ int main(int argc, char** argv)
 				cout << "Invalid resource flag " << i->flags << endl;
 			}
 			
-			g_lThreadedResources.push_back(tch);
+			g_sThreadedResources.push(tch);
 		/*}
 		
 		cout << "Converting data" << endl;
