@@ -520,6 +520,7 @@ int main(int argc, char** argv)
 		fclose(f);	//Done packing this .pak file
 		removeTempFiles();
 	}
+	removeTempFiles();
 	cout << "Done." << endl;
 	return 0;
 }

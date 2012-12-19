@@ -12,7 +12,7 @@ Also please note that it's best to have the the input files (Such as the Little 
 Usage
 =====
 
-First, you'll need the three resource files "resource.pak", "embed.pak", and "frontend.pak" extracted from your game's executable. You can do this with 7zip or ResourceHacker (the files you want are in the subfolder 20480, resources 1, 2, and 3 respectively) if you so choose. liDecompress provides a tool to help out with this, however. Simply run:
+First, you'll need the three resource files "resource.pak", "embed.pak", and "frontend.pak" extracted from your game's executable. You can do this with 7zip or ResourceHacker (the files you want are in the subfolder 20480, resources 1, 2, and 3 respectively) if you so choose. liTools provides a tool to help out with this, however. Simply run:
 
 strip.exe "Little Inferno.exe"
 
@@ -22,19 +22,19 @@ Once you have all three .pak files extracted, you can now decompress them into a
 
 liDecompress.exe resource.pak embed.pak frontend.pak
 
-The present version of the program attempts to reconstruct PNG images from the extracted binary data, though something may go terribly horribly wrong. In this case, it should just spit out errors into the console and keep going. It should be fairly robust, but don't blame me if it crashes unexpectedly or does something bizarre.
+The present version of the program attempts to reconstruct some of the resources from the extracted binary data, though something may go terribly horribly wrong. In this case, it should just spit out errors into the console and keep going. It should be fairly robust, but don't blame me if it crashes unexpectedly or does something bizarre.
 
 Please note that can take a REALLY LONG TIME to decompress these files. resource.pak takes about 4 minutes for me. The console window should tell you the overall progress, and force-killing the program shouldn't have (m)any detrimental consequences, but be prepared to be patient. It does take a while. This program is fairly unoptimized, and it's a large file to process with a lot of compression/decompression steps for each resource.
 
-Temporary files are written to temp/ and are destroyed if the program exits normally. Ignore them. The files you're after are in data/ and vdata/. The filenames are correct, but not all data formats are known yet, so not everything is openable. (For version 0.1, only .png and .png.normal images are in the correct format)
+Temporary files are written to temp/ and are destroyed if the program exits normally. Ignore them. The files you're after are in data/ and vdata/. The filenames are correct, but not all data formats are known yet, so not everything is openable. (For version 0.3, only png and ogg files are in the correct format)
 
-The "residmap.dat" file is a modified version of the debug.pak file Allan Blomquist provided on the infernofans forum, in a stripped format that's easier for my program to work with. If you want to move liDecompress around, be sure that this file also ends up in the same folder, or the program won't run. If you want, you can run debug.pak through the resource extractor as well (residmap.dat will end up in output/vdata/), but doing so isn't necessary.
+The "residmap.dat" file is a modified version of the debug.pak file Allan Blomquist provided on the infernofans forum, in a stripped format that's easier for my program to work with. If you want to move liDecompress or liCompress around, be sure that this file also ends up in the same folder, or the program won't run. If you want, you can run debug.pak through the resource extractor as well (residmap.dat will end up in output/vdata/), but doing so isn't necessary.
 
 To compress files again, type:
 
 liCompress.exe resource.pak embed.pak frontend.pak
 
-Please note that these files .pak might not exist beforehand (they don't have to). If they do exist, you can click-drag them into the executable as usual. liCompress looks for each pakfile a filename in the form [pakfile].pak.filelist.txt to know what files go inside that particular .pak file. You can create your own .pak files this way. liDecompress will autogenerate these .filelist.txt files when decompressing, so to save yourself a lot of typing, decompress first before compressing so all the .filelist.txt files are there. For now, this is how it works; probably will change in a later version to become more user-friendly.
+Please note that these .pak files might not exist beforehand (they don't have to). If they do exist, you can click-drag them into the executable as usual. For each pakfile, liCompress looks for a text file in the form [pakfile].pak.filelist.txt to know what files go inside that particular .pak file. You can create your own .pak files this way. liDecompress will autogenerate these .filelist.txt files when decompressing, so to save yourself a lot of typing, decompress first before compressing so all the .filelist.txt files are there. For now, this is how it works; this probably will change in a later version to become more user-friendly.
 
 Changelog
 =========
@@ -57,10 +57,10 @@ Version 0.3:
 	- Added util/repack.exe program for repacking .pak files into the game's exe
 
 
-Building (For my reference, makefile coming soon)
-=================================================
-build with:
-	g++ -Wall liDecompress.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
+Building (For my reference, makefile coming 'soon')
+===================================================
+Build with:
+	g++ -Wall liDecompress.cpp threadDecompress.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
 	g++ -Wall liCompress.cpp ogg.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
 	g++ -Wall strip.cpp -O2 -o strip.exe
 	g++ -Wall repack.cpp -O2 -o repack.exe -lttvfs
@@ -94,7 +94,7 @@ This program reads all the resources from inside an executable and spits out som
 
 util/WinResource.exe "Little Inferno.exe"
 
-Or copy "WinResource.exe" from the "util" subdirectory into the same folder as "Little Inferno.exe" and click and drag "Little Inferno.exe" into it. It'll spit out a file "resinfo.txt" containing negligible information on the resources inside the Little Inferno executable. It may be useful, however, if you're unsure if your executable has been stripped or not (as if the file size alone wouldn't tell you). If resources with "Type: 20480" are all 4 bytes, you'll know it's stripped. Otherwise, probably not. At the very least, it's a fun program to play with.
+Or copy "WinResource.exe" from the "util" subdirectory into the same folder as "Little Inferno.exe" and click and drag "Little Inferno.exe" into it. It'll spit out a file "resinfo.txt" containing basic information on the resources inside the Little Inferno executable. It may be useful, however, if you're unsure if your executable has been stripped or not (as if the file size alone wouldn't tell you). If resources with "Type: 20480" are all 4 bytes, you'll know it's stripped. Otherwise, probably not. At the very least, it's a fun program to play with.
 
 test.exe
 ----------------

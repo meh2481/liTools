@@ -34,7 +34,7 @@ void removeTempFiles()
 }
 
 //Save a PNG file from decompressed data
-bool convertPNG(char* cFilename)
+bool convertPNG(const char* cFilename)
 {
   ImageHeader ih;
   FILE          *png_file;
@@ -365,6 +365,7 @@ int main(int argc, char** argv)
 		}
 		
 		//Create temp folder if it isn't here already
+		removeTempFiles();
 		if(!ttvfs::IsDirectory("temp"))
 			ttvfs::CreateDirRec("temp");
 			
@@ -384,12 +385,16 @@ int main(int argc, char** argv)
 		int iCurFile = 0;
 		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
 		{
+			ThreadConvertHelper tch;
+			tch.bCompressed = false;
+			makeFolder(i->id);
 			char* cName = getName(i->id);
 			oPakList << cName << endl;
 			iCurFile++;
 			//This is the only form of progress bar you get
 			cout << "Extracting file " << iCurFile << " out of " << lResourceHeaders.size() << ": " << cName << endl;
 			fseek(f, i->offset, SEEK_SET);
+			tch.sFilename = cName;
 			if(i->flags == FLAG_ZLIBCOMPRESSED)
 			{
 				compressedHeader cH;
@@ -420,20 +425,17 @@ int main(int argc, char** argv)
 				fclose(fOut);
 				free(buf);
 				
-				//char cCmdBuf[512];
-				makeFolder(i->id);
-				//sprintf(cCmdBuf, "output/%s", cName);
-				compdecomp(sOutFile, cName);
+				//compdecomp(sOutFile, cName);
+				tch.sIn = sOutFile;
+				tch.bCompressed = true;
 			}
 			else if(i->flags == FLAG_NOCOMPRESSION)
 			{
-			  makeFolder(i->id);
-			  //char sOutFile[256];
-			  //sprintf(sOutFile, "output/%s", cName);
-			  FILE* fOut = fopen(cName, "wb");
-			  uint8_t* buf = (uint8_t*)malloc(i->size);
+				tch.sIn = "";
+				FILE* fOut = fopen(cName, "wb");
+				uint8_t* buf = (uint8_t*)malloc(i->size);
 			  
-			  if(fread((void*)buf, 1, i->size, f) != i->size)
+				if(fread((void*)buf, 1, i->size, f) != i->size)
 				{
 					cout << "Error reading non-compressed data." << endl;
 					fclose(f);
@@ -444,34 +446,24 @@ int main(int argc, char** argv)
 				fwrite((void*)buf, 1, i->size, fOut);
 				
 			  
-			  free(buf);
-			  fclose(fOut);
+				free(buf);
+				fclose(fOut);
 			}
 			else
 			{
 				cout << "Invalid resource flag " << i->flags << endl;
 			}
 			
-			//See if this was a PNG image
-			if(strstr(cName, ".png") != NULL ||
-			   strstr(cName, ".PNG") != NULL ||
-			   strstr(cName, "coloritemicon") != NULL ||
-			   strstr(cName, "colorbgicon") != NULL ||
-			   strstr(cName, "greybgicon") != NULL)			//Also would include .png.normal files as well
-			{
-				convertPNG(cName);	//Do the conversion
-			}
+			g_lThreadedResources.push_back(tch);
+		/*}
+		
+		cout << "Converting data" << endl;
+		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
+		{*/
 			
-			//Convert .flac binary files to OGG
-			if(strstr(cName, ".flac") != NULL ||
-			   strstr(cName, ".FLAC") != NULL)
-			{
-				string s = cName;
-				s += ".ogg";
-				binaryToOgg(cName, s.c_str());
-				unlink(cName);	//Delete temporary .flac file
-			}
 		}
+		
+		threadedDecompress();
 		
 		fclose(f);
 		oPakList.close();
