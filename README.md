@@ -2,7 +2,7 @@ liTools
 =======
 Tools for compression and decompression of Little Inferno .pak files, and routines for managing mod creation and merging
 
-Created by Daxar (aka MOM4Evr) from the infernofans forum -- http://infernofans.com/user/13
+Created by Daxar from the infernofans forum -- http://infernofans.com/user/13
 
 RUN ALL THESE PROGRAMS OFF A BACKUP COPY OF YOUR GAME, NOT THE ORIGINAL VERSION! You have been warned.
 
