@@ -4,6 +4,7 @@
 #include "pakDataTypes.h"
 #include <iostream>
 #include <stack>
+#include <list>
 #include <map>
 #include <string>
 #include <cstring>
@@ -11,7 +12,7 @@
 #include <windows.h>
 using namespace std;
 
-stack<ThreadConvertHelper> g_sThreadedResources;
+list<ThreadConvertHelper> g_lThreadedResources;
 extern map<string, pakHelper> g_pakHelping;	//in liCompress.cpp, used for packing stuff into the .pak files
 u32 iCurResource;
 u32 iNumResources;
@@ -38,13 +39,13 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		{
 			// The thread got ownership of the mutex
 			case WAIT_OBJECT_0:
-				if(!g_sThreadedResources.size())	//Done
+				if(!g_lThreadedResources.size())	//Done
 					bDone = true;
 				else
 				{
 					//Grab the top item off the list
-					tch = g_sThreadedResources.top();
-					g_sThreadedResources.pop();	//Done with this element
+					tch = g_lThreadedResources.front();
+					g_lThreadedResources.pop_front();	//Done with this element
 				}
 				
 				//Let user know which resource we're converting now
@@ -75,7 +76,9 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		{
 			string s = tch.sIn + ".ogg";
 			oggToBinary(s.c_str(), tch.sFilename.c_str());
+			WaitForSingleObject(ghMutex, INFINITE);
 			g_pakHelping[tch.sIn].bCompressed = false;	//No compression for OGG streams, since these are compressed already
+			ReleaseMutex(ghMutex);
 		}
 		//If this was a PNG image
 		else if(strstr(cName, ".png") != NULL ||
@@ -88,18 +91,21 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			
 			string s = tch.sIn + ".temp";	//Use the decompressed PNG for this
 			compdecomp(s.c_str(), tch.sFilename.c_str(), 1);
+			WaitForSingleObject(ghMutex, INFINITE);
 			g_pakHelping[tch.sIn].bCompressed = true;
 			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(s.c_str());	//Hang onto these for compressed header stuff
 			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
+			ReleaseMutex(ghMutex);
 			unlink(s.c_str());	//Remove the temporary file
 		}
 		else
 		{
-			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1);	
+			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1);
+			WaitForSingleObject(ghMutex, INFINITE);	
 			g_pakHelping[tch.sIn].bCompressed = true;
 			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(tch.sIn.c_str());	//Hang onto these for compressed header stuff
 			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
-			
+			ReleaseMutex(ghMutex);
 		}
 	}
 	return 0;
@@ -108,7 +114,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 void threadedCompress()
 {
 	iCurResource = 0;
-	iNumResources = g_sThreadedResources.size();
+	iNumResources = g_lThreadedResources.size();
 	
 	//Create mutex
 	ghMutex = CreateMutex(NULL,              // default security attributes
@@ -117,7 +123,7 @@ void threadedCompress()
 
     if (ghMutex == NULL) 
     {
-        cout << "ERROR: Unable to create mutex for multithreded compression. Aborting..." << endl;
+        cout << "Error: Unable to create mutex for multithreaded compression. Aborting..." << endl;
         return;
     }
 	

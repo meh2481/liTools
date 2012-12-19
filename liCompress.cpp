@@ -4,7 +4,6 @@
 #include <VFSTools.h>
 #include <iostream>
 #include <list>
-#include <stack>
 #include <map>
 #include <vector>
 #include <string>
@@ -12,6 +11,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
+#include <windows.h>
 using namespace std;
 
 map<u32,i32> g_IDMappings;
@@ -21,7 +21,7 @@ vector<StringPointerEntry> g_stringPointerList;
 vector<char> g_stringList;
 ttvfs::VFSHelper vfs;
 
-extern stack<ThreadConvertHelper> g_sThreadedResources;	//Declared in threadCompress.cpp, used for multi-threaded compression
+extern list<ThreadConvertHelper> g_lThreadedResources;	//Declared in threadCompress.cpp, used for multi-threaded compression
 
 map<string, pakHelper> g_pakHelping;
 
@@ -336,6 +336,8 @@ void removeTempFiles()
 //Main program entry point
 int main(int argc, char** argv)
 {
+	DWORD iTicks = GetTickCount();
+
 	vfs.Prepare();
 		
 	//read in the resource names to pack
@@ -367,6 +369,13 @@ int main(int argc, char** argv)
 			getline(infile, s);
 			if(!s.length() || s == "")
 				continue;	//Ignore blank lines
+			//Convert \\ characters to /
+			size_t found = s.find_first_of('\\');
+			while (found != string::npos)
+			{
+				s[found] = '/';
+				found = s.find_first_of('\\', found+1);
+			}
 			lstrFilesToPak.push_back(s);
 		}
 		
@@ -378,8 +387,6 @@ int main(int argc, char** argv)
 		for(list<string>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
 		{
 			iCurFilePaking++;
-			//cout << "Compressing file " << iCurFilePaking << " of " << lstrFilesToPak.size() << ": " << *i << endl;
-			//const char* cName = i->c_str();
 			u32 repakName = g_repakMappings[*i];
 			char cIDFilename[256];
 			sprintf(cIDFilename, "temp/%u", repakName);
@@ -387,45 +394,11 @@ int main(int argc, char** argv)
 			ThreadConvertHelper tch;
 			tch.sIn = *i;
 			tch.sFilename = cIDFilename;
-			//We don't care about compression
-			g_sThreadedResources.push(tch);	//Add this to our queue to compress
+			//We don't care about compression for this tch
+			g_lThreadedResources.push_back(tch);	//Add this to our queue to compress
 		}
 		
 		threadedCompress();	//Compress everything
-			
-		/*	//If this was an OGG sound
-			if(strstr(cName, ".flac") != NULL ||
-			   strstr(cName, ".FLAC") != NULL)
-			{
-				string s = *i + ".ogg";
-				oggToBinary(s.c_str(), cIDFilename);
-				g_pakHelping[*i].bCompressed = false;	//No compression for OGG streams, since these are compressed already
-			}
-			//If this was a PNG image
-			else if(strstr(cName, ".png") != NULL ||
-			   strstr(cName, ".PNG") != NULL ||
-			   strstr(cName, "coloritemicon") != NULL ||
-			   strstr(cName, "colorbgicon") != NULL ||
-			   strstr(cName, "greybgicon") != NULL)			//Also would include .png.normal files as well
-			{
-				convertFromPNG(cName);	//Do the conversion
-				
-				string s = *i + ".temp";	//Use the decompressed PNG for this
-				compdecomp(s.c_str(), cIDFilename, 1);
-				g_pakHelping[*i].bCompressed = true;
-				g_pakHelping[*i].cH.uncompressedSizeBytes = ttvfs::GetFileSize(s.c_str());	//Hang onto these for compressed header stuff
-				g_pakHelping[*i].cH.compressedSizeBytes = ttvfs::GetFileSize(cIDFilename);
-				unlink(s.c_str());	//Remove the temporary file
-			}
-			else
-			{
-				compdecomp(i->c_str(), cIDFilename, 1);	
-				g_pakHelping[*i].bCompressed = true;
-				g_pakHelping[*i].cH.uncompressedSizeBytes = ttvfs::GetFileSize(i->c_str());	//Hang onto these for compressed header stuff
-				g_pakHelping[*i].cH.compressedSizeBytes = ttvfs::GetFileSize(cIDFilename);
-				
-			}
-		}*/
 		
 		//Ok, now we have all the compressed files in temp/ . Stick them in the .pak file and call it a day
 		ttvfs::StringList slFiles;
@@ -520,6 +493,14 @@ int main(int argc, char** argv)
 	}
 	removeTempFiles();
 	cout << "Done." << endl;
+	
+	iTicks = GetTickCount() - iTicks;
+	int iSeconds = iTicks / 1000;	//Get seconds elapsed
+	int iMinutes = iSeconds / 60;
+	iSeconds -= iMinutes * 60;
+	
+	cout << "Time elapsed: " << iMinutes << " min, " << iSeconds << " sec" << endl;
+	
 	return 0;
 }
 

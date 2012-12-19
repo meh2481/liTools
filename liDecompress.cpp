@@ -4,7 +4,6 @@
 #include <VFSTools.h>
 #include <iostream>
 #include <list>
-#include <stack>
 #include <map>
 #include <vector>
 #include <string>
@@ -12,9 +11,10 @@
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
+#include <windows.h>
 using namespace std;
 
-extern stack<ThreadConvertHelper> g_sThreadedResources;
+extern list<ThreadConvertHelper> g_lThreadedResources;
 
 map<u32,i32> g_IDMappings;
 vector<StringTableEntry> g_stringTableList;
@@ -323,6 +323,8 @@ void readDebugPak()
 //Main program entry point
 int main(int argc, char** argv)
 {
+	DWORD iTicks = GetTickCount();	//Store the starting number of milliseconds
+	
 	vfs.Prepare();
 		
 	//read in the resource names to unpack
@@ -385,7 +387,7 @@ int main(int argc, char** argv)
 		ofstream oPakList(sPakListFilename.c_str());
 		
 		//Iterate through these items, splitting them out of the file and creating new files out of each
-		int iCurFile = 0;
+		cout << "Extracting files..." << endl;
 		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
 		{
 			ThreadConvertHelper tch;
@@ -393,9 +395,6 @@ int main(int argc, char** argv)
 			makeFolder(i->id);
 			char* cName = getName(i->id);
 			oPakList << cName << endl;
-			iCurFile++;
-			//This is the only form of progress bar you get
-			cout << "Extracting file " << iCurFile << " out of " << lResourceHeaders.size() << ": " << cName << endl;
 			fseek(f, i->offset, SEEK_SET);
 			tch.sFilename = cName;
 			if(i->flags == FLAG_ZLIBCOMPRESSED)
@@ -428,7 +427,6 @@ int main(int argc, char** argv)
 				fclose(fOut);
 				free(buf);
 				
-				//compdecomp(sOutFile, cName);
 				tch.sIn = sOutFile;
 				tch.bCompressed = true;
 			}
@@ -457,12 +455,7 @@ int main(int argc, char** argv)
 				cout << "Invalid resource flag " << i->flags << endl;
 			}
 			
-			g_sThreadedResources.push(tch);
-		/*}
-		
-		cout << "Converting data" << endl;
-		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
-		{*/
+			g_lThreadedResources.push_back(tch);
 			
 		}
 		
@@ -474,5 +467,13 @@ int main(int argc, char** argv)
 	
 	removeTempFiles();
 	cout << "Done." << endl;
+	
+	iTicks = GetTickCount() - iTicks;
+	int iSeconds = iTicks / 1000;	//Get seconds elapsed
+	int iMinutes = iSeconds / 60;
+	iSeconds -= iMinutes * 60;
+	
+	cout << "Time elapsed: " << iMinutes << " min, " << iSeconds << " sec" << endl;
+	
 	return 0;
 }

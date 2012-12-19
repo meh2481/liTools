@@ -36,6 +36,26 @@ liCompress.exe resource.pak embed.pak frontend.pak
 
 Please note that these .pak files might not exist beforehand (they don't have to). If they do exist, you can click-drag them into the executable as usual. For each pakfile, liCompress looks for a text file in the form [pakfile].pak.filelist.txt to know what files go inside that particular .pak file. You can create your own .pak files this way. liDecompress will autogenerate these .filelist.txt files when decompressing, so to save yourself a lot of typing, decompress first before compressing so all the .filelist.txt files are there. For now, this is how it works; this probably will change in a later version to become more user-friendly.
 
+Mod creation and installation
+=============================
+Mods should be standard .pak files. To create your own mod, change the files you wish to change, and create a [modname].filelist.txt, which should be a list of all the filenames (relative to the Little Inferno executable) of all the files you have changed. For example, if you change the images data/items/Battery/Battery.png, data/animations/Intro/pchim1.png, data/animations/Intro/pchim2.png, and data/animations/Intro/pchim3.png, and you wish to name your mod "myMod", you'll have to create a file "myMod.filelist.txt" in the Little Inferno executable directory, and add the following lines to it:
+
+data/items/Battery/Battery.png
+data/animations/Intro/pchim1.png
+data/animations/Intro/pchim2.png
+data/animations/Intro/pchim3.png
+
+Then, simply run 
+
+liCompress myMod.pak
+
+And it'll spit out the myMod.pak file. 
+To install mods, run
+
+modManage [pakfile1] [pakfile2] ... [pakfileN]
+
+Where [pakfileX] is the mod you wish to install (or click-and-drag files into the executable). modManage will pull resource headers out of every .pak file to figure out what files should go in what .pak file, and will only modify the original .pak files as needed. If your mod changes files found in resource.pak, it may take a little while to install (about 30 seconds on my machine). Changes made later in the commandline will overwrite earlier changes; for example, if you run "modManage battery.pak battery2.pak", and both of these .pak files change data/items/Battery/Battery.png, the battery2.pak's version of the image will end up in the final game.
+
 Changelog
 =========
 Version 0.1:
@@ -56,6 +76,12 @@ Version 0.3:
 	- For now, all files are compressed by default
 	- Added util/repack.exe program for repacking .pak files into the game's exe
 
+Version 0.3.1:
+	- Multithreaded decompression/compression for speed
+	- OGG streams are now left uncompressed
+
+Version 0.3.2:
+	- modManage program for merging in mods
 
 Building (For my reference, makefile coming 'soon')
 ===================================================
@@ -63,6 +89,7 @@ Build with:
 	g++ -Wall liDecompress.cpp threadDecompress.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
 	g++ -Wall liCompress.cpp threadCompress.cpp ogg.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
 	g++ -Wall strip.cpp -O2 -o strip.exe
+	g++ -Wall modManage.cpp -O2 -o modManage.exe -lttvfs
 	g++ -Wall repack.cpp -O2 -o repack.exe -lttvfs
 	
 Apologies for hastily-thrown-together code that isn't commented much at all.

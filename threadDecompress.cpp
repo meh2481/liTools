@@ -3,14 +3,14 @@
 
 #include "pakDataTypes.h"
 #include <iostream>
-#include <stack>
+#include <list>
 #include <string>
 #include <cstring>
 #include <stdlib.h>
 #include <windows.h>
 using namespace std;
 
-stack<ThreadConvertHelper> g_sThreadedResources;
+list<ThreadConvertHelper> g_lThreadedResources;
 u32 iCurResource;
 u32 iNumResources;
 HANDLE ghMutex;
@@ -27,18 +27,18 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		{
 			// The thread got ownership of the mutex
 			case WAIT_OBJECT_0:
-				if(!g_sThreadedResources.size())	//Done
+				if(!g_lThreadedResources.size())	//Done
 					bDone = true;
 				else
 				{
 					//Grab the top item off the list
-					tch = g_sThreadedResources.top();
-					g_sThreadedResources.pop();	//Done with this element
+					tch = g_lThreadedResources.front();
+					g_lThreadedResources.pop_front();	//Done with this element
 				}
 				
 				//Let user know which resource we're converting now
 				if(!bDone)
-					cout << "Converting resource " << ++iCurResource << " out of " << iNumResources << ": " << tch.sFilename << endl;
+					cout << "Decompressing resource " << ++iCurResource << " out of " << iNumResources << ": " << tch.sFilename << endl;
 				
 				// Release ownership of the mutex object
 				if (!ReleaseMutex(ghMutex)) 
@@ -88,7 +88,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 void threadedDecompress()
 {
 	iCurResource = 0;
-	iNumResources = g_sThreadedResources.size();
+	iNumResources = g_lThreadedResources.size();
 	
 	//Create mutex
 	ghMutex = CreateMutex(NULL,              // default security attributes
@@ -97,7 +97,7 @@ void threadedDecompress()
 
     if (ghMutex == NULL) 
     {
-        cout << "ERROR: Unable to create mutex for multithreded decompression. Aborting..." << endl;
+        cout << "Error: Unable to create mutex for multithreded decompression. Aborting..." << endl;
         return;
     }
 	
