@@ -10,7 +10,9 @@
 using namespace std;
 #define i32 int32_t
 #define u32 uint32_t
+#define f32	float
 
+//Mark I structures - .pak file headers
 typedef struct 
 {
 	i32 pakVersion;
@@ -34,8 +36,7 @@ typedef struct
 #define FLAG_NOCOMPRESSION	0x00
 #define FLAG_ZLIBCOMPRESSED	0x01
 
-//Mark II structures
-
+//Mark II structures - PNG headers and residmap.dat headers
 typedef struct
 {
 	i32 count;
@@ -82,6 +83,19 @@ typedef struct
 	u32 flags;
 } ImageHeader;
 
+//Mark III structures - wordPackDict.dat headers
+typedef struct
+{
+	BinHdrPtr words;
+	BinHdrPtr stringTableBytes;
+} wordPackDictHeader;
+
+typedef struct
+{
+	i32 wordStrId;
+	f32 probability;
+} wordHeader;
+
 //Structures for my use
 typedef struct
 {
@@ -105,6 +119,8 @@ void threadedDecompress();
 void threadedCompress();
 bool convertPNG(const char* cFilename);
 bool convertFromPNG(const char* cFilename);
+bool wordPackToXML(const char* cFilename);
+bool XMLToWordPack(const char* cFilename);
 
 
 

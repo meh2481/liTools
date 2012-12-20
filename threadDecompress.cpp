@@ -72,9 +72,15 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			convertPNG(cName);	//Do the conversion
 		}
 		
+		else if(strstr(cName, "wordPackDict.dat") != NULL)
+		{
+			wordPackToXML(cName);
+			unlink(cName);
+		}
+		
 		//Convert .flac binary files to OGG
-		if(strstr(cName, ".flac") != NULL ||
-		   strstr(cName, ".FLAC") != NULL)
+		else if(strstr(cName, ".flac") != NULL ||
+				strstr(cName, ".FLAC") != NULL)
 		{
 			string s = cName;
 			s += ".ogg";
@@ -97,7 +103,7 @@ void threadedDecompress()
 
     if (ghMutex == NULL) 
     {
-        cout << "Error: Unable to create mutex for multithreded decompression. Aborting..." << endl;
+        cout << "Error: Unable to create mutex for multithreaded decompression. Aborting..." << endl;
         return;
     }
 	

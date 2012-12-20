@@ -2,7 +2,7 @@ liTools
 =======
 Tools for compression and decompression of Little Inferno .pak files, and routines for managing mod creation and merging
 
-Created by Daxar from the infernofans forum -- http://infernofans.com/user/13
+Created by Daxar (aka MOM4Evr) from the infernofans forum -- http://infernofans.com/user/13
 
 RUN ALL THESE PROGRAMS OFF A BACKUP COPY OF YOUR GAME, NOT THE ORIGINAL VERSION! You have been warned.
 
@@ -88,7 +88,7 @@ Version 0.3.2:
 Building (For my reference; makefile coming 'soon')
 ===================================================
 Build with:
-    g++ -Wall liDecompress.cpp threadDecompress.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
+    g++ -Wall liDecompress.cpp threadDecompress.cpp wordPackDict.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
     g++ -Wall liCompress.cpp threadCompress.cpp ogg.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg
     g++ -Wall strip.cpp -O2 -o strip.exe
     g++ -Wall modManage.cpp -O2 -o modManage.exe -lttvfs
