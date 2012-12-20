@@ -98,6 +98,17 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			ReleaseMutex(ghMutex);
 			unlink(s.c_str());	//Remove the temporary file
 		}
+		else if(strstr(cName, "wordPackDict.dat") != NULL)
+		{
+			XMLToWordPack(cName);	//De-XML this first
+			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1);
+			WaitForSingleObject(ghMutex, INFINITE);	
+			g_pakHelping[tch.sIn].bCompressed = true;
+			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(tch.sIn.c_str());	//Hang onto these for compressed header stuff
+			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
+			ReleaseMutex(ghMutex);
+			unlink(cName);
+		}
 		else
 		{
 			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1);

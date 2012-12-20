@@ -73,6 +73,7 @@ typedef struct
 	i32 offset;
 } StringPointerEntry;
 
+#define LANGID_ENGLISH  0x656E
 #define GREYSCALE_PNG	0x08
 #define STANDARD_PNG	0x01
 
