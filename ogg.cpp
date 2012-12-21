@@ -13,6 +13,8 @@ using namespace std;
  
 // MUST use libogg-1.1.4 - not any other version!
 #include <ogg/ogg.h>
+
+const int kStdWorkingSetSizeBytes = 106848;
  
 struct SoundHeader
 {
@@ -254,7 +256,7 @@ int oggToBinary( const char* in, const char* out )
         // now we can write the game sound resource output
         FILE *fDest = fopen( out, "wb" );
  
-        const int kStdWorkingSetSizeBytes = 108204;
+        //const int kStdWorkingSetSizeBytes = 108204;
  
         // write header
         SoundHeader hdr;
@@ -289,4 +291,147 @@ int oggToBinary( const char* in, const char* out )
         vorbis_info_clear( &vi );
  
         return 0;
+}
+
+#include "pakDataTypes.h"
+#include <iostream>
+
+takeRecord getOggData( const char* cFile )
+{
+        FILE *fSrc = fopen( cFile, "rb" );
+		if(fSrc == NULL)
+		{
+			std::cout << "Error: Could not open file " << cFile << " for reading." << std::endl;
+			exit(1);
+		}
+ 
+        // get size of ogg src file
+        fseek( fSrc, 0, SEEK_END );
+        int oggSizeBytes = ftell( fSrc );
+        fseek( fSrc, 0, SEEK_SET );
+ 
+        ogg_sync_state oy;
+        ogg_sync_init( &oy );
+ 
+        // read in the entire ogg file and give it to the ogg sync state
+        char *pBuffer = ogg_sync_buffer( &oy, oggSizeBytes );
+        fread( pBuffer, 1, oggSizeBytes, fSrc );
+        ogg_sync_wrote( &oy, oggSizeBytes );
+        fclose( fSrc );
+ 
+        // get the first ogg page so we can see what the serial number we need to use is
+        ogg_page og;
+        ogg_sync_pageout( &oy, &og );
+        int serialNumber = ogg_page_serialno( &og );
+ 
+        // set up an ogg stream and load it up with all of the pages we have
+        ogg_stream_state os;
+        ogg_stream_init( &os, serialNumber );
+ 
+        do
+        {
+                ogg_stream_pagein( &os, &og );
+        }
+        while( ogg_sync_pageout( &oy, &og ) > 0 );
+ 
+        // vorbis init
+        vorbis_info vi;
+        vorbis_info_init( &vi );
+ 
+        vorbis_comment vc;
+        vorbis_comment_init( &vc );
+ 
+        vorbis_block vb;
+        vorbis_dsp_state vd;
+ 
+        // process all packets
+        ogg_packet op;
+        int sampleCounter = 0;
+        int packetStreamBytes = 0;
+        std::vector< StreamMarker > markers;
+        std::vector< VorbisPacket > packets;
+        while( ogg_stream_packetout( &os, &op ) > 0 )
+        {
+                // use granulepos from ogg packet to set up stream markers
+                // markers are almost 1:1 with ogg but with a slight change on the first audio packet
+                int granulePos = -1;
+                if( packets.size() == 3 )
+                {
+                        granulePos = 0;
+                }
+                else if( packets.size() > 3 )
+                {
+                        granulePos = (int)op.granulepos;
+                }
+ 
+                if( granulePos >= 0 )
+                {
+                        StreamMarker marker;
+                        marker.packetStreamByteOffset = packetStreamBytes;
+                        marker.pcmSampleOffset = granulePos;
+                        marker.packetIdx = packets.size();
+                        markers.push_back( marker );
+                }
+ 
+                // feed packets to vorbis so we can ask about stream meta data later
+                if( packets.size() < 3 )
+                {
+                        vorbis_synthesis_headerin( &vi, &vc, &op );
+                        if( packets.size() == 2 )
+                        {
+                                vorbis_synthesis_init( &vd, &vi );
+                                vorbis_block_init( &vd, &vb );
+                        }
+                }
+                else
+                {
+                        vorbis_synthesis( &vb, &op );
+                        vorbis_synthesis_blockin( &vd, &vb );
+ 
+                        float **pcm;
+                        int samples = vorbis_synthesis_pcmout( &vd, &pcm );
+                        vorbis_synthesis_read( &vd, samples );
+                        sampleCounter += samples;
+                }
+ 
+                // remember packet data to use later for output
+                VorbisPacket packet;
+                packet.sizeBytes = op.bytes;
+                packet.pData = new unsigned char[ op.bytes ];
+                memcpy( packet.pData, op.packet, op.bytes );
+                packets.push_back( packet );
+ 
+                packetStreamBytes += sizeof(short) + op.bytes;
+        }
+ 
+        // cleanup
+        vorbis_block_clear( &vb );
+        vorbis_dsp_clear( &vd );       
+        vorbis_comment_clear( &vc );
+ 
+        ogg_stream_clear( &os );
+        ogg_sync_clear( &oy );
+ 
+        // now we can write the game sound resource output
+ 
+        
+ 
+        // Figure out header
+		takeRecord tr;
+	    tr.channels = vi.channels;
+		tr.samplesPerSec = vi.rate;
+		tr.sampleCountPerChannel = sampleCounter;
+		tr.vorbisWorkingSetSizeBytes = kStdWorkingSetSizeBytes;
+		tr.vorbisMarkersSizeBytes = markers.size() * sizeof(StreamMarker);
+		tr.vorbisPacketsSizeBytes = packetStreamBytes;
+ 
+        // cleanup
+        for( unsigned int i=0; i < packets.size(); ++i )
+        {
+                delete [] packets[i].pData;
+        }
+ 
+        vorbis_info_clear( &vi );
+ 
+        return tr;
 }

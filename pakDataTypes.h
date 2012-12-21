@@ -112,17 +112,48 @@ typedef struct
 	bool bCompressed;
 } ThreadConvertHelper;
 
+//Mark IV structures - sndmanifest.dat structures
+typedef struct
+{
+	BinHdrPtr sounds;
+	BinHdrPtr takes;
+} soundManifestHeader;
+
+typedef struct
+{
+	u32 logicalId;
+	i32 firstTakeIdx;
+	i32 numTakes;
+} soundTakeGroup;
+
+typedef struct
+{
+	u32 resId;
+	i32 channels;
+	i32 samplesPerSec;
+	i32 sampleCountPerChannel;
+	i32 vorbisWorkingSetSizeBytes;
+	i32 vorbisMarkersSizeBytes;
+	i32 vorbisPacketsSizeBytes;
+} takeRecord;
+
+
 //helper functions
 int compdecomp(const char* cIn, const char* cOut, int iCompress = false);
 int binaryToOgg( const char* in, const char* out );
 int oggToBinary( const char* in, const char* out );
+takeRecord getOggData( const char* cFile );
 void threadedDecompress();
 void threadedCompress();
 bool convertPNG(const char* cFilename);
 bool convertFromPNG(const char* cFilename);
 bool wordPackToXML(const char* cFilename);
 bool XMLToWordPack(const char* cFilename);
-
+bool sndManifestToXML(const char* cFilename);
+bool XMLToSndManifest(const char* cFilename);
+void readResidMap();
+const char* getName(u32 resId);
+u32 getResID(string sName);
 
 
 #endif

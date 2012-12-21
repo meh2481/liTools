@@ -78,6 +78,12 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			unlink(cName);
 		}
 		
+		else if(strstr(cName, "sndmanifest.dat") != NULL)
+		{
+			sndManifestToXML(cName);
+			unlink(cName);
+		}
+		
 		//Convert .flac binary files to OGG
 		else if(strstr(cName, ".flac") != NULL ||
 				strstr(cName, ".FLAC") != NULL)

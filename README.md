@@ -92,8 +92,9 @@ Version 0.3.3:
 Building (For my reference; makefile coming 'soon')
 ===================================================
 Build with:
-    g++ -Wall liDecompress.cpp threadDecompress.cpp wordPackDict.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
-    g++ -Wall liCompress.cpp threadCompress.cpp wordPackDict.cpp ogg.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
+    g++ -Wall liDecompress.cpp threadDecompress.cpp wordPackDict.cpp sndmanifest.cpp residmap.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
+    g++ -Wall liCompress.cpp threadCompress.cpp wordPackDict.cpp sndmanifest.cpp ogg.cpp residmap.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
+	g++ -Wall recalcSoundManifest.cpp ogg.cpp -o recalcSoundManifest.exe -lvorbis -logg -ltinyxml2
     g++ -Wall strip.cpp -O2 -o strip.exe
     g++ -Wall modManage.cpp -O2 -o modManage.exe -lttvfs
     g++ -Wall repack.cpp -O2 -o repack.exe -lttvfs

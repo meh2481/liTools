@@ -70,6 +70,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			continue;	//Stop here if done
 		
 		const char* cName = tch.sIn.c_str();
+		bool bNormalConvert = false;
 			
 		if(strstr(cName, ".flac") != NULL ||
 		   strstr(cName, ".FLAC") != NULL)
@@ -101,18 +102,20 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		else if(strstr(cName, "wordPackDict.dat") != NULL)
 		{
 			XMLToWordPack(cName);	//De-XML this first
-			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1);
-			WaitForSingleObject(ghMutex, INFINITE);	
-			g_pakHelping[tch.sIn].bCompressed = true;
-			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(tch.sIn.c_str());	//Hang onto these for compressed header stuff
-			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
-			ReleaseMutex(ghMutex);
-			unlink(cName);
+			bNormalConvert = true;	//Behave like normal
+		}
+		else if(strstr(cName, "sndmanifest.dat") != NULL)
+		{
+			XMLToSndManifest(cName);
+			bNormalConvert = true;
 		}
 		else
+			bNormalConvert = true;
+		
+		if(bNormalConvert)
 		{
 			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1);
-			WaitForSingleObject(ghMutex, INFINITE);	
+			WaitForSingleObject(ghMutex, INFINITE);
 			g_pakHelping[tch.sIn].bCompressed = true;
 			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(tch.sIn.c_str());	//Hang onto these for compressed header stuff
 			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());

@@ -16,10 +16,6 @@ using namespace std;
 
 extern list<ThreadConvertHelper> g_lThreadedResources;
 
-map<u32,i32> g_IDMappings;
-vector<StringTableEntry> g_stringTableList;
-vector<StringPointerEntry> g_stringPointerList;
-vector<char> g_stringList;
 ttvfs::VFSHelper vfs;
 
 //Remove all files in the temp/ folder, since we're done with them
@@ -205,18 +201,10 @@ bool convertPNG(const char* cFilename)
   return true;
 }
 
-//Get a filename from a resource ID
-char* getName(u32 resId)
-{
-	i32 strId = g_IDMappings[resId];
-	char* cData = g_stringList.data();
-	return &cData[g_stringPointerList[g_stringTableList[strId].pointerIndex].offset];
-}
-
 //Create the folder that this resource ID's file will be placed in
 void makeFolder(u32 resId)
 {
-	char* cName = getName(resId);
+	const char* cName = getName(resId);
 	for(int i = strlen(cName)-1; i >= 0; i--)
 	{
 		if(cName[i] == '/')
@@ -233,93 +221,6 @@ void makeFolder(u32 resId)
 	}
 }
 
-//Read in in our decompressed "residmap.dat" file, which includes the filenames for us to stick them in the right place
-void readDebugPak()
-{
-	FILE* fp = fopen("residmap.dat", "rb");	//This is "debug.pak" already in extracted form in the file "residmap.dat", for my ease of use.
-	if(fp == NULL)
-	{
-		cout << "Unable to open residmap.dat. Please place this file in the same directory as this program. Abort." << endl;
-		exit(0);
-	}
-	
-	DebugPakHeader dph;
-	
-	//Read in the headers
-	if(fread((void*)&(dph), 1, sizeof(DebugPakHeader), fp) != sizeof(DebugPakHeader))
-	{
-		cout << "DebugPakHeader malformed" << endl;
-		fclose(fp);
-		exit(0);
-	}
-	
-	//Read in the mappings
-	for(int i = 0; i < dph.maps.count; i++)
-	{
-		MappingHeader mh;
-		if(fread((void*)&mh, 1, sizeof(MappingHeader), fp) != sizeof(MappingHeader))
-		{
-			cout << "MappingHeader malformed" << endl;
-			fclose(fp);
-			exit(0);
-		}
-		//Store
-		g_IDMappings[mh.resId] = mh.strId;
-	}
-	
-	//Now for string table header
-	StringTableHeader sth;
-	if(fread((void*)&sth, 1, sizeof(StringTableHeader), fp) != sizeof(StringTableHeader))
-	{
-		cout << "StringTableHeader malformed" << endl;
-		fclose(fp);
-		exit(0);
-	}
-	//Allocate memory for this many string table & pointer entries
-	g_stringTableList.reserve(sth.numStrings);
-	g_stringPointerList.reserve(sth.numPointers);
-	g_stringList.reserve((sizeof(char) * sth.numStrings)*256);
-	
-	//Read in string table entries
-	for(int i = 0; i < sth.numStrings; i++)
-	{
-		StringTableEntry ste;
-		if(fread((void*)&ste, 1, sizeof(StringTableEntry), fp) != sizeof(StringTableEntry))
-		{
-			cout << "StringTableEntry " << i << " malformed out of " << sth.numStrings << endl;
-			fclose(fp);
-			exit(0);
-		}
-		//Store
-		g_stringTableList[i] = ste;
-	}
-	
-	//and string table pointers
-	for(int i = 0; i < sth.numPointers; i++)
-	{
-		StringPointerEntry spe;
-		if(fread((void*)&spe, 1, sizeof(StringPointerEntry), fp) != sizeof(StringPointerEntry))
-		{
-			cout << "StringPointerEntry malformed" << endl;
-			fclose(fp);
-			exit(0);
-		}
-		//Store
-		g_stringPointerList[i] = spe;
-	}
-	
-	//Now read in the strings until we hit the end of the file
-	int c;
-	while((c=fgetc(fp)) != EOF)
-	{
-		if(c == '\\')	//Change all backslashes to forward slashes. Tsk, tsk, Allan.
-			c = '/';
-		g_stringList.push_back(c);
-	}
-	
-	fclose(fp);
-}
-
 //Main program entry point
 int main(int argc, char** argv)
 {
@@ -328,7 +229,7 @@ int main(int argc, char** argv)
 	vfs.Prepare();
 		
 	//read in the resource names to unpack
-	readDebugPak();
+	readResidMap();
 	
 	if(argc < 2)
 	{
@@ -393,7 +294,7 @@ int main(int argc, char** argv)
 			ThreadConvertHelper tch;
 			tch.bCompressed = false;
 			makeFolder(i->id);
-			char* cName = getName(i->id);
+			const char* cName = getName(i->id);
 			oPakList << cName << endl;
 			fseek(f, i->offset, SEEK_SET);
 			tch.sFilename = cName;
