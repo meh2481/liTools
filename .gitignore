@@ -25,3 +25,4 @@ data/*
 ogg.txt
 out.txt
 resinfo.txt
+*.ogg
