@@ -2,11 +2,11 @@
 	- XML specification instead of .filelist.txt for mod creation?
 	- XML specification for which files go in which pakfiles?
 	- Some kind of backup capability so that mods can be uninstalled easily
-Automatic updating of vdata/sndmanifest.dat when .ogg files are modified
-	- XML specification for takes, so that those can be modified as well?	
 GUI for ease of use
 
 
 Done
 * 12/18/12 * Multithreading for faster compression/decompression
 * 12/19/12 * XML specification for vdata/wordPackDict.dat with compression/decompression routines
+* 12/22/12 * Automatic updating of vdata/sndmanifest.dat when .ogg files are modified
+* 12/22/12 *	- XML specification for takes, so that those can be modified as well?	

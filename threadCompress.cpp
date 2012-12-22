@@ -163,7 +163,7 @@ void threadedCompress()
 
         if( aThread[i] == NULL )
         {
-            cout << "CreateThread error: %d\n" << GetLastError() << endl;
+            cout << "CreateThread error: " << GetLastError() << endl;
 			free(aThread);
             return;
         }

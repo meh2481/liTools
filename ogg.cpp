@@ -9,12 +9,13 @@
 #include <vorbis/codec.h>
 #include <vector>
 #include <cstring>
+#include "pakDataTypes.h"
 using namespace std;
  
 // MUST use libogg-1.1.4 - not any other version!
 #include <ogg/ogg.h>
 
-const int kStdWorkingSetSizeBytes = 106848;
+const int kStdWorkingSetSizeBytes = 108204;
  
 struct SoundHeader
 {
@@ -293,16 +294,15 @@ int oggToBinary( const char* in, const char* out )
         return 0;
 }
 
-#include "pakDataTypes.h"
-#include <iostream>
-
 takeRecord getOggData( const char* cFile )
 {
         FILE *fSrc = fopen( cFile, "rb" );
 		if(fSrc == NULL)
 		{
-			std::cout << "Error: Could not open file " << cFile << " for reading." << std::endl;
-			exit(1);
+			//std::cout << "Could not open file " << cFile << " for reading. Skipping..." << std::endl;
+			takeRecord tr;
+			tr.resId = 0;
+			return tr;
 		}
  
         // get size of ogg src file
@@ -397,8 +397,7 @@ takeRecord getOggData( const char* cFile )
                 // remember packet data to use later for output
                 VorbisPacket packet;
                 packet.sizeBytes = op.bytes;
-                packet.pData = new unsigned char[ op.bytes ];
-                memcpy( packet.pData, op.packet, op.bytes );
+				//DXR: Ignore packet data, since we're only concerned with size here
                 packets.push_back( packet );
  
                 packetStreamBytes += sizeof(short) + op.bytes;
@@ -418,18 +417,13 @@ takeRecord getOggData( const char* cFile )
  
         // Figure out header
 		takeRecord tr;
+		tr.resId = 1;
 	    tr.channels = vi.channels;
 		tr.samplesPerSec = vi.rate;
 		tr.sampleCountPerChannel = sampleCounter;
 		tr.vorbisWorkingSetSizeBytes = kStdWorkingSetSizeBytes;
 		tr.vorbisMarkersSizeBytes = markers.size() * sizeof(StreamMarker);
 		tr.vorbisPacketsSizeBytes = packetStreamBytes;
- 
-        // cleanup
-        for( unsigned int i=0; i < packets.size(); ++i )
-        {
-                delete [] packets[i].pData;
-        }
  
         vorbis_info_clear( &vi );
  
