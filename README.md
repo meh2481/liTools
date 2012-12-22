@@ -93,39 +93,39 @@ Where [pakfileX] is the mod you wish to install (or click-and-drag files into th
 Changelog
 =========
 Version 0.1:
-    * Initial release
-    * Most .png and .png.normal images are correctly formatted
+* Initial release
+* Most .png and .png.normal images are correctly formatted
 
 Version 0.2:
-    * Added pullpakfiles and WinResource programs for pulling resources directly from the game's executable
-    * Correct handling of greyscale images
+* Added pullpakfiles and WinResource programs for pulling resources directly from the game's executable
+* Correct handling of greyscale images
 
 Version 0.2.1:
-    * Made strip program for extracting then stripping the .pak files
-    * Made util/removeresc.exe and util/test.exe programs
-    * Refactoring, minor changes to some tools
+* Made strip program for extracting then stripping the .pak files
+* Made util/removeresc.exe and util/test.exe programs
+* Refactoring, minor changes to some tools
 	
 Version 0.3:
-    * Added liCompress for compressing everything back into .pak files
-    * For now, all files are compressed by default
-    * Added util/repack.exe program for repacking .pak files into the game's exe
+* Added liCompress for compressing everything back into .pak files
+* For now, all files are compressed by default
+* Added util/repack.exe program for repacking .pak files into the game's exe
 
 Version 0.3.1:
-    * Multithreaded decompression/compression for speed
-    * OGG streams are now left uncompressed
+* Multithreaded decompression/compression for speed
+* OGG streams are now left uncompressed
 
 Version 0.3.2:
-    * modManage program for merging in mods
+* modManage program for merging in mods
 	
 Version 0.3.3:
-	* vdata/wordPackDict.dat is parsed and written to vdata/wordPackDict.dat.xml
-	* wordPackDict.dat.xml is compressed back into .dat form
+* vdata/wordPackDict.dat is parsed and written to vdata/wordPackDict.dat.xml
+* wordPackDict.dat.xml is compressed back into .dat form
 
 Version 0.3.4:
-	* vdata/sndmanifest.dat is parsed and written to vdata/sndmanifest.dat.xml
-	* sndmanifest.dat.xml is compressed back into .dat form
-	* added recalcSoundManifest.exe program to update sndmanifest.dat.xml if .ogg files are changed
-	* removed residmap.dat, contents are now compiled into the compress/decompress executables
+* vdata/sndmanifest.dat is parsed and written to vdata/sndmanifest.dat.xml
+* sndmanifest.dat.xml is compressed back into .dat form
+* added recalcSoundManifest.exe program to update sndmanifest.dat.xml if .ogg files are changed
+* removed residmap.dat, contents are now compiled into the compress/decompress executables
 
 
 Building (For my reference; makefile coming 'soon')
@@ -133,10 +133,17 @@ Building (For my reference; makefile coming 'soon')
 Build with:
     g++ -Wall liDecompress.cpp threadDecompress.cpp wordPackDict.cpp sndmanifest.cpp residmap.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
     g++ -Wall liCompress.cpp threadCompress.cpp wordPackDict.cpp sndmanifest.cpp ogg.cpp residmap.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
-	g++ -Wall recalcSoundManifest.cpp ogg.cpp -O2 -o recalcSoundManifest.exe -lvorbis -logg -ltinyxml2
+    g++ -Wall recalcSoundManifest.cpp ogg.cpp -O2 -o recalcSoundManifest.exe -lvorbis -logg -ltinyxml2
     g++ -Wall strip.cpp -O2 -o strip.exe
     g++ -Wall modManage.cpp -O2 -o modManage.exe -lttvfs
+	
+util/ subdir:
     g++ -Wall repack.cpp -O2 -o repack.exe -lttvfs
+	g++ -Wall pullpakfiles.cpp -O2 -o pullpakfiles.exe
+	g++ -Wall removeresc.cpp -O2 -o removeresc.exe
+	g++ -Wall repack.cpp -O2 -o removeresc.exe
+	g++ -Wall test.cpp -O2 -o test.exe -lttvfs
+	g++ -Wall WinResource.cpp -O2 -o WinResource.exe
 	
 Apologies for hastily-thrown-together code that isn't commented much at all.
 

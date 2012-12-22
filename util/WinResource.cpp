@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 	TCHAR szBuffer[80];  // print buffer for info file
 	DWORD cbWritten;     // number of bytes written to resource info file
 	//size_t cbString;     // length of string in szBuffer
-	HRESULT hResult;
+	//HRESULT hResult;
 
 	// Load the .EXE whose resources you want to list.
 	hExe = LoadLibrary(TEXT(argv[1]));
@@ -103,7 +103,7 @@ BOOL EnumTypesFunc(
     TCHAR szBuffer[80];  // print buffer for info file
     DWORD cbWritten;     // number of bytes written to resource info file
     //size_t cbString;
-    HRESULT hResult;
+    //HRESULT hResult;
 
     // Write the resource type to a resource information file.
     // The type may be a string or an unsigned decimal
@@ -115,7 +115,7 @@ BOOL EnumTypesFunc(
     }
     else
     {
-        sprintf(szBuffer, TEXT("Type: %u\r\n"), (ULONG)lpType);
+        sprintf(szBuffer, TEXT("Type: %lu\r\n"), (ULONG)lpType);
 		//cout << "isresource" << endl;
     }
 
@@ -142,7 +142,7 @@ BOOL EnumNamesFunc(
     TCHAR szBuffer[80];  // print buffer for info file
     DWORD cbWritten;     // number of bytes written to resource info file
     //size_t cbString;
-    HRESULT hResult;
+    //HRESULT hResult;
 	HRSRC hResInfo;
 
     // Write the resource name to a resource information file.
@@ -155,7 +155,7 @@ BOOL EnumNamesFunc(
     }
     else
     {
-        sprintf(szBuffer, TEXT("\tName: %u\r\n"), (ULONG)lpName);
+        sprintf(szBuffer, TEXT("\tName: %lu\r\n"), (ULONG)lpName);
 		//cout << "isresource" << endl;
     }
    
@@ -176,8 +176,8 @@ BOOL EnumNamesFunc(
 	
     // Write the resource handle and size to buffer.
     sprintf(szBuffer,
-			TEXT("\t\thResInfo == %lx,  Size == %lu\r\n\r\n"),
-			hResInfo,
+			TEXT("\t\thResInfo == %lu,  Size == %lu\r\n\r\n"),
+			(long unsigned int)(hResInfo),
 			resLen);
 	WriteFile(g_hFile, szBuffer, strlen(szBuffer), &cbWritten, NULL);
 
