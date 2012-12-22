@@ -128,23 +128,20 @@ Version 0.3.4:
 * removed residmap.dat, contents are now compiled into the compress/decompress executables
 
 
-Building (For my reference; makefile coming 'soon')
-===================================================
+Building
+========
 Build with:
-    g++ -Wall liDecompress.cpp threadDecompress.cpp wordPackDict.cpp sndmanifest.cpp residmap.cpp zpipe.c ogg.cpp -O2 -o liDecompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
-    g++ -Wall liCompress.cpp threadCompress.cpp wordPackDict.cpp sndmanifest.cpp ogg.cpp residmap.cpp zpipe.c -O2 -o liCompress.exe -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
-    g++ -Wall recalcSoundManifest.cpp ogg.cpp -O2 -o recalcSoundManifest.exe -lvorbis -logg -ltinyxml2
-    g++ -Wall strip.cpp -O2 -o strip.exe
-    g++ -Wall modManage.cpp -O2 -o modManage.exe -lttvfs
-	
-util/ subdir:
-    g++ -Wall repack.cpp -O2 -o repack.exe -lttvfs
-	g++ -Wall pullpakfiles.cpp -O2 -o pullpakfiles.exe
-	g++ -Wall removeresc.cpp -O2 -o removeresc.exe
-	g++ -Wall repack.cpp -O2 -o removeresc.exe
-	g++ -Wall test.cpp -O2 -o test.exe -lttvfs
-	g++ -Wall WinResource.cpp -O2 -o WinResource.exe
-	
+
+    make
+
+These utilities depend on the following third-party libraries, which you'll need installed if you wish to compile:
+libogg - http://xiph.org/downloads/
+libpng - http://www.libpng.org/pub/png/libpng.html
+tinyxml2 - http://www.grinninglizard.com/tinyxml2/index.html
+ttvfs - https://github.com/fgenesis/ttvfs
+libvorbis - http://xiph.org/downloads/
+zlib - http://www.zlib.net/
+
 Apologies for hastily-thrown-together code that isn't commented much at all.
 
 
