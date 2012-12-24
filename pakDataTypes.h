@@ -137,6 +137,56 @@ typedef struct
 	i32 vorbisPacketsSizeBytes;
 } takeRecord;
 
+//Mark V structures - itemmanifest.dat structures
+typedef struct
+{
+	BinHdrPtr itemsManifest;
+	BinHdrPtr normalDeps;
+	BinHdrPtr soundDeps;
+	BinHdrPtr effectDeps;
+	BinHdrPtr itemDeps;
+	BinHdrPtr itemsBinDataBytes;
+} itemManifestHeader;
+
+typedef struct
+{
+	u32 itemId;
+	u32 animResId;
+	i32 recentlyModifiedRank;
+	i32 firstNormalDepends;
+	i32 numNormalDepends;
+	i32 firstSoundDepends;
+	i32 numSoundDepends;
+	i32 firstEffectDepends;
+	i32 numEffectDepends;
+	i32 firstItemDepends;
+	i32 numItemDepends;
+	u32 catalogIconColorItemTexResId;
+	u32 catalogIconColorBGTexResId;
+	u32 catalogIconGreyBGTexResId;
+	i32 binDataOffsetBytes;
+} itemManifestRecord;
+
+typedef struct
+{
+	u32 normalTexResId;
+} normalDependency;
+
+typedef struct
+{
+	u32 soundResId;
+} soundDependency;
+
+typedef struct
+{
+	u32 effectResId;
+} effectDependency;
+
+typedef struct
+{
+	u32 itemResId;
+} itemDependency;
+
 
 //helper functions
 int compdecomp(const char* cIn, const char* cOut, int iCompress = false);
@@ -151,6 +201,8 @@ bool wordPackToXML(const char* cFilename);
 bool XMLToWordPack(const char* cFilename);
 bool sndManifestToXML(const char* cFilename);
 bool XMLToSndManifest(const char* cFilename);
+bool itemManifestToXML(const char* cFilename);
+bool XMLToItemManifest(const char* cFilename);
 void readResidMap();
 const char* getName(u32 resId);
 u32 getResID(string sName);

@@ -1,12 +1,13 @@
-* 12/19/12 * Merging capability so new mods can be added without the lengthy decompress/decompress/compress method
-	- XML specification instead of .filelist.txt for mod creation?
-	- XML specification for which files go in which pakfiles?
-	- Some kind of backup capability so that mods can be uninstalled easily
-GUI for ease of use
+Some kind of backup capability so that mods can be uninstalled easily
+XML specification instead of .filelist.txt for mod creation?
+XML specification for which files go in which pakfiles?
+Work with puggsoy/others for GUI ease of use
+Minimize file I/O for speed
 
 
 Done
 * 12/18/12 * Multithreading for faster compression/decompression
 * 12/19/12 * XML specification for vdata/wordPackDict.dat with compression/decompression routines
+* 12/19/12 * Merging capability so new mods can be added without the lengthy decompress/decompress/compress method
 * 12/22/12 * Automatic updating of vdata/sndmanifest.dat when .ogg files are modified
-* 12/22/12 *	- XML specification for takes, so that those can be modified as well?	
+* 12/22/12 * XML specification for takes, so that those can be modified as well	

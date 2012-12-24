@@ -71,6 +71,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		
 		const char* cName = tch.sIn.c_str();
 		bool bNormalConvert = false;
+		string sDeleteWhenDone = "";
 			
 		if(strstr(cName, ".flac") != NULL ||
 		   strstr(cName, ".FLAC") != NULL)
@@ -103,11 +104,19 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		{
 			XMLToWordPack(cName);	//De-XML this first
 			bNormalConvert = true;	//Behave like normal
+			sDeleteWhenDone = cName;
 		}
 		else if(strstr(cName, "sndmanifest.dat") != NULL)
 		{
 			XMLToSndManifest(cName);
 			bNormalConvert = true;
+			sDeleteWhenDone = cName;
+		}
+		else if(strstr(cName, "itemmanifest.dat") != NULL)
+		{
+			XMLToItemManifest(cName);
+			bNormalConvert = true;
+			//sDeleteWhenDone = cName;
 		}
 		else
 			bNormalConvert = true;
@@ -121,6 +130,10 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
 			ReleaseMutex(ghMutex);
 		}
+		
+		//If we wish to delete this file when we're done
+		if(sDeleteWhenDone != "")
+			unlink(sDeleteWhenDone.c_str());
 	}
 	return 0;
 }
