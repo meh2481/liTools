@@ -240,6 +240,7 @@ int main(int argc, char** argv)
 		
 	//read in the resource names to pack
 	readResidMap();
+	initSoundManifest();
 	
 	if(argc < 2)
 	{
@@ -326,8 +327,7 @@ int main(int argc, char** argv)
 		size_t offsetPos = sizeof(blobHeader) + (lstrFilesToPak.size() * sizeof(resourceHeader));	
 		
 		//Add the table of contents
-		cout << endl;
-		cout << "Adding table of contents..." << endl;
+		cout << "\rAdding table of contents...                " << endl;
 		for(list<string>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
 		{
 			resourceHeader rH;

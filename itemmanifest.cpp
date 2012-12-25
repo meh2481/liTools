@@ -3,6 +3,7 @@
 #include <cstring>
 #include <string>
 #include <list>
+#include <map>
 #include <stdlib.h>
 #include <unistd.h>
 #include <windows.h>
@@ -11,6 +12,14 @@
 #include <vector>
 using namespace std;
 using namespace tinyxml2;
+
+string getNameFromAnim(string sAnimName)
+{
+	sAnimName.erase(sAnimName.rfind(".anim.xml"));	//Erase the ending off the string
+	size_t start = sAnimName.find_last_of('/') + 1;	//Find last forward slash
+	sAnimName.erase(0,start);						//Erase everything up to and including this last slash
+	return sAnimName;								//Done
+}
 
 bool itemManifestToXML(const char* cFilename)
 {
@@ -33,6 +42,7 @@ bool itemManifestToXML(const char* cFilename)
 	
 	//Read in the itemManifestRecords
 	list<itemManifestRecord> lManifestRecords;
+	map<u32, string> mItemNames;
 	fseek(f, imh.itemsManifest.offset, SEEK_SET);
 	for(int i = 0; i < imh.itemsManifest.count; i++)
 	{
@@ -44,6 +54,7 @@ bool itemManifestToXML(const char* cFilename)
 			return false;
 		}
 		lManifestRecords.push_back(imr);
+		mItemNames[imr.itemId] = getNameFromAnim(getName(imr.animResId));
 	}
 	
 	//Read in the normalDependencies
@@ -115,7 +126,7 @@ bool itemManifestToXML(const char* cFilename)
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
 		XMLElement* elem = doc->NewElement("itemrecord");
-		elem->SetAttribute("id", i->itemId);
+		elem->SetAttribute("id", mItemNames[i->itemId].c_str());
 		XMLElement* elem2 = doc->NewElement("animresid");
 		elem2->SetAttribute("filename", getName(i->animResId));
 		elem->InsertEndChild(elem2);
@@ -142,19 +153,20 @@ bool itemManifestToXML(const char* cFilename)
 		for(int j = i->firstSoundDepends; j < i->firstSoundDepends + i->numSoundDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("sound");
-			elem3->SetAttribute("id", vSoundDependencies[j].soundResId);
+			elem3->SetAttribute("id", getSoundName(vSoundDependencies[j].soundResId).c_str());
+			//elem3->SetAttribute("id", getName(vSoundDependencies[j].soundResId));
 			elem2->InsertEndChild(elem3);
 		}
 		for(int j = i->firstEffectDepends; j < i->firstEffectDepends + i->numEffectDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("effect");
-			elem3->SetAttribute("filename", getName(vEffectDependencies[j].effectResId));
+			elem3->SetAttribute("id", getName(vEffectDependencies[j].effectResId));
 			elem2->InsertEndChild(elem3);
 		}
 		for(int j = i->firstItemDepends; j < i->firstItemDepends + i->numItemDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("item");
-			elem3->SetAttribute("id", vItemDependencies[j].itemResId);
+			elem3->SetAttribute("id", mItemNames[vItemDependencies[j].itemResId].c_str());
 			elem2->InsertEndChild(elem3);
 		}
 		elem->InsertEndChild(elem2);

@@ -50,7 +50,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 				
 				//Let user know which resource we're converting now
 				if(!bDone)
-					cout << "Compressing resource " << ++iCurResource << " out of " << iNumResources << ": " << tch.sIn << endl;
+					cout << "\rCompressing resource " << ++iCurResource << " out of " << iNumResources;// << ": " << tch.sIn << endl;
 				
 				// Release ownership of the mutex object
 				if (!ReleaseMutex(ghMutex)) 

@@ -38,7 +38,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 				
 				//Let user know which resource we're converting now
 				if(!bDone)
-					cout << "Decompressing resource " << ++iCurResource << " out of " << iNumResources << ": " << tch.sFilename << endl;
+					cout << "\r" << "Decompressing file " << ++iCurResource << " out of " << iNumResources;// << endl;// << ": " << tch.sFilename;
 				
 				// Release ownership of the mutex object
 				if (!ReleaseMutex(ghMutex)) 
@@ -88,6 +88,12 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		{
 			itemManifestToXML(cName);
 			unlink(cName);
+		}
+		
+		else if(strstr(cName, "residmap.dat") != NULL)
+		{
+			residMapToXML(cName);
+			//TODO unlink(cName);
 		}
 		
 		//Convert .flac binary files to OGG

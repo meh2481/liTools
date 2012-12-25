@@ -230,6 +230,7 @@ int main(int argc, char** argv)
 		
 	//read in the resource names to unpack
 	readResidMap();
+	initSoundManifest();
 	
 	if(argc < 2)
 	{
@@ -367,7 +368,7 @@ int main(int argc, char** argv)
 	}
 	
 	removeTempFiles();
-	cout << "Done." << endl;
+	cout << "\rDone.                                " << endl;
 	
 	iTicks = GetTickCount() - iTicks;
 	int iSeconds = iTicks / 1000;	//Get seconds elapsed

@@ -1,4 +1,6 @@
 #include "pakDataTypes.h"
+#include <tinyxml2.h>
+#include <vector>
 #include <map>
 #include <iostream>
 #include <fstream>
@@ -6,11 +8,8 @@
 #include <cstring>
 #include <string>
 using namespace std;
+using namespace tinyxml2;
 
-//map<u32,i32> g_IDMappings;
-//vector<StringTableEntry> g_stringTableList;
-//vector<StringPointerEntry> g_stringPointerList;
-//vector<char> g_stringList;
 map<string, u32> g_repakMappings;
 map<u32, string> g_pakMappings;
 
@@ -3957,27 +3956,31 @@ void readResidMap()
 		g_repakMappings[g_residMap[i].name] = g_residMap[i].id;
 		g_pakMappings[g_residMap[i].id] = g_residMap[i].name;
 	}
-	
-	//Obselete method of reading in the mappings directly from residmap.dat
-	
-	/*FILE* fp = fopen("residmap.dat", "rb");	//This is "debug.pak" already in extracted form in the file "residmap.dat", for my ease of use.
+}
+
+//TODO: Severe problem if unknown ID and this isn't read first!!!
+bool residMapToXML(const char* cFilename)
+{	
+	//Read in the mappings directly from residmap.dat
+	FILE* fp = fopen(cFilename, "rb");
 	if(fp == NULL)
 	{
-		cout << "Unable to open residmap.dat. Please place this file in the same directory as this program. Abort." << endl;
-		exit(0);
+		cout << "Error: Unable to open file " << cFilename << endl;
+		return false;
 	}
 	
-	DebugPakHeader dph;
-	
 	//Read in the headers
+	DebugPakHeader dph;
 	if(fread((void*)&(dph), 1, sizeof(DebugPakHeader), fp) != sizeof(DebugPakHeader))
 	{
 		cout << "DebugPakHeader malformed" << endl;
 		fclose(fp);
-		exit(0);
+		return false;
 	}
 	
 	//Read in the mappings
+	map<u32,i32> mIDMappings;
+	fseek(fp, dph.maps.offset, SEEK_SET);
 	for(int i = 0; i < dph.maps.count; i++)
 	{
 		MappingHeader mh;
@@ -3985,24 +3988,29 @@ void readResidMap()
 		{
 			cout << "MappingHeader malformed" << endl;
 			fclose(fp);
-			exit(0);
+			return false;
 		}
 		//Store
-		g_IDMappings[mh.resId] = mh.strId;
+		mIDMappings[mh.resId] = mh.strId;
 	}
 	
 	//Now for string table header
 	StringTableHeader sth;
+	fseek(fp, dph.stringTableBytes.offset, SEEK_SET);
 	if(fread((void*)&sth, 1, sizeof(StringTableHeader), fp) != sizeof(StringTableHeader))
 	{
 		cout << "StringTableHeader malformed" << endl;
 		fclose(fp);
-		exit(0);
+		return false;
 	}
+	
 	//Allocate memory for this many string table & pointer entries
-	g_stringTableList.reserve(sth.numStrings);
-	g_stringPointerList.reserve(sth.numPointers);
-	g_stringList.reserve((sizeof(char) * sth.numStrings)*256);
+	vector<StringTableEntry> vStringTableList;
+	vector<StringPointerEntry> vStringPointerList;
+	vector<char> vStringList;
+	vStringTableList.reserve(sth.numStrings);
+	vStringPointerList.reserve(sth.numPointers);
+	vStringList.reserve((sizeof(char) * sth.numStrings)*256);
 	
 	//Read in string table entries
 	for(int i = 0; i < sth.numStrings; i++)
@@ -4012,10 +4020,10 @@ void readResidMap()
 		{
 			cout << "StringTableEntry " << i << " malformed out of " << sth.numStrings << endl;
 			fclose(fp);
-			exit(0);
+			return false;
 		}
 		//Store
-		g_stringTableList[i] = ste;
+		vStringTableList[i] = ste;
 	}
 	
 	//and string table pointers
@@ -4024,12 +4032,12 @@ void readResidMap()
 		StringPointerEntry spe;
 		if(fread((void*)&spe, 1, sizeof(StringPointerEntry), fp) != sizeof(StringPointerEntry))
 		{
-			cout << "StringPointerEntry malformed" << endl;
+			cout << "StringPointerEntry " << i << " malformed out of " << sth.numPointers << endl;
 			fclose(fp);
-			exit(0);
+			return false;
 		}
 		//Store
-		g_stringPointerList[i] = spe;
+		vStringPointerList[i] = spe;
 	}
 	
 	//Now read in the strings until we hit the end of the file
@@ -4038,22 +4046,59 @@ void readResidMap()
 	{
 		if(c == '\\')	//Change all backslashes to forward slashes. Tsk, tsk, Allan.
 			c = '/';
-		g_stringList.push_back(c);
+		vStringList.push_back(c);
 	}
 	
 	fclose(fp);
 	
-	ofstream ofile;
-	ofile.open("residmap.txt");
-	//Reverse mappings so we can access string ID's easily from the string filename
-	for(map<u32, i32>::iterator i = g_IDMappings.begin(); i != g_IDMappings.end(); i++)
+	//ofstream ofile;
+	//ofile.open("residmap.txt");
+	//Add these mappings to our mapping list
+	for(map<u32, i32>::iterator i = mIDMappings.begin(); i != mIDMappings.end(); i++)
 	{
 		i32 strId = i->second;
 		u32 finalNum = i->first;
-		char* cData = g_stringList.data();
-		string s = &cData[g_stringPointerList[g_stringTableList[strId].pointerIndex].offset];
+		char* cData = vStringList.data();
+		string s = &cData[vStringPointerList[vStringTableList[strId].pointerIndex].offset];
+		//Store forward and reverse mappings for this file
 		g_repakMappings[s] = finalNum;
-		ofile << "{" << finalNum << "u,\"" << s << "\"}," << endl;
+		g_pakMappings[finalNum] = s;
+		//ofile << "{" << finalNum << "u,\"" << s << "\"}," << endl;
 	}
-	ofile.close();*/
+	//ofile.close();
+	
+	//Now save this out to XML
+	string sFilename = cFilename;
+	sFilename += ".xml";
+	XMLDocument* doc = new XMLDocument;
+	//TODO Merge with preexisting XML
+	XMLElement* root = doc->NewElement("mappings");	//Create the root element
+	for(map<u32, string>::iterator i = g_pakMappings.begin(); i != g_pakMappings.end(); i++)
+	{
+		XMLElement* elem = doc->NewElement("mapping");
+		elem->SetAttribute("id", i->first);
+		elem->SetAttribute("filename", i->second.c_str());
+		root->InsertEndChild(elem);
+	}
+	doc->InsertFirstChild(root);
+	doc->SaveFile(sFilename.c_str());
+	
+	return true;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

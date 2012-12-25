@@ -188,7 +188,7 @@ typedef struct
 } itemDependency;
 
 
-//helper functions
+//global functions
 int compdecomp(const char* cIn, const char* cOut, int iCompress = false);
 int binaryToOgg( const char* in, const char* out );
 int oggToBinary( const char* in, const char* out );
@@ -201,9 +201,13 @@ bool wordPackToXML(const char* cFilename);
 bool XMLToWordPack(const char* cFilename);
 bool sndManifestToXML(const char* cFilename);
 bool XMLToSndManifest(const char* cFilename);
+void initSoundManifest();
+u32 getSoundId(string sSound);
+string getSoundName(u32 soundResId);
 bool itemManifestToXML(const char* cFilename);
 bool XMLToItemManifest(const char* cFilename);
 void readResidMap();
+bool residMapToXML(const char* cFilename);
 const char* getName(u32 resId);
 u32 getResID(string sName);
 
