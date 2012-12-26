@@ -11,9 +11,11 @@
 using namespace std;
 
 list<ThreadConvertHelper> g_lThreadedResources;
-u32 iCurResource;
-u32 iNumResources;
+u32 g_iCurResource;
+u32 g_iNumResources;
 HANDLE ghMutex;
+bool g_bProgressOverwrite;
+unsigned int g_iNumThreads;
 
 DWORD WINAPI decompressResource(LPVOID lpParam)
 {
@@ -38,7 +40,15 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 				
 				//Let user know which resource we're converting now
 				if(!bDone)
-					cout << "\r" << "Decompressing file " << ++iCurResource << " out of " << iNumResources;// << endl;// << ": " << tch.sFilename;
+				{
+					if(g_bProgressOverwrite)
+					{
+						cout << "\rDecompressing file " << ++g_iCurResource << " out of " << g_iNumResources;
+						cout.flush();
+					}
+					else
+						cout << "Decompressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << tch.sFilename << endl;
+				}
 				
 				// Release ownership of the mutex object
 				if (!ReleaseMutex(ghMutex)) 
@@ -111,8 +121,8 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 
 void threadedDecompress()
 {
-	iCurResource = 0;
-	iNumResources = g_lThreadedResources.size();
+	g_iCurResource = 0;
+	g_iNumResources = g_lThreadedResources.size();
 	
 	//Create mutex
 	ghMutex = CreateMutex(NULL,              // default security attributes
@@ -130,6 +140,8 @@ void threadedDecompress()
     GetSystemInfo(&siSysInfo);
 	
 	u32 iNumThreads = siSysInfo.dwNumberOfProcessors;
+	if(g_iNumThreads != 0)
+		iNumThreads = g_iNumThreads;
 	
 	//Create memory for the threads
 	HANDLE* aThread = (HANDLE*)malloc(sizeof(HANDLE) * iNumThreads);

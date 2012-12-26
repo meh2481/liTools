@@ -14,9 +14,11 @@ using namespace std;
 
 list<ThreadConvertHelper> g_lThreadedResources;
 extern map<string, pakHelper> g_pakHelping;	//in liCompress.cpp, used for packing stuff into the .pak files
-u32 iCurResource;
-u32 iNumResources;
+u32 g_iCurResource;
+u32 g_iNumResources;
 HANDLE ghMutex;
+bool g_bProgressOverwrite;
+unsigned int g_iNumThreads;
 
 i32 getFileSize(const char* cFilename)	//Since TTVFS isn't totally threadsafe, we need some way of determining file size
 {
@@ -50,7 +52,15 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 				
 				//Let user know which resource we're converting now
 				if(!bDone)
-					cout << "\rCompressing resource " << ++iCurResource << " out of " << iNumResources;// << ": " << tch.sIn << endl;
+				{
+					if(g_bProgressOverwrite)
+					{
+						cout << "\rCompressing file " << ++g_iCurResource << " out of " << g_iNumResources;
+						cout.flush();
+					}
+					else
+						cout << "Compressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << tch.sFilename << endl;
+				}
 				
 				// Release ownership of the mutex object
 				if (!ReleaseMutex(ghMutex)) 
@@ -140,8 +150,8 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 
 void threadedCompress()
 {
-	iCurResource = 0;
-	iNumResources = g_lThreadedResources.size();
+	g_iCurResource = 0;
+	g_iNumResources = g_lThreadedResources.size();
 	
 	//Create mutex
 	ghMutex = CreateMutex(NULL,              // default security attributes
@@ -159,6 +169,8 @@ void threadedCompress()
     GetSystemInfo(&siSysInfo);
 	
 	u32 iNumThreads = siSysInfo.dwNumberOfProcessors;
+	if(g_iNumThreads != 0)
+		iNumThreads = g_iNumThreads;
 	
 	//Create memory for the threads
 	HANDLE* aThread = (HANDLE*)malloc(sizeof(HANDLE) * iNumThreads);

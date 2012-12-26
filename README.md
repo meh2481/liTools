@@ -11,12 +11,16 @@ Also please note that it's best to have the the input files (Such as the Little 
 
 Usage
 =====
+strip
+-----
 First, you'll need the three resource files "resource.pak", "embed.pak", and "frontend.pak" extracted from your game's executable. You can do this with 7zip or ResourceHacker (the files you want are in the subfolder 20480, resources 1, 2, and 3 respectively) if you so choose. liTools provides a tool to help out with this, however. Simply run:
 
     strip.exe "Little Inferno.exe"
 
 Or click and drag "Little Inferno.exe" into "strip.exe". This will pull all the .pak files out of your game's executable and strip the .pak files from your executable so it will read the .pak files from disk on the next run. Note that since this does modify your executable, BACK IT UP FIRST! See the "Utilities" section of this readme for programs to pull out the .pak files without modifying the game executable.
 
+liDecompress
+------------
 Once you have all three .pak files extracted, you can now decompress them into a useable form with liDecompress. You can decompress more than one file at a time if you wish. Simply drag the three .pak files into the executable, or run it like:
 
     liDecompress.exe resource.pak embed.pak frontend.pak
@@ -27,11 +31,21 @@ Please note that can take a good amount of time to decompress these files. resou
 
 Temporary files are written to temp/ and are destroyed if the program exits normally. Ignore them. The files you're after are in data/ and vdata/. The filenames are correct, but not all data formats are known yet, so not everything is openable. (For version 0.3, only png and ogg files are in the correct format, and some .dat files are converted to xml)
 
+Accepted commandline switches:
+	--overwrite-progress	Writes over the previous progress indicator, to mimimize commandline output. Doesn't display filenames.
+	--threads=n				Decompress with n threads. Otherwise will spawn as many threads as your computer has processor cores. n=0 will also result in this behavior.
+
+liCompress
+----------
 To compress files again, type:
 
     liCompress.exe resource.pak embed.pak frontend.pak
 
 Please note that these .pak files might not exist beforehand (they don't have to). If they do exist, you can click-drag them into the executable as usual. For each pakfile, liCompress looks for a text file in the form [pakfile].pak.filelist.txt to know what files go inside that particular .pak file. You can create your own .pak files this way. liDecompress will autogenerate these .filelist.txt files when decompressing, so to save yourself a lot of typing, decompress first before compressing so all the .filelist.txt files are there. For now, this is how it works; this probably will change in a later version to become more user-friendly.
+
+Accepted commandline switches:
+	--overwrite-progress	Writes over the previous progress indicator, to mimimize commandline output. Doesn't display filenames.
+	--threads=n			Compress with n threads. Otherwise will spawn as many threads as your computer has processor cores. n=0 will also result in this behavior.
 
 
 Sound modification

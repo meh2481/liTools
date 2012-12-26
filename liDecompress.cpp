@@ -15,6 +15,8 @@
 using namespace std;
 
 extern list<ThreadConvertHelper> g_lThreadedResources;
+extern bool g_bProgressOverwrite;
+extern unsigned int g_iNumThreads;
 
 ttvfs::VFSHelper vfs;
 
@@ -221,9 +223,40 @@ void makeFolder(u32 resId)
 	}
 }
 
+void parseCmdLine(int argc, char** argv)
+{
+	for(int i = 1; i < argc; i++)
+	{
+		string s = argv[i];
+		if(s == "--overwrite-progress")
+			g_bProgressOverwrite = true;
+		else if(s.find("--threads=") != string::npos)
+		{
+			size_t pos = s.find('=')+1;
+			if(s.length() <= pos)
+			{
+				cout << "missing thread count" << endl;
+				continue;
+			}
+			int iNumThreads = atoi(&s.c_str()[pos]);
+			if(iNumThreads < 0 ||
+			   iNumThreads > MAX_NUM_THREADS)
+			{
+				cout << "Invalid number of threads: " << iNumThreads << endl;
+				continue;
+			}
+			g_iNumThreads = iNumThreads;
+		}
+		else if(argv[i][0] == '-')
+			cout << "Unknown commandline switch " << argv[i] << ". Ignoring..." << endl;
+	}
+}
+
 //Main program entry point
 int main(int argc, char** argv)
 {
+	g_bProgressOverwrite = false;
+	g_iNumThreads = 0;
 	DWORD iTicks = GetTickCount();	//Store the starting number of milliseconds
 	
 	vfs.Prepare();
@@ -231,6 +264,7 @@ int main(int argc, char** argv)
 	//read in the resource names to unpack
 	readResidMap();
 	initSoundManifest();
+	parseCmdLine(argc,argv);
 	
 	if(argc < 2)
 	{
@@ -240,7 +274,10 @@ int main(int argc, char** argv)
 	
 	for(int iArg = 1; iArg < argc; iArg++)
 	{
+		if(argv[iArg][0] == '-')	//Skip over commandline switches
+			continue;
 		cout << endl << "Unpacking resource blob file " << argv[iArg] << endl;
+		
 		FILE* f = fopen(argv[iArg], "rb");
 		if(f == NULL)
 		{

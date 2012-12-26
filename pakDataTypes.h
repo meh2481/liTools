@@ -11,6 +11,7 @@ using namespace std;
 #define i32 int32_t
 #define u32 uint32_t
 #define f32	float
+#define MAX_NUM_THREADS 128
 
 //Mark I structures - .pak file headers
 typedef struct 
