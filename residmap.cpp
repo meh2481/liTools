@@ -3970,18 +3970,18 @@ bool residMapToXML(const char* cFilename)
 	}
 	
 	//Read in the headers
-	DebugPakHeader dph;
-	if(fread((void*)&(dph), 1, sizeof(DebugPakHeader), fp) != sizeof(DebugPakHeader))
+	ResidMapHeader rmh;
+	if(fread((void*)&(rmh), 1, sizeof(ResidMapHeader), fp) != sizeof(ResidMapHeader))
 	{
-		cout << "DebugPakHeader malformed" << endl;
+		cout << "ResidMapHeader malformed" << endl;
 		fclose(fp);
 		return false;
 	}
 	
 	//Read in the mappings
 	map<u32,i32> mIDMappings;
-	fseek(fp, dph.maps.offset, SEEK_SET);
-	for(int i = 0; i < dph.maps.count; i++)
+	fseek(fp, rmh.maps.offset, SEEK_SET);
+	for(int i = 0; i < rmh.maps.count; i++)
 	{
 		MappingHeader mh;
 		if(fread((void*)&mh, 1, sizeof(MappingHeader), fp) != sizeof(MappingHeader))
@@ -3996,7 +3996,7 @@ bool residMapToXML(const char* cFilename)
 	
 	//Now for string table header
 	StringTableHeader sth;
-	fseek(fp, dph.stringTableBytes.offset, SEEK_SET);
+	fseek(fp, rmh.stringTableBytes.offset, SEEK_SET);
 	if(fread((void*)&sth, 1, sizeof(StringTableHeader), fp) != sizeof(StringTableHeader))
 	{
 		cout << "StringTableHeader malformed" << endl;
@@ -4086,7 +4086,119 @@ bool residMapToXML(const char* cFilename)
 	return true;
 }
 
-
+//Save residmap.dat.xml back out to residmap.dat
+bool XMLToResidMap(const char* cFilename)
+{
+	//Open file
+	string sXMLFile = cFilename;
+	sXMLFile += ".xml";
+	XMLDocument* doc = new XMLDocument;
+	int iErr = doc->LoadFile(sXMLFile.c_str());
+	if(iErr != XML_NO_ERROR)
+	{
+		cout << "Error parsing XML file " << sXMLFile << ": Error " << iErr << endl;
+		delete doc;
+		return false;
+	}
+	
+	//Grab root element
+	XMLElement* root = doc->RootElement();
+	if(root == NULL)
+	{
+		cout << "Error: Root element NULL in XML file " << sXMLFile << endl;
+		delete doc;
+		return false;
+	}
+	
+	//Read in XML data
+	list<char> lUTFData;
+	list<MappingHeader> lMappings;
+	list<StringTableEntry> lStringTable;
+	list<StringPointerEntry> lStringPointers;
+	for(XMLElement* elem = root->FirstChildElement("mapping"); elem != NULL; elem = elem->NextSiblingElement("mapping"))
+	{
+		int id;
+		if(elem->QueryIntAttribute("id", &id) != XML_NO_ERROR)
+		{
+			cout << "Unable to get mapping ID from XML file " << sXMLFile << endl;
+			delete doc;
+			return false;
+		}
+		const char* cName = elem->Attribute("filename");
+		if(cName == NULL)
+		{
+			cout << "Unable to get mapping filename from XML file " << sXMLFile << endl;
+			delete doc;
+			return false;
+		}
+		//Make mapping header that maps this resource ID to the string ID
+		MappingHeader mh;
+		mh.resId = id;
+		mh.strId = lStringTable.size();
+		lMappings.push_back(mh);
+		//Make StringTableEntry that maps this string ID to a string data pointer
+		StringTableEntry ste;
+		ste.pointerIndex = lStringPointers.size();
+		ste.pointerCount = 1;
+		lStringTable.push_back(ste);
+		//Make the StringPointerEntry that maps this pointer to a location in the string data
+		StringPointerEntry spe;
+		spe.languageId = LANGID_ENGLISH;
+		spe.offset = lUTFData.size();
+		lStringPointers.push_back(spe);
+		//Add this string to our string list
+		unsigned int iStrLen = strlen(cName)+1;	//+1 so we can keep the terminating \0 character
+		for(unsigned int i = 0; i < iStrLen; i++)
+			lUTFData.push_back(cName[i]);			//Copy data over
+	}
+	delete doc;	//Done reading XML
+	
+	//Open our output file
+	FILE* f = fopen(cFilename, "wb");
+	if(f == NULL)
+	{
+		cout << "Error: Unable to open output file " << cFilename << endl;
+		return false;
+	}
+	
+	//Write out our ResidMapHeader
+	ResidMapHeader rmh;
+	size_t curOffset = sizeof(ResidMapHeader);
+	rmh.maps.count = lMappings.size();
+	rmh.maps.offset = curOffset;
+	curOffset += sizeof(MappingHeader) * lMappings.size();
+	//The count for this is the number of bytes for all of it
+	rmh.stringTableBytes.count = sizeof(StringTableHeader) + sizeof(StringTableEntry) * lStringTable.size() + lUTFData.size();
+	rmh.stringTableBytes.offset = curOffset;
+	
+	fwrite(&rmh, 1, sizeof(ResidMapHeader), f);
+	
+	//Write out our MappingHeaders
+	for(list<MappingHeader>::iterator i = lMappings.begin(); i != lMappings.end(); i++)
+		fwrite(&(*i), 1, sizeof(MappingHeader), f);
+		
+	//Write out our StringTableHeader
+	StringTableHeader sth;
+	sth.numStrings = lStringTable.size();
+	sth.numPointers = lStringPointers.size();
+	fwrite(&sth, 1, sizeof(StringTableHeader), f);
+	
+	//Write out our StringTableEntries
+	for(list<StringTableEntry>::iterator i = lStringTable.begin(); i != lStringTable.end(); i++)
+		fwrite(&(*i), 1, sizeof(StringTableEntry), f);
+	
+	//Write out our StringPointerEntries
+	for(list<StringPointerEntry>::iterator i = lStringPointers.begin(); i != lStringPointers.end(); i++)
+		fwrite(&(*i), 1, sizeof(StringPointerEntry), f);
+	
+	//Write out our string data
+	for(list<char>::iterator i = lUTFData.begin(); i != lUTFData.end(); i++)
+		fwrite(&(*i), 1, 1, f);
+		
+	fclose(f);	//Done
+	
+	return true;
+}
 
 
 

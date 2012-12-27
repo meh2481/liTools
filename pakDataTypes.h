@@ -48,7 +48,7 @@ typedef struct
 {
 	BinHdrPtr maps;
 	BinHdrPtr stringTableBytes;
-} DebugPakHeader;
+} ResidMapHeader;
 
 typedef struct
 {
@@ -209,6 +209,7 @@ bool itemManifestToXML(const char* cFilename);
 bool XMLToItemManifest(const char* cFilename);
 void readResidMap();
 bool residMapToXML(const char* cFilename);
+bool XMLToResidMap(const char* cFilename);
 const char* getName(u32 resId);
 u32 getResID(string sName);
 

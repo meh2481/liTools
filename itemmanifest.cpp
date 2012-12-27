@@ -116,6 +116,7 @@ bool itemManifestToXML(const char* cFilename)
 		}
 		vItemDependencies.push_back(id);
 	}
+	fclose(f);
 	
 	//Now, open up the XML file and put all the data into it
 	string sFilename = cFilename;
@@ -130,7 +131,7 @@ bool itemManifestToXML(const char* cFilename)
 		XMLElement* elem2 = doc->NewElement("animresid");
 		elem2->SetAttribute("filename", getName(i->animResId));
 		elem->InsertEndChild(elem2);
-		elem2 = doc->NewElement("recentlymodifiedrank");
+		elem2 = doc->NewElement("recentlymodifiedrank");	//TODO Ignore this
 		elem2->SetAttribute("value", i->recentlyModifiedRank);
 		elem->InsertEndChild(elem2);
 		elem2 = doc->NewElement("coloritemicon");
@@ -142,6 +143,7 @@ bool itemManifestToXML(const char* cFilename)
 		elem2 = doc->NewElement("greybgicon");
 		elem2->SetAttribute("filename", getName(i->catalogIconGreyBGTexResId));
 		elem->InsertEndChild(elem2);
+		//TODO: binDataOffsetBytes stuff
 		//Now insert dependencies for this item
 		elem2 = doc->NewElement("depends");
 		for(int j = i->firstNormalDepends; j < i->firstNormalDepends + i->numNormalDepends; j++)
@@ -207,10 +209,223 @@ bool XMLToItemManifest(const char* cFilename)
 		return false;
 	}
 	
-	//TODO
+	//Read in all child elements
+	list<itemManifestRecord> lItemManifests;
+	list<normalDependency> lNormalDeps;
+	list<soundDependency> lSoundDeps;
+	list<effectDependency> lEffectDeps;
+	list<itemDependency> lItemDeps;
+	for(XMLElement* elem = root->FirstChildElement("itemrecord"); elem != NULL; elem = elem->NextSiblingElement("itemrecord"))
+	{
+		itemManifestRecord imr;
+		imr.itemId = imr.animResId = imr.recentlyModifiedRank = imr.firstNormalDepends = imr.numNormalDepends = imr.firstSoundDepends = imr.numSoundDepends = imr.firstEffectDepends = imr.numEffectDepends = imr.firstItemDepends = imr.numItemDepends = imr.catalogIconColorItemTexResId = imr.catalogIconColorBGTexResId = imr.catalogIconGreyBGTexResId = imr.binDataOffsetBytes = 0;	//To supress compiler warnings
+		const char* id = elem->Attribute("id");
+		if(id == NULL)
+		{
+			cout << "Error: Unable to get id of XML element in file " << sXMLFile << endl;
+			delete doc;
+			return false;
+		}
+		//imr.itemId = HASH(id); //TODO
+		imr.recentlyModifiedRank = 1;	//Because why not
+		
+		//get all the XML children of this
+		for(XMLElement* elem2 = elem->FirstChildElement(); elem2 != NULL; elem2 = elem2->NextSiblingElement())
+		{
+			string sName = elem2->Name();
+			if(sName == "animresid")
+			{
+				const char* cTemp = elem2->Attribute("filename");
+				if(cTemp == NULL)
+				{
+					cout << "Error: Missing filename for animresid in file " << sXMLFile << endl;
+					delete doc;
+					return false;
+				}
+				imr.animResId = getResID(cTemp);
+			}
+			else if(sName == "recentlymodifiedrank")
+			{
+				//Completely ignore //TODO Remove test case
+			}
+			else if(sName == "coloritemicon")
+			{
+				const char* cTemp = elem2->Attribute("filename");
+				if(cTemp == NULL)
+				{
+					cout << "Error: Missing filename for coloritemicon in file " << sXMLFile << endl;
+					delete doc;
+					return false;
+				}
+				imr.catalogIconColorItemTexResId = getResID(cTemp);
+			}
+			else if(sName == "colorbgicon")
+			{
+				const char* cTemp = elem2->Attribute("filename");
+				if(cTemp == NULL)
+				{
+					cout << "Error: Missing filename for colorbgicon in file " << sXMLFile << endl;
+					delete doc;
+					return false;
+				}
+				imr.catalogIconColorBGTexResId = getResID(cTemp);
+			}
+			else if(sName == "greybgicon")
+			{
+				const char* cTemp = elem2->Attribute("filename");
+				if(cTemp == NULL)
+				{
+					cout << "Error: Missing filename for greybgicon in file " << sXMLFile << endl;
+					delete doc;
+					return false;
+				}
+				imr.catalogIconGreyBGTexResId = getResID(cTemp);
+			}
+			//TODO: binDataOffsetBytes
+			else if(sName == "depends")
+			{
+				//Store offsets for these dependencies
+				imr.firstNormalDepends = lNormalDeps.size();
+				imr.firstSoundDepends = lSoundDeps.size();
+				imr.firstEffectDepends = lEffectDeps.size();
+				imr.firstItemDepends = lItemDeps.size();
+				imr.numNormalDepends = 0;
+				imr.numSoundDepends = 0;
+				imr.numEffectDepends = 0;
+				imr.numItemDepends = 0;
+				//Get all child dependencies
+				for(XMLElement* elem3 = elem2->FirstChildElement(); elem3 != NULL; elem3 = elem3->NextSiblingElement())
+				{
+					string sDependName = elem3->Name();
+					if(sDependName == "normal")
+					{
+						const char* cTemp = elem3->Attribute("filename");
+						if(cTemp == NULL)
+						{
+							cout << "Error: Missing filename for normal dependency in file " << sXMLFile << endl;
+							delete doc;
+							return false;
+						}
+						normalDependency nd;
+						nd.normalTexResId = getResID(cTemp);
+						lNormalDeps.push_back(nd);
+						imr.numNormalDepends++;
+					}
+					else if(sDependName == "sound")
+					{
+						const char* cTemp = elem3->Attribute("id");
+						if(cTemp == NULL)
+						{
+							cout << "Error: Missing id for sound dependency in file " << sXMLFile << endl;
+							delete doc;
+							return false;
+						}
+						soundDependency sd;
+						sd.soundResId = getSoundId(cTemp);
+						lSoundDeps.push_back(sd);
+						imr.numSoundDepends++;
+					}
+					else if(sDependName == "effect")
+					{
+						const char* cTemp = elem3->Attribute("id");
+						if(cTemp == NULL)
+						{
+							cout << "Error: Missing id for effect dependency in file " << sXMLFile << endl;
+							delete doc;
+							return false;
+						}
+						effectDependency ed;
+						ed.effectResId = getResID(cTemp);
+						lEffectDeps.push_back(ed);
+						imr.numEffectDepends++;
+					}
+					else if(sDependName == "item")
+					{
+						const char* cTemp = elem3->Attribute("id");
+						if(cTemp == NULL)
+						{
+							cout << "Error: Missing id for item dependency in file " << sXMLFile << endl;
+							delete doc;
+							return false;
+						}
+						itemDependency id;
+						//TODO id.itemResId = HASH(cTemp);
+						lItemDeps.push_back(id);
+						imr.numItemDepends++;
+					}
+					else if(sDependName == "")
+						cout << "Warning: Empty element name for depends in XML file " << sXMLFile << endl;
+					else
+						cout << "Warning: Unknown name for dependency: " << sDependName << " in XML file " << sXMLFile << ". Ignoring..." << endl;
+				}
+			}
+			else if(sName == "")
+				cout << "Warning: XML element missing name in file " << sXMLFile << ". Ignoring... " << endl;
+			else
+				cout << "Warning: Unknown XML element name: " << sName << " in XML file " << sXMLFile << ". Ignoring..." << endl;
+		}
+		lItemManifests.push_back(imr);
+	}
+	//Now we have all the item stuff properly in our lists
+	delete doc;	//We're done with this
 	
+	//TODO Finish parsing XML binDataOffsetBytes stuff and write to file
+	itemManifestHeader imh;
+	size_t curOffset = sizeof(itemManifestHeader);
+	imh.itemsManifest.count = lItemManifests.size();
+	imh.itemsManifest.offset = curOffset;
+	curOffset += sizeof(itemManifestRecord) * lItemManifests.size();
+	imh.normalDeps.count = lNormalDeps.size();
+	imh.normalDeps.offset = curOffset;
+	curOffset += sizeof(normalDependency) * lNormalDeps.size();
+	imh.soundDeps.count = lSoundDeps.size();
+	imh.soundDeps.offset = curOffset;
+	curOffset += sizeof(soundDependency) * lSoundDeps.size();
+	imh.effectDeps.count = lEffectDeps.size();
+	imh.effectDeps.offset = curOffset;
+	curOffset += sizeof(effectDependency) * lEffectDeps.size();
+	imh.itemDeps.count = lItemDeps.size();
+	imh.itemDeps.offset = curOffset;
+	curOffset += sizeof(itemDependency) * lItemDeps.size();
+	imh.itemsBinDataBytes.count = 0;	//TODO
+	imh.itemsBinDataBytes.offset = curOffset;
 	
-	delete doc;
+	//Open output file
+	string sFilename = cFilename;
+	sFilename += ".derp";	//TODO: Replace original file
+	FILE* f = fopen(sFilename.c_str(), "wb");
+	if(f == NULL)
+	{
+		cout << "Error: Unable to open file " << cFilename << " for writing." << endl;
+		return false;
+	}
+	
+	//Write our itemManifestHeader
+	fwrite(&imh, 1, sizeof(itemManifestHeader), f);
+	
+	//Write our itemManifestRecords
+	for(list<itemManifestRecord>::iterator i = lItemManifests.begin(); i != lItemManifests.end(); i++)
+		fwrite(&(*i), 1, sizeof(itemManifestRecord), f);
+	
+	//Write our normalDependencies
+	for(list<normalDependency>::iterator i = lNormalDeps.begin(); i != lNormalDeps.end(); i++)
+		fwrite(&(*i), 1, sizeof(normalDependency), f);
+	
+	//Write our soundDependencies
+	for(list<soundDependency>::iterator i = lSoundDeps.begin(); i != lSoundDeps.end(); i++)
+		fwrite(&(*i), 1, sizeof(soundDependency), f);
+	
+	//Write our effectDependencies
+	for(list<effectDependency>::iterator i = lEffectDeps.begin(); i != lEffectDeps.end(); i++)
+		fwrite(&(*i), 1, sizeof(effectDependency), f);
+	
+	//Write our itemDependencies
+	for(list<itemDependency>::iterator i = lItemDeps.begin(); i != lItemDeps.end(); i++)
+		fwrite(&(*i), 1, sizeof(itemDependency), f);
+	
+	//TODO Write our binDataOffsetBytes stuff
+	
+	fclose(f);
 	return true;
 }
 

@@ -97,13 +97,13 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		else if(strstr(cName, "itemmanifest.dat") != NULL)
 		{
 			itemManifestToXML(cName);
-			unlink(cName);
+			//TODO unlink(cName);
 		}
 		
 		else if(strstr(cName, "residmap.dat") != NULL)
 		{
 			residMapToXML(cName);
-			//TODO unlink(cName);
+			unlink(cName);
 		}
 		
 		//Convert .flac binary files to OGG

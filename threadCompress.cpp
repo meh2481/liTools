@@ -59,7 +59,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 						cout.flush();
 					}
 					else
-						cout << "Compressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << tch.sFilename << endl;
+						cout << "Compressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << tch.sIn << endl;
 				}
 				
 				// Release ownership of the mutex object
@@ -126,7 +126,13 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		{
 			XMLToItemManifest(cName);
 			bNormalConvert = true;
-			//sDeleteWhenDone = cName;
+			//TODO sDeleteWhenDone = cName;
+		}
+		else if(strstr(cName, "residmap.dat") != NULL)
+		{
+			XMLToResidMap(cName);
+			bNormalConvert = true;
+			sDeleteWhenDone = cName;
 		}
 		else
 			bNormalConvert = true;
