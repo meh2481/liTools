@@ -1,17 +1,4 @@
-#include <tinyxml2.h>
 #include "pakDataTypes.h"
-#include <cstring>
-#include <string>
-#include <list>
-#include <map>
-#include <stdlib.h>
-#include <unistd.h>
-#include <windows.h>
-#include <fstream>
-#include <iostream>
-#include <vector>
-using namespace std;
-using namespace tinyxml2;
 
 const char* cFilename = "vdata/sndmanifest.dat.xml";
 list<string> g_lsOggFiles;

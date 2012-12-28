@@ -1,16 +1,4 @@
-#include <tinyxml2.h>
 #include "pakDataTypes.h"
-#include <cstring>
-#include <string>
-#include <list>
-#include <stdlib.h>
-#include <unistd.h>
-#include <windows.h>
-#include <fstream>
-#include <iostream>
-#include <vector>
-using namespace std;
-using namespace tinyxml2;
 
 bool wordPackToXML(const char* cFilename)
 {

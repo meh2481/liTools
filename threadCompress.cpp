@@ -2,15 +2,6 @@
 //~  when multi-threaded
 
 #include "pakDataTypes.h"
-#include <iostream>
-#include <stack>
-#include <list>
-#include <map>
-#include <string>
-#include <cstring>
-#include <stdlib.h>
-#include <windows.h>
-using namespace std;
 
 list<ThreadConvertHelper> g_lThreadedResources;
 extern map<string, pakHelper> g_pakHelping;	//in liCompress.cpp, used for packing stuff into the .pak files

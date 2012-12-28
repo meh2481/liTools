@@ -1,4 +1,4 @@
-objects = wordPackDict.o sndmanifest.o itemmanifest.o residmap.o zpipe.o ogg.o
+objects = wordPackDict.o sndmanifest.o itemmanifest.o residmap.o zpipe.o ogg.o convertpng.o
 
 all : liDecompress.exe liCompress.exe recalcSoundManifest.exe strip.exe modManage.exe util/pullpakfiles.exe util/removeresc.exe util/repack.exe util/test.exe util/WinResource.exe
  
@@ -29,9 +29,9 @@ threadCompress.o : threadCompress.cpp pakDataTypes.h
 	g++ -Wall -O2 -c threadCompress.cpp
 wordPackDict.o : wordPackDict.cpp pakDataTypes.h
 	g++ -Wall -O2 -c wordPackDict.cpp
-sndmanifest.o : sndmanifest.cpp pakDataTypes.h
+sndmanifest.o : sndmanifest.cpp pakDataTypes.h sndmanifest.h
 	g++ -Wall -O2 -c sndmanifest.cpp
-residmap.o : residmap.cpp pakDataTypes.h
+residmap.o : residmap.cpp pakDataTypes.h residmap.h
 	g++ -Wall -O2 -c residmap.cpp
 itemmanifest.o : itemmanifest.cpp pakDataTypes.h
 	g++ -Wall -O2 -c itemmanifest.cpp
@@ -39,6 +39,8 @@ zpipe.o : zpipe.c
 	g++ -Wall -O2 -c zpipe.c
 ogg.o : ogg.cpp pakDataTypes.h
 	g++ -Wall -O2 -c ogg.cpp
+convertpng.o : convertpng.cpp pakDataTypes.h
+	g++ -Wall -O2 -c convertpng.cpp
 liDecompress.o : liDecompress.cpp pakDataTypes.h
 	g++ -Wall -O2 -c liDecompress.cpp
 liCompress.o : liCompress.cpp pakDataTypes.h

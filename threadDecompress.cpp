@@ -2,13 +2,6 @@
 //~ 1:43 when multi-threaded
 
 #include "pakDataTypes.h"
-#include <iostream>
-#include <list>
-#include <string>
-#include <cstring>
-#include <stdlib.h>
-#include <windows.h>
-using namespace std;
 
 list<ThreadConvertHelper> g_lThreadedResources;
 u32 g_iCurResource;
@@ -79,7 +72,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		   strstr(cName, "colorbgicon") != NULL ||
 		   strstr(cName, "greybgicon") != NULL)			//Also would include .png.normal files as well
 		{
-			convertPNG(cName);	//Do the conversion
+			convertToPNG(cName);	//Do the conversion
 		}
 		
 		else if(strstr(cName, "wordPackDict.dat") != NULL)

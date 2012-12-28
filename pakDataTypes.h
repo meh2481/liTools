@@ -4,9 +4,22 @@
 #define LIDECOMPRESS_H
 
 #include <cstdio>
+#include <tinyxml2.h>
 #include <stdint.h>
 #include <string>
 #include <list>
+#include <VFS.h>
+#include <VFSTools.h>
+#include <iostream>
+#include <map>
+#include <vector>
+#include <string>
+#include <cstring>
+#include <fstream>
+#include <stdlib.h>
+#include <unistd.h>
+#include <windows.h>
+using namespace tinyxml2;
 using namespace std;
 #define i32 int32_t
 #define u32 uint32_t
@@ -190,28 +203,28 @@ typedef struct
 
 
 //global functions
-int compdecomp(const char* cIn, const char* cOut, int iCompress = false);
-int binaryToOgg( const char* in, const char* out );
-int oggToBinary( const char* in, const char* out );
-takeRecord getOggData( const char* cFile );
-void threadedDecompress();
-void threadedCompress();
-bool convertPNG(const char* cFilename);
-bool convertFromPNG(const char* cFilename);
-bool wordPackToXML(const char* cFilename);
-bool XMLToWordPack(const char* cFilename);
-bool sndManifestToXML(const char* cFilename);
-bool XMLToSndManifest(const char* cFilename);
-void initSoundManifest();
-u32 getSoundId(string sSound);
-string getSoundName(u32 soundResId);
-bool itemManifestToXML(const char* cFilename);
-bool XMLToItemManifest(const char* cFilename);
-void readResidMap();
-bool residMapToXML(const char* cFilename);
-bool XMLToResidMap(const char* cFilename);
-const char* getName(u32 resId);
-u32 getResID(string sName);
+int compdecomp(const char* cIn, const char* cOut, int iCompress = false);	//Compress/decompress a file using zlib
+int binaryToOgg( const char* in, const char* out );			//Function from Allan to convert a game sound file to .ogg
+int oggToBinary( const char* in, const char* out );			//Function from Allan to convert an .ogg file to the game's sound format
+takeRecord getOggData( const char* cFile );					//Grab the data from an OGG file to populate sndManifest.dat
+void threadedDecompress();									//Start threaded decompression
+void threadedCompress();									//Start threaded compression
+bool convertToPNG(const char* cFilename);					//Convert a game image file to PNG
+bool convertFromPNG(const char* cFilename);					//Convert a PNG image to a game image file
+bool wordPackToXML(const char* cFilename);					//Convert wordPackDict.dat to XML
+bool XMLToWordPack(const char* cFilename);					//Convert wordPackDict.dat.xml back to binary .dat form
+bool sndManifestToXML(const char* cFilename);				//Convert sndManifest.dat to XML
+bool XMLToSndManifest(const char* cFilename);				//Convert sndManifest.dat.xml back to binary .dat form
+void initSoundManifest();									//Read in sndManifest.dat so that we can have the correct filenames for all sounds
+u32 getSoundId(string sSound);								//Get a sound ID from the filename
+string getSoundName(u32 soundResId);						//Get a sound filename from the sound ID
+bool itemManifestToXML(const char* cFilename);				//Convert itemmanifest.dat to XML
+bool XMLToItemManifest(const char* cFilename);				//Convert itemmanifest.dat.xml back to binary .dat form
+void initResMap();											//Read in residmap.dat so that we can have the correct filenames for all resource files
+bool residMapToXML(const char* cFilename);					//Convert residmap.dat to XML
+bool XMLToResidMap(const char* cFilename);					//Convert residmap.dat.xml back to binary .dat form
+const char* getName(u32 resId);								//Get a resource filename from the resource ID
+u32 getResID(string sName);									//Get a resource ID from its filename
 
 
 #endif

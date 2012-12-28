@@ -1,16 +1,4 @@
 #include "pakDataTypes.h"
-#include <iostream>
-#include <VFS.h>
-#include <VFSTools.h>
-#include <string>
-#include <cstring>
-#include <fstream>
-#include <list>
-#include <map>
-#include <stdlib.h>
-#include <unistd.h>
-#include <windows.h>
-using namespace std;
 
 #define RESOURCE_1_NAME	"resource.pak"
 #define RESOURCE_2_NAME	"embed.pak"

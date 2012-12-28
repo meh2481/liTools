@@ -25,7 +25,10 @@ int pullPakFiles(int argc, char** argv)
 	}
 
 	// Load the .EXE whose resources you want to list.
+	cout << "Loading libraries from executable..." << endl;
+	//cout << "ticks before: " << GetTickCount() << endl;
 	hExe = LoadLibrary(TEXT(argv[1]));
+	//cout << "ticks after: " << GetTickCount() << endl;
 	if (hExe == NULL)
 	{
 		cout << "Unable to load " << argv[1] << endl;
@@ -55,19 +58,6 @@ int pullPakFiles(int argc, char** argv)
 			return 1;
 		}
 		
-		HGLOBAL hgResData = LoadResource(hExe, hResource);
-		if (!hgResData) 
-		{
-			cout << "Error: Unable to load resource " << iResource << endl;
-			return 1;
-		}
-		char* pBuffer = (char*)LockResource(hgResData);
-		if(pBuffer == NULL) 
-		{
-			cout << "Error: Unable to lock resource " << iResource << endl;
-			return 1;
-		}
-		
 		char cName[512];
 		switch(iResource)
 		{
@@ -83,6 +73,25 @@ int pullPakFiles(int argc, char** argv)
 				sprintf(cName, "%s", RESOURCE_3_NAME);
 				break;
 		}
+		
+		cout << "Stripping resource " << cName << endl;
+		//cout << "ticks before: " << GetTickCount() << endl;
+		HGLOBAL hgResData = LoadResource(hExe, hResource);
+		//cout << "ticks after: " << GetTickCount() << endl;
+		if (!hgResData) 
+		{
+			cout << "Error: Unable to load resource " << iResource << endl;
+			return 1;
+		}
+		//cout << "Locking resource " << cName << endl;
+		//cout << "ticks before: " << GetTickCount() << endl;
+		char* pBuffer = (char*)LockResource(hgResData);
+		//cout << "ticks after: " << GetTickCount() << endl;
+		if(pBuffer == NULL) 
+		{
+			cout << "Error: Unable to lock resource " << iResource << endl;
+			return 1;
+		}
 
 		HANDLE hFile = CreateFile(cName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (INVALID_HANDLE_VALUE == hFile) 
@@ -92,6 +101,8 @@ int pullPakFiles(int argc, char** argv)
 		}
 		
 		DWORD dwLen = 0;
+		//cout << "Writing resource " << cName << " to file." << endl;
+		//cout << "ticks before: " << GetTickCount() << endl;
 		if ((!(WriteFile(hFile, pBuffer, resLen, &dwLen, NULL))) || 
 		   (dwLen != resLen)) 
 		{ 
@@ -100,6 +111,7 @@ int pullPakFiles(int argc, char** argv)
 			return (1);
 		}
 		CloseHandle(hFile);
+		//cout << "ticks after: " << GetTickCount() << endl;
 	}
 	
 	
