@@ -348,7 +348,19 @@ bool convertFromPNG(const char* cFilename)
 		curPtr[3] = curPtr[2];
 		curPtr[2] = curPtr[1];
 		curPtr[1] = curPtr[0];
-		curPtr[0] = temp;		
+		curPtr[0] = temp;
+		//Make sure pixels with alpha=0 have color=0 also
+		if(curPtr[3] == 0 && curPtr[2] == 0)
+			curPtr[0] = curPtr[1] = 0;
+	}
+  }
+  else	//Make sure areas with A=0 have RGB=0,0,0 as well
+  {
+	for(unsigned int i = 0; i < imageSize; i += 4)
+	{
+		png_byte* curPtr = &png_pixels[i];
+		if(curPtr[3] == 0)
+			curPtr[0] = curPtr[1] = curPtr[2] = 0;
 	}
   }
   
