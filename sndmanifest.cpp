@@ -17,10 +17,16 @@ u32 getSoundId(string sSound)
 //Parse our array of values to get the initial mappings
 void initSoundManifest()
 {
+	//ofstream oHash("hash3.txt");
 	for(u32 i = 0; i < NUM_MAPPINGS; i++)
 	{
 		g_mSoundIDToString[g_soundMap[i].id] = g_soundMap[i].name;
 		g_mStringToSoundID[g_soundMap[i].name] = g_soundMap[i].id;
+		//oHash << "id: " << g_soundMap[i].id << ", filename: " << g_soundMap[i].name << ", filename hashed: " << hash(g_soundMap[i].name) << endl;
+		//if(g_soundMap[i].id != hash(g_soundMap[i].name))
+		//	oHash << "Hash failed." << endl;
+		//else
+		//	oHash << "Hash worked!" << endl;
 	}
 }
 

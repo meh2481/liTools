@@ -35,6 +35,68 @@ void initResMap()
 	}
 }
 
+//Functions from Stack Overflow peoples
+wstring s2ws(const string& s)
+{
+    int len;
+    int slength = (int)s.length();
+    len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0); 
+    wstring r(len, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, &r[0], len);
+    return r;
+}
+
+string ws2s(const wstring& s)
+{
+    int len;
+    int slength = (int)s.length();
+    len = WideCharToMultiByte(CP_ACP, 0, s.c_str(), slength, 0, 0, 0, 0); 
+    string r(len, '\0');
+    WideCharToMultiByte(CP_ACP, 0, s.c_str(), slength, &r[0], len, 0, 0); 
+    return r;
+}
+
+//convert a string to lowercase. Also change forward slashes back to backslashes.
+string stolower( const string s )
+{
+  string result = s;
+  for(unsigned int i = 0; i < s.size(); i++)
+  {
+	char c = s[i];
+	if( (c >= 'A') && (c <= 'Z') )
+	{
+		c += 'a' - 'A';
+		result[i] = c;
+	}
+	if(c == '/')
+		result[i] = '\\';
+  }
+  
+  return result;
+}
+
+//Function from Allan for getting a hash from a filename
+u32 LIHash( const wchar_t *pCaseInsensitiveStr )
+{
+	u32 hash = 0xABABABAB;
+	while( *pCaseInsensitiveStr )
+	{
+		hash ^= *pCaseInsensitiveStr;
+		hash = (hash << 7) | (hash >> (32-7));
+		++pCaseInsensitiveStr;
+	}
+
+	return hash;
+}
+
+//Have to do some converting to get from std::string to wchar_t*. TODO: Native UTF-16 support or such?
+u32 hash(string sFilename)
+{
+	//Convert to lowercase first
+	return LIHash(s2ws(stolower(sFilename)).c_str());
+}
+
+
 //TODO: Severe problem if unknown ID and this isn't read first!!!
 bool residMapToXML(const char* cFilename)
 {	
@@ -150,13 +212,20 @@ bool residMapToXML(const char* cFilename)
 	XMLDocument* doc = new XMLDocument;
 	//TODO Merge with preexisting XML
 	XMLElement* root = doc->NewElement("mappings");	//Create the root element
+	//ofstream oHash("hash.txt");
 	for(map<u32, string>::iterator i = g_pakMappings.begin(); i != g_pakMappings.end(); i++)
 	{
 		XMLElement* elem = doc->NewElement("mapping");
 		elem->SetAttribute("id", i->first);
 		elem->SetAttribute("filename", i->second.c_str());
 		root->InsertEndChild(elem);
+		//oHash << "id: " << i->first << ", filename: " << i->second << ", filename hashed: " << hash(i->second) << endl;
+		//if(i->first != hash(i->second))
+		//	oHash << "Hash failed." << endl;
+		//else
+		//	oHash << "Hash worked!" << endl;
 	}
+	//oHash.close();
 	doc->InsertFirstChild(root);
 	doc->SaveFile(sFilename.c_str());
 	

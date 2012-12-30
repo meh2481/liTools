@@ -1,8 +1,13 @@
+Minimize file I/O for speed when merging
+Merging progress bar
+Support for new IDs and filenames in pakfiles; small residmap.dat and sndmanifest.dat and such in each mod?
+
 Some kind of backup capability so that mods can be uninstalled easily
 XML specification instead of .filelist.txt for mod creation?
 XML specification for which files go in which pakfiles?
 Work with puggsoy/others for GUI ease of use
-Minimize file I/O for speed
+Full UTF-16 support?
+
 
 
 Done

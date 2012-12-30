@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <tinyxml2.h>
 #include <stdint.h>
-#include <string>
 #include <list>
 #include <VFS.h>
 #include <VFSTools.h>
@@ -310,6 +309,8 @@ bool residMapToXML(const char* cFilename);					//Convert residmap.dat to XML
 bool XMLToResidMap(const char* cFilename);					//Convert residmap.dat.xml back to binary .dat form
 const char* getName(u32 resId);								//Get a resource filename from the resource ID
 u32 getResID(string sName);									//Get a resource ID from its filename
+u32 hash(string sFilename);									//Hash a filename to get an ID
+//u32 LIHash( const wchar_t *pCaseInsensitiveStr );			//Hash a filename to get an ID
 
 
 #endif

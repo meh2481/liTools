@@ -187,11 +187,17 @@ bool itemManifestToXML(const char* cFilename)
 	//DEBUG: See how often each value occurs and see if there's a resonable default
 	map<string, list<string> > mOccurrences;
 	//
-	
+	//ofstream oHash("hash2.txt");
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
 		XMLElement* elem = doc->NewElement("itemrecord");
 		elem->SetAttribute("id", mItemNames[i->itemId].c_str());
+		//oHash << "id: " << i->itemId << ", filename: " << mItemNames[i->itemId].c_str() 
+		//	  << ", hashed filename: " << hash(mItemNames[i->itemId]) << endl;
+		//if(i->itemId == hash(mItemNames[i->itemId]))
+		//	oHash << "Hash worked!" << endl;
+		//else
+		//	oHash << "Hash failed." << endl;
 		XMLElement* elem2 = doc->NewElement("animresid");
 		elem2->SetAttribute("filename", getName(i->animResId));
 		elem->InsertEndChild(elem2);
@@ -557,7 +563,7 @@ bool itemManifestToXML(const char* cFilename)
 		elem->InsertEndChild(elem2);
 		root->InsertEndChild(elem);
 	}
-	
+	//oHash.close();
 	doc->InsertFirstChild(root);
 	doc->SaveFile(sFilename.c_str());
 	
