@@ -7,6 +7,12 @@ map<u32, string> g_pakMappings;
 //Get a resource ID from a filename
 u32 getResID(string sName)
 {
+	if(!g_repakMappings.count(sName))
+	{
+		//TODO: Hash filenames yadda yadda yadda
+		cout << "ERROR: Invalid filename for recompression: " << sName << ". Only files in the original residmap.dat can be compressed." << endl;
+		exit(1);
+	}
 	return g_repakMappings[sName];
 }
 

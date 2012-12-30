@@ -201,6 +201,91 @@ typedef struct
 	u32 itemResId;
 } itemDependency;
 
+typedef struct
+{
+	f32 x;
+	f32 y;
+} vec2;
+
+typedef struct
+{
+	u32 id;
+	i32	key;
+} BinLocStrKey;
+
+typedef struct
+{
+	BinHdrPtr skels;
+	BinHdrPtr joints;
+	BinHdrPtr bones;
+	BinHdrPtr boneShapes;
+	BinHdrPtr boneParts;
+	BinHdrPtr bonePartTreeVals;
+	BinHdrPtr rgnCells;
+	BinHdrPtr stringTableBytes;
+	BinHdrPtr burnGridUsedDataBytes;
+	u32 itemId;
+	i32 itemIdStrId;
+	u32 animResId;
+	vec2 iconAnimBoundsMin;
+	vec2 iconAnimBoundsMax;
+	BinLocStrKey name;
+	i32 costCoins;
+	i32 costStamps;
+	i32 valueCoins;
+	i32 valueStamps;
+	BinLocStrKey desc;
+	i32 unlisted;
+	i32 popsCoins;
+	i32 moneyItem;
+	f32 animThreshold;
+	f32 motorThreshold;
+	i32 absPosition;
+	f32 scaleVariance;
+	i32 quantity;
+	i32 shipTimeSec;
+	u32 initialBurnExportId;
+	i32 initialBurnPerGroup;
+	i32 mouseGrabbable;
+	f32 illuminate;
+	i32 enableHFlip;
+	i32 floorWallShadow;
+	i32 splitJumpLastFrame;
+	f32 purchaseCooldown;
+	i32 allowDirectionalLight;
+	u32 mouseGrabSoundResId;
+	i32 instantEffects;
+	i32 freezeOnCollide;
+	i32 enableFreezePostAnim;
+	u32 uniqueIgniteSoundResId;
+	i32 collideItems;
+	i32 collideEnvironment;
+	i32 orbitalGravity;
+	i32 allowExplodeStreaks;
+	i32 burnSlowsAnim;
+	i32 plagueOnCollide;
+	u32 spawnLimitBurnExportId;
+	u32 instAshSoundResId;
+	i32 canGetPlague;
+	i32 instAshDoesSplat;
+	f32 modXAmpMin;
+	f32 modXAmpMax;
+	f32 modXFreqMin;
+	f32 modXFreqMax;
+	f32 modXPhaseMin;
+	f32 modXPhaseMax;
+	f32 modXSpeedMin;
+	f32 modXSpeedMax;
+	f32 modYAmpMin;
+	f32 modYAmpMax;
+	f32 modYFreqMin;
+	f32 modYFreqMax;
+	f32 modYPhaseMin;
+	f32 modYPhaseMax;
+	f32 modYSpeedMin;
+	f32 modYSpeedMax;
+} itemDataHeader;
+
 
 //global functions
 int compdecomp(const char* cIn, const char* cOut, int iCompress = false);	//Compress/decompress a file using zlib

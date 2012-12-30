@@ -28,13 +28,13 @@ void makeFolder(u32 resId)
 	{
 		if(cName[i] == '/')
 		{
-			char* cFilename = (char*)malloc(i+5);
-			memset(cFilename, 0, i+5);
+			char* cFilename = (char*)malloc(i+2);
+			memset(cFilename, '\0', i+2);
 			strncpy(cFilename, cName, i+1);
 			//char cData[512];
 			//sprintf(cData, "output/%s", cFilename);
-			if(!ttvfs::IsDirectory(cFilename))
-				ttvfs::CreateDirRec(cFilename);
+			//if(!ttvfs::IsDirectory(cFilename))
+			ttvfs::CreateDirRec(cFilename);
 			free(cFilename);
 		}
 	}
@@ -86,6 +86,7 @@ int main(int argc, char** argv)
 	if(argc < 2)
 	{
 		cout << "Usage: liDecompress [filename1] [filename2] ... [filenameN]" << endl;
+		//system("PAUSE");
 		return 0;
 	}
 	
@@ -228,6 +229,7 @@ int main(int argc, char** argv)
 	iSeconds -= iMinutes * 60;
 	
 	cout << "Time elapsed: " << iMinutes << " min, " << iSeconds << " sec" << endl;
+	//system("PAUSE");
 	
 	return 0;
 }

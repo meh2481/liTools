@@ -25,7 +25,7 @@ int pullPakFiles(int argc, char** argv)
 	}
 
 	// Load the .EXE whose resources you want to list.
-	cout << "Loading libraries from executable..." << endl;
+	//cout << "Loading libraries from executable..." << endl;
 	//cout << "ticks before: " << GetTickCount() << endl;
 	hExe = LoadLibrary(TEXT(argv[1]));
 	//cout << "ticks after: " << GetTickCount() << endl;
@@ -34,6 +34,7 @@ int pullPakFiles(int argc, char** argv)
 		cout << "Unable to load " << argv[1] << endl;
 		return 1;
 	}
+	//cout << "50 percent done" << endl;
 	
 	//Grab resources
 	for(int iResource = RESOURCE_1; iResource <= RESOURCE_3; iResource++)
@@ -74,19 +75,14 @@ int pullPakFiles(int argc, char** argv)
 				break;
 		}
 		
-		cout << "Stripping resource " << cName << endl;
-		//cout << "ticks before: " << GetTickCount() << endl;
+		//cout << "Stripping resource " << cName << endl;
 		HGLOBAL hgResData = LoadResource(hExe, hResource);
-		//cout << "ticks after: " << GetTickCount() << endl;
 		if (!hgResData) 
 		{
 			cout << "Error: Unable to load resource " << iResource << endl;
 			return 1;
 		}
-		//cout << "Locking resource " << cName << endl;
-		//cout << "ticks before: " << GetTickCount() << endl;
 		char* pBuffer = (char*)LockResource(hgResData);
-		//cout << "ticks after: " << GetTickCount() << endl;
 		if(pBuffer == NULL) 
 		{
 			cout << "Error: Unable to lock resource " << iResource << endl;
@@ -100,18 +96,48 @@ int pullPakFiles(int argc, char** argv)
 			return 1;
 		}
 		
-		DWORD dwLen = 0;
-		//cout << "Writing resource " << cName << " to file." << endl;
-		//cout << "ticks before: " << GetTickCount() << endl;
-		if ((!(WriteFile(hFile, pBuffer, resLen, &dwLen, NULL))) || 
-		   (dwLen != resLen)) 
-		{ 
-			CloseHandle(hFile); 
-			cout << "Error: Unable to write resource data to file " << cName << endl;
-			return (1);
+		if(iResource != RESOURCE_1)
+		{
+			DWORD dwLen = 0;
+			if ((!(WriteFile(hFile, pBuffer, resLen, &dwLen, NULL))) || 
+			   (dwLen != resLen)) 
+			{ 
+				CloseHandle(hFile); 
+				cout << "Error: Unable to write resource data to file " << cName << endl;
+				return (1);
+			}
+			CloseHandle(hFile);
 		}
-		CloseHandle(hFile);
-		//cout << "ticks after: " << GetTickCount() << endl;
+		else	//Progress bar sort of thing for resource.pak
+		{
+			DWORD writtenLen = 0;
+			DWORD segmentLen = resLen / 50;
+			int iCurProgress = 50;
+			for(;(resLen - writtenLen) > segmentLen; writtenLen += segmentLen)
+			{
+				DWORD dwLen = 0;
+				if ((!(WriteFile(hFile, &pBuffer[writtenLen], segmentLen, &dwLen, NULL))) || 
+				   (dwLen != segmentLen)) 
+				{ 
+					CloseHandle(hFile); 
+					cout << "Error: Unable to write resource data to file " << cName << endl;
+					return (1);
+				}
+				cout << iCurProgress++ << " percent done" << endl;
+			}
+			if(writtenLen < resLen)
+			{
+				DWORD dwLen = 0;
+				if ((!(WriteFile(hFile, &pBuffer[writtenLen], (resLen - writtenLen), &dwLen, NULL))) || 
+				   (dwLen != (resLen - writtenLen))) 
+				{ 
+					CloseHandle(hFile); 
+					cout << "Error: Unable to write resource data to file " << cName << endl;
+					return (1);
+				}
+			}
+			CloseHandle(hFile);
+		}
 	}
 	
 	
@@ -177,7 +203,7 @@ int main(int argc, char** argv)
 	
 	//Done
 	free(cZero);
-	cout << "exe stripped." << endl;
+	cout << "100 percent done" << endl;
 	return 0;
 }
 

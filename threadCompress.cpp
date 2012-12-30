@@ -130,7 +130,11 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		
 		if(bNormalConvert)
 		{
-			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1);
+			if(compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1))
+			{
+				cout << "Error: Unable to compress file " << tch.sIn << ". Abort." << endl;
+				exit(1);
+			}
 			WaitForSingleObject(ghMutex, INFINITE);
 			g_pakHelping[tch.sIn].bCompressed = true;
 			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(tch.sIn.c_str());	//Hang onto these for compressed header stuff

@@ -181,7 +181,11 @@ int compdecomp(const char* cIn, const char* cOut, int iCompress)
 	{
 	    FILE *in, *out;
 		in = fopen(cIn, "rb");
+		if(in == NULL)
+			return 1;
 		out = fopen(cOut, "wb");
+		if(out == NULL)
+			return 1;
         ret = def(in, out, Z_DEFAULT_COMPRESSION);
         if (ret != Z_OK)
             zerr(ret);
@@ -194,7 +198,11 @@ int compdecomp(const char* cIn, const char* cOut, int iCompress)
 	//Decompress
 	FILE *in, *out;
 	in = fopen(cIn, "rb");
+	if(in == NULL)
+		return 1;
 	out = fopen(cOut, "wb");
+	if(out == NULL)
+		return 1;
 	ret = inf(in, out);
 	if (ret != Z_OK)
 		zerr(ret);
