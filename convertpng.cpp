@@ -79,6 +79,32 @@ bool convertToPNG(const char* cFilename)
 		temp = curPtr[0];
 		curPtr[0] = curPtr[1];
 		curPtr[1] = temp;
+		
+		//Divide alpha out of premultiplied image
+		unsigned short col, alpha;
+		alpha = curPtr[3] + ((unsigned short)curPtr[2] << 8);
+		col = curPtr[1] + ((unsigned short)curPtr[0] << 8);
+		col /= (float)alpha / (float)0xFFFF;
+		curPtr[1] = col & 0xFF;
+		curPtr[0] = col >> 8;
+	}
+  }
+  else	//Color image; change premultiplied alpha to normal alpha
+  {
+	for(unsigned int i = 0; i < sizeToRead; i += 4)
+	{
+		png_byte* curPtr = &png_pixels[i];
+		
+		//Divide alpha
+		if(curPtr[3] == 0)
+			curPtr[0] = curPtr[1] = curPtr[2] = 0;
+		else
+		{
+			float fAlpha = (float)curPtr[3] / 255.0;
+			curPtr[0] /= fAlpha;
+			curPtr[1] /= fAlpha;
+			curPtr[2] /= fAlpha;
+		}			
 	}
   }
   
@@ -208,7 +234,7 @@ bool convertFromPNG(const char* cFilename)
   ret = png_sig_cmp (buf, 0, 8);
   if (ret)
   {
-  cout << "sigcmp fail" << endl;
+  cout << "sigcmp fail. This is not a PNG image." << endl;
   return false;
   }
 
@@ -293,14 +319,14 @@ bool convertFromPNG(const char* cFilename)
 
   unsigned int imageSize = row_bytes * height * sizeof (png_byte);
   if ((png_pixels = (png_byte *) malloc (imageSize)) == NULL) {
-	cout << "Out of memory-1" << endl;
+	cout << "Out of memory for PNG pixels" << endl;
     png_destroy_read_struct (&png_ptr, &info_ptr, NULL);
     return false;
   }
 
   if ((row_pointers = (png_byte **) malloc (height * sizeof (png_bytep))) == NULL)
   {
-	cout << "Out of memory-2" << endl;
+	cout << "Out of memory for PNG row pointers" << endl;
     png_destroy_read_struct (&png_ptr, &info_ptr, NULL);
     free (png_pixels);
     png_pixels = NULL;
@@ -342,23 +368,35 @@ bool convertFromPNG(const char* cFilename)
     ih.flags |= 0x08;	//Also change flags so it's read in correctly
 	for(unsigned int i = 0; i < imageSize; i += 4)
 	{
-		//Shift these around so it works out right (yeah, I dunno why either, just getting it to mimic input data here)
 		png_byte* curPtr = &png_pixels[i];
+		
+		//Convert to premultiplied alpha
+		unsigned short col, alpha;
+		alpha = curPtr[3] + ((unsigned short)curPtr[2] << 8);
+		col = curPtr[1] + ((unsigned short)curPtr[0] << 8);
+		col *= (float)alpha / (float)0xFFFF;
+		curPtr[1] = col & 0xFF;
+		curPtr[0] = col >> 8;
+		
+		//Shift these around so it works out right (yeah, I dunno why either. I'm just getting it to mimic input data here)
 		png_byte temp = curPtr[3];
 		curPtr[3] = curPtr[2];
 		curPtr[2] = curPtr[1];
 		curPtr[1] = curPtr[0];
 		curPtr[0] = temp;
-		//Make sure pixels with alpha=0 have color=0 also
-		if(curPtr[3] == 0 && curPtr[2] == 0)
-			curPtr[0] = curPtr[1] = 0;
+		
 	}
   }
-  else	//Make sure areas with A=0 have RGB=0,0,0 as well
+  else	//Color image; convert to premultiplied alpha
   {
 	for(unsigned int i = 0; i < imageSize; i += 4)
 	{
 		png_byte* curPtr = &png_pixels[i];
+		float fAlpha = (float)curPtr[3] / 255.0;
+		curPtr[0] *= fAlpha;
+		curPtr[1] *= fAlpha;
+		curPtr[2] *= fAlpha;
+		
 		if(curPtr[3] == 0)
 			curPtr[0] = curPtr[1] = curPtr[2] = 0;
 	}

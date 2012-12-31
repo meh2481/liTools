@@ -70,21 +70,26 @@ int main(int argc, char** argv)
 		cout << "Usage: liCompress [pakfile1] [pakfile2] ... [pakfileN]" << endl;
 		return 0;
 	}
-	
+	cout << (8 << 1) << " " << (8 >> 1) << endl;
 	for(int iArg = 1; iArg < argc; iArg++)
 	{
 		if(argv[iArg][0] == '-')	//Skip over commandline switches
 			continue;
-		cout << endl << "Packing resource blob file " << argv[iArg] << endl;
+			
+		string sArg = argv[iArg];
+		size_t pos = sArg.find(".filelist.txt");
+		if(pos != string::npos)
+			sArg.erase(pos, string::npos);	//Erase a .filelist.pak extension if there is one
+		cout << endl << "Packing resource blob file " << sArg << endl;
 		
 		//Determine what files to pack into this .pak file
 		list<string> lstrFilesToPak;
-		string sInfilename = argv[iArg];
+		string sInfilename = sArg;
 		sInfilename += ".filelist.txt";
 		ifstream infile(sInfilename.c_str());
 		if(infile.fail())
 		{
-			cout << "Cannot open " << sInfilename << " to pack " << argv[iArg] << " Skipping..." << endl;
+			cout << "Cannot open " << sInfilename << " to pack " << sArg << " Skipping..." << endl;
 			continue;
 		}
 		while(!infile.fail() && !infile.eof())	//Pull in all the lines out of this file
@@ -134,10 +139,10 @@ int main(int argc, char** argv)
 		}
 		
 		//Open our output pakfile for writing
-		FILE* f = fopen(argv[iArg], "wb");
+		FILE* f = fopen(sArg.c_str(), "wb");
 		if(f == NULL)
 		{
-			cout << "Unable to open file " << argv[iArg] << " for writing. Skipping..." << endl;
+			cout << "Unable to open file " << sArg << " for writing. Skipping..." << endl;
 			continue;
 		}
 		
