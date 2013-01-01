@@ -4,17 +4,9 @@
 #define RESOURCE_2_NAME	TEXT("embed.pak")
 #define RESOURCE_3_NAME	TEXT("frontend.pak")
 
-typedef struct
-{
-	uint16_t size;
-	uint8_t* data;
-} virtualFile;
-
 map<u32, virtualFile> g_mOrig;
 map<u32, virtualFile> g_mMods;
 ofstream oWarnings("mergeresults.txt");
-
-//ttvfs::VFSHelper vfs;
 
 //Functions from Stack Overflow peoples
 wstring s2ws(const string& s)
@@ -37,30 +29,6 @@ string ws2s(const wstring& s)
     return r;
 }
 
-//Remove all files in the temp/ folder, since we're done with them
-/*void removeTempFiles()
-{
-	ttvfs::StringList slFiles;
-    ttvfs::GetFileList("temp", slFiles);
-
-    for(ttvfs::StringList::iterator il = slFiles.begin(); il != slFiles.end(); il++)
-    {
-		string s = "temp/" + (*il);
-		unlink(s.c_str());	//Remove this file
-    }
-	rmdir("temp/");	//Remove the folder itself
-	
-	//Remove tempmod files too
-	ttvfs::GetFileList("tempmod", slFiles);
-
-    for(ttvfs::StringList::iterator il = slFiles.begin(); il != slFiles.end(); il++)
-    {
-		string s = "tempmod/" + (*il);
-		unlink(s.c_str());	//Remove this file
-    }
-	rmdir("tempmod/");	//Remove the folder itself
-}*/
-
 void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 {
 	//Iterate through these items, splitting them out of the file and saving the data
@@ -68,9 +36,6 @@ void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 	{
 		fseek(f, i->offset, SEEK_SET);
 		
-		//char sOutFile[256];
-		
-		//FILE* fOut = fopen(sOutFile, "wb");
 		uint8_t* buf = (uint8_t*)malloc(i->size);
 	  
 		if(fread((void*)buf, 1, i->size, f) != i->size)
@@ -81,7 +46,6 @@ void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 			free(buf);
 			continue;
 		}
-		//fwrite((void*)buf, 1, i->size, fOut);
 		virtualFile vf;
 		vf.size = i->size;
 		vf.data = buf;
@@ -103,8 +67,6 @@ void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 			}
 			g_mOrig[i->id] = vf;
 		}
-		//free(buf);
-		//fclose(fOut);
 	}
 }
 
@@ -119,17 +81,6 @@ void copyTempFiles()
 		}
 		g_mOrig[i->first] = i->second;
 	}
-
-	//ttvfs::StringList slFiles;
-    //ttvfs::GetFileList("tempmod", slFiles);
-
-    //for(ttvfs::StringList::iterator il = slFiles.begin(); il != slFiles.end(); il++)
-    //{
-	//	string s = "tempmod/" + (*il);
-	//	string sOut = "temp/" + (*il);
-	//	unlink(sOut.c_str());	//Remove the old file
-	//	rename(s.c_str(), sOut.c_str());	//Replace it with this one
-    //}
 }
 
 //Main program entry point
@@ -137,26 +88,16 @@ int main(int argc, char** argv)
 {
 	DWORD iTicks = GetTickCount();	//Store the starting number of milliseconds
 	
-	//vfs.Prepare();
-	
 	if(argc < 2)
 	{
 		cout << "Usage: modManage [pakfile1] [pakfile2] ... [pakfileN]" << endl;
 		return 0;
 	}
 	
-	//Create temp folders if they aren't here already
-	/*removeTempFiles();
-	if(!ttvfs::IsDirectory("temp"))
-		ttvfs::CreateDirRec("temp");
-	if(!ttvfs::IsDirectory("tempmod"))
-		ttvfs::CreateDirRec("tempmod");*/
-	
 	//First, check and see what resource ID's are in each mod to merge, and split them all out
 	list<resourceHeader> lModResHeaders[argc-1];	//For splitting mods out of the .pak files
 	map<u32, u32> mModHeader;	//For repacking, need to know the flags for this file
 	map<u32, bool> mModResources;
-	//cout << endl;
 	for(int iArg = 1; iArg < argc; iArg++)
 	{
 		//Read in these files
@@ -306,14 +247,9 @@ int main(int argc, char** argv)
 		//Add the table of contents
 		cout << "Adding table of contents..." << endl;
 		for(list<resourceHeader>::iterator i = lResourceHeaders[iPak].begin(); i != lResourceHeaders[iPak].end(); i++)
-		{
-			//resourceHeader rH = *i;
-			
-			//char cIDFilename[256];
-			//sprintf(cIDFilename, "temp/%u", i->id);
-			
+		{			
 			i->offset = offsetPos;	//Offset
-			i->size = g_mOrig[i->id].size;//ttvfs::GetFileSize(cIDFilename);	//Size of file
+			i->size = g_mOrig[i->id].size;	//Size of file
 			if(mModHeader.count(i->id))
 				i->flags = mModHeader[i->id];	//Set the flags to the flags of this file copied over
 			
@@ -324,50 +260,29 @@ int main(int argc, char** argv)
 		
 		//Add actual resource data
 		cout << "Adding files..." << endl;
-		for(map<u32, virtualFile>::iterator i = g_mOrig.begin(); i != g_mOrig.end(); i++)
-		{
-			//Write this data to the file
-			fwrite(i->second.data, 1, i->second.size, f);
-			//Free memory while we're at it
-			free(i->second.data);
-		}
-		/*for(list<resourceHeader>::iterator i = lResourceHeaders[iPak].begin(); i != lResourceHeaders[iPak].end(); i++)
+		for(list<resourceHeader>::iterator i = lResourceHeaders[iPak].begin(); i != lResourceHeaders[iPak].end(); i++)
 		{			
-			//Write this file
-			char cIDFilename[256];
-			sprintf(cIDFilename, "temp/%u", i->id);
-			
-			size_t fileSize = ttvfs::GetFileSize(cIDFilename);
-			wchar_t* cTemp = (wchar_t*)malloc(fileSize);
-			FILE* fTempIn = fopen(cIDFilename, "rb");
-			if(fTempIn == NULL)
-			{
-				cout << "Error opening " << cIDFilename << endl;
-				continue;
+			virtualFile vfIn = g_mOrig[i->id];
+			if(vfIn.data == NULL)
+			{	
+				cout << "Error: resource " << i->id << " is in more than one output .pak file. Abort." << endl;
+				return 1;
 			}
 			
-			if(fread(cTemp, 1, fileSize, fTempIn) != fileSize)
-			{
-				cout << "Error reading from " << cIDFilename << endl;
-				continue;
-			}
+			fwrite(vfIn.data, 1, vfIn.size, f);	//Write this to the file
 			
-			fwrite(cTemp, 1, fileSize, f);	//Write this to the file
-			
-			free(cTemp);
-			fclose(fTempIn);
-		}*/
+			//Free this data while we're at it
+			free(vfIn.data);
+			g_mOrig[i->id].data = NULL;
+		}
 		fclose(f);	//Done packing this .pak file
-	}
-	
-	//removeTempFiles();
-	
+	}	
 	//Done
 	cout << endl << "Done." << endl;
 	
 	iTicks = GetTickCount() - iTicks;
-	int iSeconds = iTicks / 1000;	//Get seconds elapsed
-	int iMinutes = iSeconds / 60;
+	float iSeconds = (float)iTicks / 1000.0;	//Get seconds elapsed
+	int iMinutes = (int)iSeconds / 60;
 	iSeconds -= iMinutes * 60;
 	
 	cout << "Time elapsed: " << iMinutes << " min, " << iSeconds << " sec" << endl;

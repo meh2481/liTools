@@ -101,7 +101,8 @@ To install mods, run
 
     modManage [pakfile1] [pakfile2] ... [pakfileN]
 
-Where [pakfileX] is the mod you wish to install (or click-and-drag files into the executable). modManage will pull resource headers out of every .pak file to figure out what files should go in what .pak file, and will only modify the original .pak files as needed. If your mod changes files found in resource.pak, it may take a little while to install (about 30 seconds on my machine). Changes made later in the commandline will overwrite earlier changes; for example, if you run "modManage battery.pak battery2.pak", and both of these .pak files change data/items/Battery/Battery.png, the battery2.pak's version of the image will end up in the final game.
+Where [pakfileX] is the mod you wish to install (You can also click-and-drag files into the executable as normal). modManage will pull resource headers out of every .pak file to figure out what files should go in what .pak file, and will only modify the original .pak files as needed. Changes made by pafiles later in the commandline will overwrite earlier changes; for example, if you run "modManage battery.pak battery2.pak", and both of these .pak files change data/items/Battery/Battery.png, the battery2.pak's version of the image will end up in the final game.
+modManage will spit out a file in the working directory titled "mergeresults.txt", which will have details as to how the merging went. In case two mods conflict and overwrite the same file, it'll say so in this file. 
 
 
 Changelog

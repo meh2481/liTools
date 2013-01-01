@@ -1,13 +1,13 @@
 #include "pakDataTypes.h"
 
-extern list<ThreadConvertHelper> g_lThreadedResources;
+extern list<decompressHelper> g_lThreadedResources;
 extern bool g_bProgressOverwrite;
 extern unsigned int g_iNumThreads;
 
 ttvfs::VFSHelper vfs;
 
 //Remove all files in the temp/ folder, since we're done with them
-void removeTempFiles()
+/*void removeTempFiles()
 {
 	ttvfs::StringList slFiles;
     ttvfs::GetFileList("temp", slFiles);
@@ -18,7 +18,7 @@ void removeTempFiles()
 		unlink(s.c_str());	//Remove this file
     }
 	rmdir("temp/");	//Remove the folder itself
-}
+}*/
 
 //Create the folder that this resource ID's file will be placed in
 void makeFolder(u32 resId)
@@ -127,9 +127,9 @@ int main(int argc, char** argv)
 		}
 		
 		//Create temp folder if it isn't here already
-		removeTempFiles();
+		/*removeTempFiles();
 		if(!ttvfs::IsDirectory("temp"))
-			ttvfs::CreateDirRec("temp");
+			ttvfs::CreateDirRec("temp");*/
 			
 		//Create list file with all the files that were in this .pak
 		string sPakListFilename = "";
@@ -147,13 +147,13 @@ int main(int argc, char** argv)
 		cout << "Extracting files..." << endl;
 		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
 		{
-			ThreadConvertHelper tch;
-			tch.bCompressed = false;
+			decompressHelper dh;
+			//tch.bCompressed = false;
 			makeFolder(i->id);
 			const wchar_t* cName = getName(i->id);
 			oPakList << ws2s(cName) << endl;
 			fseek(f, i->offset, SEEK_SET);
-			tch.sFilename = cName;
+			dh.sFilename = cName;
 			if(i->flags == FLAG_ZLIBCOMPRESSED)
 			{
 				compressedHeader cH;
@@ -164,9 +164,9 @@ int main(int argc, char** argv)
 					continue;
 				}
 				
-				char sOutFile[256];
-				sprintf(sOutFile, "temp/%u", i->id);
-				FILE* fOut = fopen(sOutFile, "wb");
+				//char sOutFile[256];
+				//sprintf(sOutFile, "temp/%u", i->id);
+				//FILE* fOut = fopen(sOutFile, "wb");
 				
 				uint32_t size = cH.compressedSizeBytes;
 				
@@ -176,41 +176,46 @@ int main(int argc, char** argv)
 				{
 					cout << "Error reading compressed data. Size: " << size << " read: " << sizeRead << endl;
 					fclose(f);
-					fclose(fOut);
+					//fclose(fOut);
 					free(buf);
 					continue;
 				}
-				fwrite((void*)buf, 1, size, fOut);
-				fclose(fOut);
-				free(buf);
+				dh.data.data = buf;
+				dh.data.compressedSize = cH.compressedSizeBytes;
+				dh.data.decompressedSize = cH.uncompressedSizeBytes;
+				//fwrite((void*)buf, 1, size, fOut);
+				//fclose(fOut);
+				//free(buf);
 				
-				tch.sIn = s2ws(sOutFile);
-				tch.bCompressed = true;
+				//tch.sIn = s2ws(sOutFile);
+				//tch.bCompressed = true;
 			}
 			else if(i->flags == FLAG_NOCOMPRESSION)
 			{
-				tch.sIn = TEXT("");
-				FILE* fOut = _wfopen(cName, TEXT("wb"));
+				//tch.sIn = TEXT("");
+				//FILE* fOut = _wfopen(cName, TEXT("wb"));
 				uint8_t* buf = (uint8_t*)malloc(i->size);
 			  
 				if(fread((void*)buf, 1, i->size, f) != i->size)
 				{
 					cout << "Error reading non-compressed data." << endl;
 					fclose(f);
-					fclose(fOut);
+					//fclose(fOut);
 					free(buf);
 					continue;
 				}
-				fwrite((void*)buf, 1, i->size, fOut);
+				dh.data.data = buf;
+				dh.data.compressedSize = dh.data.decompressedSize = i->size;
+				//fwrite((void*)buf, 1, i->size, fOut);
 				
 			  
-				free(buf);
-				fclose(fOut);
+				//free(buf);
+				//fclose(fOut);
 			}
 			else
 				cout << "Invalid resource flag " << i->flags << endl;
 			
-			g_lThreadedResources.push_back(tch);
+			g_lThreadedResources.push_back(dh);
 			
 		}
 		
@@ -220,11 +225,11 @@ int main(int argc, char** argv)
 		oPakList.close();
 	}
 	
-	removeTempFiles();
+	//removeTempFiles();
 	cout << "\rDone.                                " << endl;
 	
 	iTicks = GetTickCount() - iTicks;
-	int iSeconds = iTicks / 1000;	//Get seconds elapsed
+	float iSeconds = (float)iTicks / 1000.0;	//Get seconds elapsed
 	int iMinutes = iSeconds / 60;
 	iSeconds -= iMinutes * 60;
 	

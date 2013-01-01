@@ -3,7 +3,7 @@
 
 #include "pakDataTypes.h"
 
-list<ThreadConvertHelper> g_lThreadedResources;
+list<decompressHelper> g_lThreadedResources;
 u32 g_iCurResource;
 u32 g_iNumResources;
 HANDLE ghMutex;
@@ -14,7 +14,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 {
 	for(bool bDone = false;!bDone;)	//Loop until we're done
 	{
-		ThreadConvertHelper tch;
+		decompressHelper dh;
 		DWORD dwWaitResult = WaitForSingleObject(ghMutex,    // wait for mutex
 												 INFINITE);  // no time-out interval
 		
@@ -27,7 +27,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 				else
 				{
 					//Grab the top item off the list
-					tch = g_lThreadedResources.front();
+					dh = g_lThreadedResources.front();
 					g_lThreadedResources.pop_front();	//Done with this element
 				}
 				
@@ -40,7 +40,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 						cout.flush();
 					}
 					else
-						cout << "Decompressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(tch.sFilename) << endl;
+						cout << "Decompressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(dh.sFilename) << endl;
 				}
 				
 				// Release ownership of the mutex object
@@ -60,51 +60,75 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		if(bDone)
 			continue;	//Stop here if done
 			
-		if(tch.bCompressed)
-			compdecomp(tch.sIn.c_str(), tch.sFilename.c_str());
-		
-		//See if this was a PNG image
-		if(tch.sFilename.find(TEXT(".png")) != wstring::npos ||
-		   tch.sFilename.find(TEXT(".PNG")) != wstring::npos ||
-		   tch.sFilename.find(TEXT("coloritemicon")) != wstring::npos ||
-		   tch.sFilename.find(TEXT("colorbgicon")) != wstring::npos ||
-		   tch.sFilename.find(TEXT("greybgicon")) != wstring::npos)			//Also would include .png.normal files as well
+		if(dh.data.compressedSize < dh.data.decompressedSize)	//Compressed
 		{
-			convertToPNG(tch.sFilename.c_str());	//Do the conversion
+			//compdecomp(dh.sIn.c_str(), dh.sFilename.c_str());
+			uint8_t* tempData = decompress(&dh.data);
+			if(tempData == NULL)
+			{
+				cout << "Error decompressing file " << ws2s(dh.sFilename) << endl;
+				return 1;
+			}
+			free(dh.data.data);	//Free this compressed memory
+			dh.data.data = tempData;	//Now we have the decompressed data
 		}
 		
-		else if(tch.sFilename.find(TEXT("wordPackDict.dat")) != wstring::npos)
+		//See if this was a PNG image. Convert PNG images from the data in RAM
+		if(dh.sFilename.find(TEXT(".png")) != wstring::npos ||
+		   dh.sFilename.find(TEXT(".PNG")) != wstring::npos ||
+		   dh.sFilename.find(TEXT("coloritemicon")) != wstring::npos ||
+		   dh.sFilename.find(TEXT("colorbgicon")) != wstring::npos ||
+		   dh.sFilename.find(TEXT("greybgicon")) != wstring::npos)			//Also would include .png.normal files as well
 		{
-			wordPackToXML(tch.sFilename.c_str());
-			unlink(ws2s(tch.sFilename).c_str());
+			convertToPNG(dh.sFilename.c_str(), dh.data.data, dh.data.decompressedSize);	//Do the conversion to PNG
+		}
+		else	//For other file types, go ahead and write to the file before converting
+		{
+			//Write this out to the file
+			FILE* fOut = _wfopen(dh.sFilename.c_str(), TEXT("wb"));
+			if(fOut == NULL)
+			{
+				cout << "Unable to open output file " << ws2s(dh.sFilename) << endl;
+				return 1;
+			}
+			fwrite(dh.data.data, 1, dh.data.decompressedSize, fOut);
+			fclose(fOut);
+		}
+		free(dh.data.data);	//Free memory from this file
+		
+		//Convert wordPackDict.dat to XML
+		if(dh.sFilename.find(TEXT("wordPackDict.dat")) != wstring::npos)
+		{
+			wordPackToXML(dh.sFilename.c_str());
+			unlink(ws2s(dh.sFilename).c_str());
 		}
 		
-		else if(tch.sFilename.find(TEXT("sndmanifest.dat")) != wstring::npos)
+		else if(dh.sFilename.find(TEXT("sndmanifest.dat")) != wstring::npos)
 		{
-			sndManifestToXML(tch.sFilename.c_str());
-			unlink(ws2s(tch.sFilename).c_str());
+			sndManifestToXML(dh.sFilename.c_str());
+			unlink(ws2s(dh.sFilename).c_str());
 		}
 		
-		else if(tch.sFilename.find(TEXT("itemmanifest.dat")) != wstring::npos)
+		else if(dh.sFilename.find(TEXT("itemmanifest.dat")) != wstring::npos)
 		{
-			itemManifestToXML(tch.sFilename.c_str());
-			//TODO unlink(ws2s(tch.sFilename).c_str());
+			itemManifestToXML(dh.sFilename.c_str());
+			//TODO unlink(ws2s(dh.sFilename).c_str());
 		}
 		
-		else if(tch.sFilename.find(TEXT("residmap.dat")) != wstring::npos)
+		else if(dh.sFilename.find(TEXT("residmap.dat")) != wstring::npos)
 		{
-			residMapToXML(tch.sFilename.c_str());
-			unlink(ws2s(tch.sFilename).c_str());
+			residMapToXML(dh.sFilename.c_str());
+			unlink(ws2s(dh.sFilename).c_str());
 		}
 		
 		//Convert .flac binary files to OGG
-		else if(tch.sFilename.find(TEXT(".flac")) != wstring::npos ||
-				tch.sFilename.find(TEXT(".FLAC")) != wstring::npos)
+		else if(dh.sFilename.find(TEXT(".flac")) != wstring::npos ||
+				dh.sFilename.find(TEXT(".FLAC")) != wstring::npos)
 		{
-			wstring s = tch.sFilename;
+			wstring s = dh.sFilename;
 			s += TEXT(".ogg");
-			binaryToOgg(tch.sFilename.c_str(), s.c_str());
-			unlink(ws2s(tch.sFilename).c_str());	//Delete temporary .flac file
+			binaryToOgg(dh.sFilename.c_str(), s.c_str());
+			unlink(ws2s(dh.sFilename).c_str());	//Delete temporary .flac file
 		}
 	}
 	return 0;

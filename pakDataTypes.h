@@ -111,21 +111,6 @@ typedef struct
 	f32 probability;
 } wordHeader;
 
-//Structures for my use
-typedef struct
-{
-	compressedHeader cH;
-	u32 id;
-	bool bCompressed;
-} pakHelper;
-
-typedef struct
-{
-	wstring sIn;
-	wstring sFilename;
-	bool bCompressed;
-} ThreadConvertHelper;
-
 //Mark IV structures - sndmanifest.dat structures
 typedef struct
 {
@@ -287,32 +272,86 @@ typedef struct
 } itemDataHeader;
 
 
+
+
+
+
+//Structures for my use
+typedef struct
+{
+	u32 size;
+	uint8_t* data;
+} virtualFile;
+
+typedef struct
+{
+	u32 compressedSize;
+	u32 decompressedSize;
+	uint8_t* data;
+} zlibData;
+
+typedef struct
+{
+	compressedHeader cH;
+	u32 id;
+	bool bCompressed;
+} pakHelper;
+
+typedef struct
+{
+	wstring sIn;
+	wstring sFilename;
+	bool bCompressed;
+} ThreadConvertHelper;
+
+typedef struct
+{
+	wstring sFilename;
+	zlibData data;
+} decompressHelper;
+
 //global functions
 int compdecomp(const wchar_t* cIn, const wchar_t* cOut, int iCompress = false);	//Compress/decompress a file using zlib
-int binaryToOgg( const wchar_t* in, const wchar_t* out );			//Function from Allan to convert a game sound file to .ogg
-int oggToBinary( const wchar_t* in, const wchar_t* out );			//Function from Allan to convert an .ogg file to the game's sound format
-takeRecord getOggData( const wchar_t* cFile );					//Grab the data from an OGG file to populate sndManifest.dat
+int binaryToOgg( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert a game sound file to .ogg
+int oggToBinary( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert an .ogg file to the game's sound format
+takeRecord getOggData( const wchar_t* cFile );				//Grab the data from an OGG file to populate sndManifest.dat
 void threadedDecompress();									//Start threaded decompression
 void threadedCompress();									//Start threaded compression
-bool convertToPNG(const wchar_t* cFilename);					//Convert a game image file to PNG
-bool convertFromPNG(const wchar_t* cFilename);					//Convert a PNG image to a game image file
-bool wordPackToXML(const wchar_t* cFilename);					//Convert wordPackDict.dat to XML
-bool XMLToWordPack(const wchar_t* cFilename);					//Convert wordPackDict.dat.xml back to binary .dat form
-bool sndManifestToXML(const wchar_t* cFilename);				//Convert sndManifest.dat to XML
-bool XMLToSndManifest(const wchar_t* cFilename);				//Convert sndManifest.dat.xml back to binary .dat form
+//bool convertToPNG(const wchar_t* cFilename);				//Convert a game image file to PNG
+bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size);
+bool convertFromPNG(const wchar_t* cFilename);				//Convert a PNG image to a game image file
+bool wordPackToXML(const wchar_t* cFilename);				//Convert wordPackDict.dat to XML
+bool XMLToWordPack(const wchar_t* cFilename);				//Convert wordPackDict.dat.xml back to binary .dat form
+bool sndManifestToXML(const wchar_t* cFilename);			//Convert sndManifest.dat to XML
+bool XMLToSndManifest(const wchar_t* cFilename);			//Convert sndManifest.dat.xml back to binary .dat form
 void initSoundManifest();									//Read in sndManifest.dat so that we can have the correct filenames for all sounds
 u32 getSoundId(wstring sSound);								//Get a sound ID from the filename
 wstring getSoundName(u32 soundResId);						//Get a sound filename from the sound ID
-bool itemManifestToXML(const wchar_t* cFilename);				//Convert itemmanifest.dat to XML
-bool XMLToItemManifest(const wchar_t* cFilename);				//Convert itemmanifest.dat.xml back to binary .dat form
+bool itemManifestToXML(const wchar_t* cFilename);			//Convert itemmanifest.dat to XML
+bool XMLToItemManifest(const wchar_t* cFilename);			//Convert itemmanifest.dat.xml back to binary .dat form
 void initResMap();											//Read in residmap.dat so that we can have the correct filenames for all resource files
-bool residMapToXML(const wchar_t* cFilename);					//Convert residmap.dat to XML
-bool XMLToResidMap(const wchar_t* cFilename);					//Convert residmap.dat.xml back to binary .dat form
-const wchar_t* getName(u32 resId);								//Get a resource filename from the resource ID
-u32 getResID(wstring sName);									//Get a resource ID from its filename
-u32 hash(wstring sFilename);									//Hash a filename to get an ID
-string ws2s(const wstring& s);									//For converting UTF-16 to UTF-8
-wstring s2ws(const string& s);									//For converting UTF-8 to UTF-16
+bool residMapToXML(const wchar_t* cFilename);				//Convert residmap.dat to XML
+bool XMLToResidMap(const wchar_t* cFilename);				//Convert residmap.dat.xml back to binary .dat form
+const wchar_t* getName(u32 resId);							//Get a resource filename from the resource ID
+u32 getResID(wstring sName);								//Get a resource ID from its filename
+u32 hash(wstring sFilename);								//Hash a filename to get an ID
+string ws2s(const wstring& s);								//For converting UTF-16 to UTF-8
+wstring s2ws(const string& s);								//For converting UTF-8 to UTF-16
+uint8_t* compress(zlibData* zIn);							//Compress via zlib
+uint8_t* decompress(const zlibData* zIn);					//Decompress via zlib
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #endif

@@ -33,8 +33,8 @@ bool wordPackToXML(const wchar_t* cFilename)
 		whHeaders.push_back(wh);
 	}
 	
-	//Now read in wstring table
-	//Now for wstring table header
+	//Now read in string table
+	//Now for string table header
 	StringTableHeader sth;
 	if(fread((void*)&sth, 1, sizeof(StringTableHeader), f) != sizeof(StringTableHeader))
 	{
@@ -52,7 +52,7 @@ bool wordPackToXML(const wchar_t* cFilename)
 	stringPointerList.reserve(sth.numPointers);
 	stringList.reserve((sizeof(wchar_t) * sth.numStrings)*256);
 	
-	//Read in wstring table entries
+	//Read in string table entries
 	for(int i = 0; i < sth.numStrings; i++)
 	{
 		StringTableEntry ste;
