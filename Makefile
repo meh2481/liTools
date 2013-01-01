@@ -11,7 +11,7 @@ recalcSoundManifest.exe : recalcSoundManifest.o
 strip.exe : strip.o
 	g++ -Wall -O2 -o strip.exe strip.o
 modManage.exe : modManage.o
-	g++ -Wall -O2 -o modManage.exe modManage.o -lttvfs
+	g++ -Wall -O2 -o modManage.exe modManage.o
 util/pullpakfiles.exe : pullpakfiles.o
 	g++ -Wall -O2 -o util/pullpakfiles.exe pullpakfiles.o
 util/removeresc.exe : removeresc.o

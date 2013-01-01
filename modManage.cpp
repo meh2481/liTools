@@ -14,7 +14,7 @@ map<u32, virtualFile> g_mOrig;
 map<u32, virtualFile> g_mMods;
 ofstream oWarnings("mergeresults.txt");
 
-ttvfs::VFSHelper vfs;
+//ttvfs::VFSHelper vfs;
 
 //Functions from Stack Overflow peoples
 wstring s2ws(const string& s)
@@ -38,7 +38,7 @@ string ws2s(const wstring& s)
 }
 
 //Remove all files in the temp/ folder, since we're done with them
-void removeTempFiles()
+/*void removeTempFiles()
 {
 	ttvfs::StringList slFiles;
     ttvfs::GetFileList("temp", slFiles);
@@ -59,7 +59,7 @@ void removeTempFiles()
 		unlink(s.c_str());	//Remove this file
     }
 	rmdir("tempmod/");	//Remove the folder itself
-}
+}*/
 
 void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 {
@@ -89,7 +89,7 @@ void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 		{
 			if(g_mMods.count(i->id))	//This was here already
 			{
-				oWarnings << "Conflict with mod ID " << i->id << ". Overwriting..." << endl;
+				oWarnings << "Warning: Conflict with mod resource " << i->id << ". Overwriting..." << endl;
 				free(g_mMods[i->id].data);	//Clean up original memory
 			}
 			g_mMods[i->id] = vf;
@@ -98,7 +98,7 @@ void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 		{
 			if(g_mOrig.count(i->id))	//This was here already
 			{
-				oWarnings << "Conflict with original ID " << i->id << ". Overwriting..." << endl;
+				oWarnings << "Warning: Conflict with original resource " << i->id << ". Overwriting..." << endl;
 				free(g_mOrig[i->id].data);	//Clean up original memory
 			}
 			g_mOrig[i->id] = vf;
@@ -112,7 +112,12 @@ void copyTempFiles()
 {
 	for(map<u32, virtualFile>::iterator i = g_mMods.begin(); i != g_mMods.end(); i++)
 	{
-		
+		if(g_mOrig.count(i->first))	//Original file here already
+		{
+			oWarnings << "Note: Mod overwriting original resource: " << i->first << endl;
+			free(g_mOrig[i->first].data);	//Clean up this memory
+		}
+		g_mOrig[i->first] = i->second;
 	}
 
 	//ttvfs::StringList slFiles;
@@ -132,7 +137,7 @@ int main(int argc, char** argv)
 {
 	DWORD iTicks = GetTickCount();	//Store the starting number of milliseconds
 	
-	vfs.Prepare();
+	//vfs.Prepare();
 	
 	if(argc < 2)
 	{
@@ -302,24 +307,31 @@ int main(int argc, char** argv)
 		cout << "Adding table of contents..." << endl;
 		for(list<resourceHeader>::iterator i = lResourceHeaders[iPak].begin(); i != lResourceHeaders[iPak].end(); i++)
 		{
-			resourceHeader rH = *i;
+			//resourceHeader rH = *i;
 			
-			char cIDFilename[256];
-			sprintf(cIDFilename, "temp/%u", rH.id);
+			//char cIDFilename[256];
+			//sprintf(cIDFilename, "temp/%u", i->id);
 			
-			rH.offset = offsetPos;	//Offset
-			rH.size = ttvfs::GetFileSize(cIDFilename);	//Size of file
-			if(mModHeader.count(rH.id))
-				rH.flags = mModHeader[rH.id];	//Set the flags to the flags of this file copied over
+			i->offset = offsetPos;	//Offset
+			i->size = g_mOrig[i->id].size;//ttvfs::GetFileSize(cIDFilename);	//Size of file
+			if(mModHeader.count(i->id))
+				i->flags = mModHeader[i->id];	//Set the flags to the flags of this file copied over
 			
-			fwrite(&rH, 1, sizeof(resourceHeader), f);	//Write this to the file
+			fwrite(&(*i), 1, sizeof(resourceHeader), f);	//Write this to the file
 			
-			offsetPos += rH.size;	//Add this size to our running tally of where we are
+			offsetPos += i->size;	//Add this size to our running tally of where we are
 		}
 		
 		//Add actual resource data
 		cout << "Adding files..." << endl;
-		for(list<resourceHeader>::iterator i = lResourceHeaders[iPak].begin(); i != lResourceHeaders[iPak].end(); i++)
+		for(map<u32, virtualFile>::iterator i = g_mOrig.begin(); i != g_mOrig.end(); i++)
+		{
+			//Write this data to the file
+			fwrite(i->second.data, 1, i->second.size, f);
+			//Free memory while we're at it
+			free(i->second.data);
+		}
+		/*for(list<resourceHeader>::iterator i = lResourceHeaders[iPak].begin(); i != lResourceHeaders[iPak].end(); i++)
 		{			
 			//Write this file
 			char cIDFilename[256];
@@ -344,11 +356,11 @@ int main(int argc, char** argv)
 			
 			free(cTemp);
 			fclose(fTempIn);
-		}
+		}*/
 		fclose(f);	//Done packing this .pak file
 	}
 	
-	removeTempFiles();
+	//removeTempFiles();
 	
 	//Done
 	cout << endl << "Done." << endl;
