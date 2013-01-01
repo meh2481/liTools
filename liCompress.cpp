@@ -6,7 +6,7 @@ extern list<ThreadConvertHelper> g_lThreadedResources;	//Declared in threadCompr
 extern bool g_bProgressOverwrite;
 extern unsigned int g_iNumThreads;
 
-map<string, pakHelper> g_pakHelping;
+map<wstring, pakHelper> g_pakHelping;
 
 //Remove files in the temp/ folder, recursively
 void removeTempFiles()
@@ -29,7 +29,7 @@ void parseCmdLine(int argc, char** argv)
 		string s = argv[i];
 		if(s == "--overwrite-progress")
 			g_bProgressOverwrite = true;
-		else if(s.find("--threads=") != string::npos)
+		else if(s.find("--threads=") != wstring::npos)
 		{
 			size_t pos = s.find('=')+1;
 			if(s.length() <= pos)
@@ -70,37 +70,38 @@ int main(int argc, char** argv)
 		cout << "Usage: liCompress [pakfile1] [pakfile2] ... [pakfileN]" << endl;
 		return 0;
 	}
-	cout << (8 << 1) << " " << (8 >> 1) << endl;
+	
 	for(int iArg = 1; iArg < argc; iArg++)
 	{
 		if(argv[iArg][0] == '-')	//Skip over commandline switches
 			continue;
 			
-		string sArg = argv[iArg];
-		size_t pos = sArg.find(".filelist.txt");
-		if(pos != string::npos)
-			sArg.erase(pos, string::npos);	//Erase a .filelist.pak extension if there is one
-		cout << endl << "Packing resource blob file " << sArg << endl;
+		wstring sArg = s2ws(argv[iArg]);
+		size_t pos = sArg.find(TEXT(".filelist.txt"));
+		if(pos != wstring::npos)
+			sArg.erase(pos, wstring::npos);	//Erase a .filelist.pak extension if there is one
+		cout << endl << "Packing resource blob file " << ws2s(sArg) << endl;
 		
 		//Determine what files to pack into this .pak file
-		list<string> lstrFilesToPak;
-		string sInfilename = sArg;
-		sInfilename += ".filelist.txt";
-		ifstream infile(sInfilename.c_str());
+		list<wstring> lstrFilesToPak;
+		wstring sInfilename = sArg;
+		sInfilename += TEXT(".filelist.txt");
+		ifstream infile(ws2s(sInfilename).c_str());
 		if(infile.fail())
 		{
-			cout << "Cannot open " << sInfilename << " to pack " << sArg << " Skipping..." << endl;
+			cout << "Cannot open " << ws2s(sInfilename) << " to pack " << ws2s(sArg) << " Skipping..." << endl;
 			continue;
 		}
 		while(!infile.fail() && !infile.eof())	//Pull in all the lines out of this file
 		{
-			string s;
-			getline(infile, s);
-			if(!s.length() || s == "")
+			string ss;
+			getline(infile, ss);
+			wstring s = s2ws(ss);
+			if(!s.length() || s == TEXT(""))
 				continue;	//Ignore blank lines
 			//Convert \\ characters to /
 			size_t found = s.find_first_of('\\');
-			while (found != string::npos)
+			while (found != wstring::npos)
 			{
 				s[found] = '/';
 				found = s.find_first_of('\\', found+1);
@@ -113,12 +114,12 @@ int main(int argc, char** argv)
 		if(!ttvfs::IsDirectory("temp"))
 			ttvfs::CreateDirRec("temp");
 		int iCurFilePaking = 0;
-		for(list<string>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
+		for(list<wstring>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
 		{
 			iCurFilePaking++;
 			u32 repakName = getResID(*i);
-			char cIDFilename[256];
-			sprintf(cIDFilename, "temp/%u", repakName);
+			wchar_t cIDFilename[256];
+			wsprintf(cIDFilename, TEXT("temp/%u"), repakName);
 			
 			ThreadConvertHelper tch;
 			tch.sIn = *i;
@@ -139,10 +140,10 @@ int main(int argc, char** argv)
 		}
 		
 		//Open our output pakfile for writing
-		FILE* f = fopen(sArg.c_str(), "wb");
+		FILE* f = _wfopen(sArg.c_str(), TEXT("wb"));
 		if(f == NULL)
 		{
-			cout << "Unable to open file " << sArg << " for writing. Skipping..." << endl;
+			cout << "Unable to open file " << ws2s(sArg) << " for writing. Skipping..." << endl;
 			continue;
 		}
 		
@@ -158,22 +159,22 @@ int main(int argc, char** argv)
 		
 		//Add the table of contents
 		cout << "\rAdding table of contents...                " << endl;
-		for(list<string>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
+		for(list<wstring>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
 		{
 			resourceHeader rH;
 			rH.id = getResID(*i);
 			g_pakHelping[*i].id = rH.id;	//Hang onto this for later
 			rH.flags = 0x01;
 			
-			char cIDFilename[256];
-			sprintf(cIDFilename, "temp/%u", rH.id);
+			wchar_t cIDFilename[256];
+			wsprintf(cIDFilename, TEXT("temp/%u"), rH.id);
 			
 			rH.offset = offsetPos;	//Offset
 			if(g_pakHelping[*i].bCompressed)
-				rH.size = ttvfs::GetFileSize(cIDFilename) + sizeof(compressedHeader);	//Size with compressed header
+				rH.size = ttvfs::GetFileSize(ws2s(cIDFilename).c_str()) + sizeof(compressedHeader);	//Size with compressed header
 			else
 			{
-				rH.size = ttvfs::GetFileSize(cIDFilename);	//Size without compressed header
+				rH.size = ttvfs::GetFileSize(ws2s(cIDFilename).c_str());	//Size without compressed header
 				rH.flags = 0x00;	//Set the flags to uncompressed
 			}
 			
@@ -184,7 +185,7 @@ int main(int argc, char** argv)
 		
 		//Add actual resource data
 		cout << "Adding compressed files..." << endl;
-		for(list<string>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
+		for(list<wstring>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
 		{			
 			pakHelper pH = g_pakHelping[*i];
 			
@@ -193,12 +194,12 @@ int main(int argc, char** argv)
 				fwrite(&(pH.cH), 1, sizeof(compressedHeader), f);
 			
 			//Write this file
-			char cIDFilename[256];
-			sprintf(cIDFilename, "temp/%u", pH.id);
+			wchar_t cIDFilename[256];
+			wsprintf(cIDFilename, TEXT("temp/%u"), pH.id);
 			
-			size_t fileSize = ttvfs::GetFileSize(cIDFilename);
-			char* cTemp = (char*)malloc(fileSize);
-			FILE* fTempIn = fopen(cIDFilename, "rb");
+			size_t fileSize = ttvfs::GetFileSize(ws2s(cIDFilename).c_str());
+			wchar_t* cTemp = (wchar_t*)malloc(fileSize);
+			FILE* fTempIn = _wfopen(cIDFilename, TEXT("rb"));
 			if(fTempIn == NULL)
 			{
 				cout << "Error opening " << cIDFilename << endl;

@@ -55,21 +55,21 @@
 #define DEFAULT_VALUESTAMPS				0
 
 
-string getNameFromAnim(string sAnimName)
+wstring getNameFromAnim(wstring sAnimName)
 {
-	sAnimName.erase(sAnimName.rfind(".anim.xml"));	//Erase the ending off the string
+	sAnimName.erase(sAnimName.rfind(TEXT(".anim.xml")));	//Erase the ending off the wstring
 	size_t start = sAnimName.find_last_of('/') + 1;	//Find last forward slash
 	sAnimName.erase(0,start);						//Erase everything up to and including this last slash
 	return sAnimName;								//Done
 }
 
-//DEBUG Convert string to uppercase
-/*string stoupper( const string s )
+//DEBUG Convert wstring to uppercase
+/*wstring stoupper( const wstring s )
 {
-  string result = s;
+  wstring result = s;
   for(unsigned int i = 0; i < s.size(); i++)
   {
-	char c = s[i];
+	wchar_t c = s[i];
 	if( (c >= 'a') && (c <= 'z') )
 	{
 		c -= 'a' - 'A';
@@ -80,10 +80,10 @@ string getNameFromAnim(string sAnimName)
   return result;
 }*/
 
-bool itemManifestToXML(const char* cFilename)
+bool itemManifestToXML(const wchar_t* cFilename)
 {
 	//Open the file
-	FILE* f = fopen(cFilename, "rb");
+	FILE* f = _wfopen(cFilename, TEXT("rb"));
 	if(f == NULL)
 	{
 		cout << "Error: could not open " << cFilename << " for reading." << endl;
@@ -101,7 +101,7 @@ bool itemManifestToXML(const char* cFilename)
 	
 	//Read in the itemManifestRecords
 	list<itemManifestRecord> lManifestRecords;
-	map<u32, string> mItemNames;
+	map<u32, wstring> mItemNames;
 	fseek(f, imh.itemsManifest.offset, SEEK_SET);
 	for(int i = 0; i < imh.itemsManifest.count; i++)
 	{
@@ -196,20 +196,20 @@ bool itemManifestToXML(const char* cFilename)
 	fclose(f);
 	
 	//Now, open up the XML file and put all the data into it
-	string sFilename = cFilename;
-	sFilename += ".xml";
+	wstring sFilename = cFilename;
+	sFilename += TEXT(".xml");
 	XMLDocument* doc = new XMLDocument;
 	XMLElement* root = doc->NewElement("itemmanifest");	//Create the root element
 	int iCurItemData = 0;
 	
 	//DEBUG: See how often each value occurs and see if there's a resonable default
-	//map<string, list<string> > mOccurrences;
+	//map<wstring, list<wstring> > mOccurrences;
 	//
 	//ofstream oHash("hash2.txt");
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
 		XMLElement* elem = doc->NewElement("itemrecord");
-		elem->SetAttribute("id", mItemNames[i->itemId].c_str());
+		elem->SetAttribute("id", ws2s(mItemNames[i->itemId]).c_str());
 		//oHash << "id: " << i->itemId << ", filename: " << mItemNames[i->itemId].c_str() 
 		//	  << ", hashed filename: " << hash(mItemNames[i->itemId]) << endl;
 		//if(i->itemId == hash(mItemNames[i->itemId]))
@@ -217,7 +217,7 @@ bool itemManifestToXML(const char* cFilename)
 		//else
 		//	oHash << "Hash failed." << endl;
 		XMLElement* elem2 = doc->NewElement("animresid");
-		elem2->SetAttribute("filename", getName(i->animResId));
+		elem2->SetAttribute("filename", ws2s(getName(i->animResId)).c_str());
 		elem->InsertEndChild(elem2);
 		elem2 = doc->NewElement("recentlymodifiedrank");	//TODO Ignore this
 		elem2->SetAttribute("value", i->recentlyModifiedRank);
@@ -243,7 +243,7 @@ bool itemManifestToXML(const char* cFilename)
 		for(int j = i->firstSoundDepends; j < i->firstSoundDepends + i->numSoundDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("sound");
-			elem3->SetAttribute("id", getSoundName(vSoundDependencies[j].soundResId).c_str());
+			elem3->SetAttribute("id", ws2s(getSoundName(vSoundDependencies[j].soundResId)).c_str());
 			//elem3->SetAttribute("id", getName(vSoundDependencies[j].soundResId));
 			elem2->InsertEndChild(elem3);
 		}
@@ -256,7 +256,7 @@ bool itemManifestToXML(const char* cFilename)
 		for(int j = i->firstItemDepends; j < i->firstItemDepends + i->numItemDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("item");
-			elem3->SetAttribute("id", mItemNames[vItemDependencies[j].itemResId].c_str());
+			elem3->SetAttribute("id", ws2s(mItemNames[vItemDependencies[j].itemResId]).c_str());
 			elem2->InsertEndChild(elem3);
 		}
 		elem->InsertEndChild(elem2);
@@ -390,7 +390,7 @@ bool itemManifestToXML(const char* cFilename)
 	}
 	//oHash.close();
 	doc->InsertFirstChild(root);
-	doc->SaveFile(sFilename.c_str());
+	doc->SaveFile(ws2s(sFilename).c_str());
 	
 	delete doc;
 	
@@ -398,22 +398,22 @@ bool itemManifestToXML(const char* cFilename)
 	/*ofstream ofile("map2.txt");
 	ofstream ofMap("map.txt");
 	ofstream ofCode("mapcode.txt");
-	for(map<string, list<string> >::iterator i = mOccurrences.begin(); i != mOccurrences.end(); i++)
+	for(map<wstring, list<wstring> >::iterator i = mOccurrences.begin(); i != mOccurrences.end(); i++)
 	{
 		//ofile << i->first << " ";
-		map<string, unsigned int> mPer;
+		map<wstring, unsigned int> mPer;
 		
 		//i->second.sort();
-		for(list<string>::iterator j = i->second.begin(); j != i->second.end(); j++)
+		for(list<wstring>::iterator j = i->second.begin(); j != i->second.end(); j++)
 		{
 			if(mPer.count(*j))
 				mPer[*j]++;
 			else
 				mPer[*j] = 1;
 		}
-		string sHighest = "";
+		wstring sHighest = "";
 		unsigned int iHighest = 0;
-		for(map<string, unsigned int>::iterator j = mPer.begin(); j != mPer.end(); j++)
+		for(map<wstring, unsigned int>::iterator j = mPer.begin(); j != mPer.end(); j++)
 		{
 			if(j->second > iHighest)
 			{
@@ -443,16 +443,16 @@ bool itemManifestToXML(const char* cFilename)
 	return true;
 }
 
-bool XMLToItemManifest(const char* cFilename)
+bool XMLToItemManifest(const wchar_t* cFilename)
 {
 	//Open this XML file for parsing
-	string sXMLFile = cFilename;
-	sXMLFile += ".xml";
+	wstring sXMLFile = cFilename;
+	sXMLFile += TEXT(".xml");
 	XMLDocument* doc = new XMLDocument;
-	int iErr = doc->LoadFile(sXMLFile.c_str());
+	int iErr = doc->LoadFile(ws2s(sXMLFile).c_str());
 	if(iErr != XML_NO_ERROR)
 	{
-		cout << "Error parsing XML file " << sXMLFile << ": Error " << iErr << endl;
+		cout << "Error parsing XML file " << ws2s(sXMLFile) << ": Error " << iErr << endl;
 		delete doc;
 		return false;
 	}
@@ -461,7 +461,7 @@ bool XMLToItemManifest(const char* cFilename)
 	XMLElement* root = doc->RootElement();
 	if(root == NULL)
 	{
-		cout << "Error: Root element NULL in XML file " << sXMLFile << endl;
+		cout << "Error: Root element NULL in XML file " << ws2s(sXMLFile) << endl;
 		delete doc;
 		return false;
 	}
@@ -479,67 +479,67 @@ bool XMLToItemManifest(const char* cFilename)
 		const char* id = elem->Attribute("id");
 		if(id == NULL)
 		{
-			cout << "Error: Unable to get id of XML element in file " << sXMLFile << endl;
+			cout << "Error: Unable to get id of XML element in file " << ws2s(sXMLFile) << endl;
 			delete doc;
 			return false;
 		}
-		//imr.itemId = HASH(id); //TODO
+		imr.itemId = hash(s2ws(id)); //TODO
 		imr.recentlyModifiedRank = 1;	//Because why not
 		
 		//get all the XML children of this
 		for(XMLElement* elem2 = elem->FirstChildElement(); elem2 != NULL; elem2 = elem2->NextSiblingElement())
 		{
-			string sName = elem2->Name();
-			if(sName == "animresid")
+			wstring sName = s2ws(elem2->Name());
+			if(sName == TEXT("animresid"))
 			{
 				const char* cTemp = elem2->Attribute("filename");
 				if(cTemp == NULL)
 				{
-					cout << "Error: Missing filename for animresid in file " << sXMLFile << endl;
+					cout << "Error: Missing filename for animresid in file " << ws2s(sXMLFile) << endl;
 					delete doc;
 					return false;
 				}
-				imr.animResId = getResID(cTemp);
+				imr.animResId = getResID(s2ws(cTemp));
 			}
-			else if(sName == "recentlymodifiedrank")
+			else if(sName == TEXT("recentlymodifiedrank"))
 			{
 				//Completely ignore //TODO Remove test case
 			}
-			else if(sName == "coloritemicon")
+			else if(sName == TEXT("coloritemicon"))
 			{
 				const char* cTemp = elem2->Attribute("filename");
 				if(cTemp == NULL)
 				{
-					cout << "Error: Missing filename for coloritemicon in file " << sXMLFile << endl;
+					cout << "Error: Missing filename for coloritemicon in file " << ws2s(sXMLFile) << endl;
 					delete doc;
 					return false;
 				}
-				imr.catalogIconColorItemTexResId = getResID(cTemp);
+				imr.catalogIconColorItemTexResId = getResID(s2ws(cTemp));
 			}
-			else if(sName == "colorbgicon")
+			else if(sName == TEXT("colorbgicon"))
 			{
 				const char* cTemp = elem2->Attribute("filename");
 				if(cTemp == NULL)
 				{
-					cout << "Error: Missing filename for colorbgicon in file " << sXMLFile << endl;
+					cout << "Error: Missing filename for colorbgicon in file " << ws2s(sXMLFile) << endl;
 					delete doc;
 					return false;
 				}
-				imr.catalogIconColorBGTexResId = getResID(cTemp);
+				imr.catalogIconColorBGTexResId = getResID(s2ws(cTemp));
 			}
-			else if(sName == "greybgicon")
+			else if(sName == TEXT("greybgicon"))
 			{
 				const char* cTemp = elem2->Attribute("filename");
 				if(cTemp == NULL)
 				{
-					cout << "Error: Missing filename for greybgicon in file " << sXMLFile << endl;
+					cout << "Error: Missing filename for greybgicon in file " << ws2s(sXMLFile) << endl;
 					delete doc;
 					return false;
 				}
-				imr.catalogIconGreyBGTexResId = getResID(cTemp);
+				imr.catalogIconGreyBGTexResId = getResID(s2ws(cTemp));
 			}
 			//TODO: binDataOffsetBytes
-			else if(sName == "depends")
+			else if(sName == TEXT("depends"))
 			{
 				//Store offsets for these dependencies
 				imr.firstNormalDepends = lNormalDeps.size();
@@ -553,73 +553,73 @@ bool XMLToItemManifest(const char* cFilename)
 				//Get all child dependencies
 				for(XMLElement* elem3 = elem2->FirstChildElement(); elem3 != NULL; elem3 = elem3->NextSiblingElement())
 				{
-					string sDependName = elem3->Name();
-					if(sDependName == "normal")
+					wstring sDependName = s2ws(elem3->Name());
+					if(sDependName == TEXT("normal"))
 					{
 						const char* cTemp = elem3->Attribute("filename");
 						if(cTemp == NULL)
 						{
-							cout << "Error: Missing filename for normal dependency in file " << sXMLFile << endl;
+							cout << "Error: Missing filename for normal dependency in file " << ws2s(sXMLFile) << endl;
 							delete doc;
 							return false;
 						}
 						normalDependency nd;
-						nd.normalTexResId = getResID(cTemp);
+						nd.normalTexResId = getResID(s2ws(cTemp));
 						lNormalDeps.push_back(nd);
 						imr.numNormalDepends++;
 					}
-					else if(sDependName == "sound")
+					else if(sDependName == TEXT("sound"))
 					{
 						const char* cTemp = elem3->Attribute("id");
 						if(cTemp == NULL)
 						{
-							cout << "Error: Missing id for sound dependency in file " << sXMLFile << endl;
+							cout << "Error: Missing id for sound dependency in file " << ws2s(sXMLFile) << endl;
 							delete doc;
 							return false;
 						}
 						soundDependency sd;
-						sd.soundResId = getSoundId(cTemp);
+						sd.soundResId = getSoundId(s2ws(cTemp));
 						lSoundDeps.push_back(sd);
 						imr.numSoundDepends++;
 					}
-					else if(sDependName == "effect")
+					else if(sDependName == TEXT("effect"))
 					{
 						const char* cTemp = elem3->Attribute("id");
 						if(cTemp == NULL)
 						{
-							cout << "Error: Missing id for effect dependency in file " << sXMLFile << endl;
+							cout << "Error: Missing id for effect dependency in file " << ws2s(sXMLFile) << endl;
 							delete doc;
 							return false;
 						}
 						effectDependency ed;
-						ed.effectResId = getResID(cTemp);
+						ed.effectResId = getResID(s2ws(cTemp));
 						lEffectDeps.push_back(ed);
 						imr.numEffectDepends++;
 					}
-					else if(sDependName == "item")
+					else if(sDependName == TEXT("item"))
 					{
 						const char* cTemp = elem3->Attribute("id");
 						if(cTemp == NULL)
 						{
-							cout << "Error: Missing id for item dependency in file " << sXMLFile << endl;
+							cout << "Error: Missing id for item dependency in file " << ws2s(sXMLFile) << endl;
 							delete doc;
 							return false;
 						}
 						itemDependency id;
-						//TODO id.itemResId = HASH(cTemp);
+						id.itemResId = hash(s2ws(cTemp));
 						lItemDeps.push_back(id);
 						imr.numItemDepends++;
 					}
-					else if(sDependName == "")
-						cout << "Warning: Empty element name for depends in XML file " << sXMLFile << endl;
+					else if(sDependName == TEXT(""))
+						cout << "Warning: Empty element name for depends in XML file " << ws2s(sXMLFile) << endl;
 					else
-						cout << "Warning: Unknown name for dependency: " << sDependName << " in XML file " << sXMLFile << ". Ignoring..." << endl;
+						cout << "Warning: Unknown name for dependency: " << ws2s(sDependName) << " in XML file " << ws2s(sXMLFile) << ". Ignoring..." << endl;
 				}
 			}
-			else if(sName == "")
-				cout << "Warning: XML element missing name in file " << sXMLFile << ". Ignoring... " << endl;
+			else if(sName == TEXT(""))
+				cout << "Warning: XML element missing name in file " << ws2s(sXMLFile) << ". Ignoring... " << endl;
 			else
-				cout << "Warning: Unknown XML element name: " << sName << " in XML file " << sXMLFile << ". Ignoring..." << endl;
+				cout << "Warning: Unknown XML element name: " << ws2s(sName) << " in XML file " << ws2s(sXMLFile) << ". Ignoring..." << endl;
 		}
 		lItemManifests.push_back(imr);
 	}
@@ -648,9 +648,9 @@ bool XMLToItemManifest(const char* cFilename)
 	imh.itemsBinDataBytes.offset = curOffset;
 	
 	//Open output file
-	string sFilename = cFilename;
-	sFilename += ".derp";	//TODO: Replace original file
-	FILE* f = fopen(sFilename.c_str(), "wb");
+	wstring sFilename = cFilename;
+	sFilename += TEXT(".derp");	//TODO: Replace original file
+	FILE* f = _wfopen(sFilename.c_str(), TEXT("wb"));
 	if(f == NULL)
 	{
 		cout << "Error: Unable to open file " << cFilename << " for writing." << endl;

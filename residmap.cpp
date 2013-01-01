@@ -1,27 +1,27 @@
 #include "pakDataTypes.h"
 #include "residmap.h"
 
-map<string, u32> g_repakMappings;
-map<u32, string> g_pakMappings;
+map<wstring, u32> g_repakMappings;
+map<u32, wstring> g_pakMappings;
 
 //Get a resource ID from a filename
-u32 getResID(string sName)
+u32 getResID(wstring sName)
 {
 	if(!g_repakMappings.count(sName))
 	{
 		//TODO: Hash filenames yadda yadda yadda
-		cout << "ERROR: Invalid filename for recompression: " << sName << ". Only files in the original residmap.dat can be compressed." << endl;
+		cout << "ERROR: Invalid filename for recompression: " << ws2s(sName) << ". Only files in the original residmap.dat can be compressed." << endl;
 		exit(1);
 	}
 	return g_repakMappings[sName];
 }
 
 //Get a filename from a resource ID
-const char* getName(u32 resId)
+const wchar_t* getName(u32 resId)
 {
 	return g_pakMappings[resId].c_str();
 	//i32 strId = g_IDMappings[resId];
-	//const char* cData = g_stringList.data();
+	//const wchar_t* cData = g_stringList.data();
 	//return &cData[g_stringPointerList[g_stringTableList[strId].pointerIndex].offset];
 }
 
@@ -30,8 +30,8 @@ void initResMap()
 {
 	for(u32 i = 0; i < NUM_MAPPINGS; i++)
 	{
-		g_repakMappings[g_residMap[i].name] = g_residMap[i].id;
-		g_pakMappings[g_residMap[i].id] = g_residMap[i].name;
+		g_repakMappings[s2ws(g_residMap[i].name)] = g_residMap[i].id;
+		g_pakMappings[g_residMap[i].id] = s2ws(g_residMap[i].name);
 	}
 }
 
@@ -56,20 +56,20 @@ string ws2s(const wstring& s)
     return r;
 }
 
-//convert a string to lowercase. Also change forward slashes back to backslashes.
-string stolower( const string s )
+//convert a wstring to lowercase. Also change forward slashes back to backslashes.
+wstring stolower( const wstring s )
 {
-  string result = s;
+  wstring result = s;
   for(unsigned int i = 0; i < s.size(); i++)
   {
-	char c = s[i];
-	if( (c >= 'A') && (c <= 'Z') )
+	wchar_t c = s[i];
+	if( (c >= L'A') && (c <= 'Z') )
 	{
-		c += 'a' - 'A';
+		c += L'a' - L'A';
 		result[i] = c;
 	}
-	if(c == '/')
-		result[i] = '\\';
+	if(c == L'/')
+		result[i] = L'\\';
   }
   
   return result;
@@ -89,22 +89,22 @@ u32 LIHash( const wchar_t *pCaseInsensitiveStr )
 	return hash;
 }
 
-//Have to do some converting to get from std::string to wchar_t*. TODO: Native UTF-16 support or such?
-u32 hash(string sFilename)
+//Have to do some converting to get from std::wstring to wchar_t*. TODO: Native UTF-16 support or such?
+u32 hash(wstring sFilename)
 {
 	//Convert to lowercase first
-	return LIHash(s2ws(stolower(sFilename)).c_str());
+	return LIHash(stolower(sFilename).c_str());
 }
 
 
 //TODO: Severe problem if unknown ID and this isn't read first!!!
-bool residMapToXML(const char* cFilename)
+bool residMapToXML(const wchar_t* cFilename)
 {	
 	//Read in the mappings directly from residmap.dat
-	FILE* fp = fopen(cFilename, "rb");
+	FILE* fp = _wfopen(cFilename, TEXT("rb"));
 	if(fp == NULL)
 	{
-		cout << "Error: Unable to open file " << cFilename << endl;
+		cout << "Error: Unable to open file " << ws2s(cFilename) << endl;
 		return false;
 	}
 	
@@ -133,7 +133,7 @@ bool residMapToXML(const char* cFilename)
 		mIDMappings[mh.resId] = mh.strId;
 	}
 	
-	//Now for string table header
+	//Now for wstring table header
 	StringTableHeader sth;
 	fseek(fp, rmh.stringTableBytes.offset, SEEK_SET);
 	if(fread((void*)&sth, 1, sizeof(StringTableHeader), fp) != sizeof(StringTableHeader))
@@ -143,15 +143,15 @@ bool residMapToXML(const char* cFilename)
 		return false;
 	}
 	
-	//Allocate memory for this many string table & pointer entries
+	//Allocate memory for this many wstring table & pointer entries
 	vector<StringTableEntry> vStringTableList;
 	vector<StringPointerEntry> vStringPointerList;
-	vector<char> vStringList;
+	vector<wchar_t> vStringList;
 	vStringTableList.reserve(sth.numStrings);
 	vStringPointerList.reserve(sth.numPointers);
-	vStringList.reserve((sizeof(char) * sth.numStrings)*256);
+	vStringList.reserve((sizeof(wchar_t) * sth.numStrings)*256);
 	
-	//Read in string table entries
+	//Read in wstring table entries
 	for(int i = 0; i < sth.numStrings; i++)
 	{
 		StringTableEntry ste;
@@ -165,7 +165,7 @@ bool residMapToXML(const char* cFilename)
 		vStringTableList[i] = ste;
 	}
 	
-	//and string table pointers
+	//and wstring table pointers
 	for(int i = 0; i < sth.numPointers; i++)
 	{
 		StringPointerEntry spe;
@@ -197,8 +197,8 @@ bool residMapToXML(const char* cFilename)
 	{
 		i32 strId = i->second;
 		u32 finalNum = i->first;
-		char* cData = vStringList.data();
-		string s = &cData[vStringPointerList[vStringTableList[strId].pointerIndex].offset];
+		wchar_t* cData = vStringList.data();
+		wstring s = &cData[vStringPointerList[vStringTableList[strId].pointerIndex].offset];
 		//Store forward and reverse mappings for this file
 		g_repakMappings[s] = finalNum;
 		g_pakMappings[finalNum] = s;
@@ -207,17 +207,17 @@ bool residMapToXML(const char* cFilename)
 	//ofile.close();
 	
 	//Now save this out to XML
-	string sFilename = cFilename;
-	sFilename += ".xml";
+	wstring sFilename = cFilename;
+	sFilename += TEXT(".xml");
 	XMLDocument* doc = new XMLDocument;
 	//TODO Merge with preexisting XML
 	XMLElement* root = doc->NewElement("mappings");	//Create the root element
 	//ofstream oHash("hash.txt");
-	for(map<u32, string>::iterator i = g_pakMappings.begin(); i != g_pakMappings.end(); i++)
+	for(map<u32, wstring>::iterator i = g_pakMappings.begin(); i != g_pakMappings.end(); i++)
 	{
 		XMLElement* elem = doc->NewElement("mapping");
 		elem->SetAttribute("id", i->first);
-		elem->SetAttribute("filename", i->second.c_str());
+		elem->SetAttribute("filename", ws2s(i->second).c_str());
 		root->InsertEndChild(elem);
 		//oHash << "id: " << i->first << ", filename: " << i->second << ", filename hashed: " << hash(i->second) << endl;
 		//if(i->first != hash(i->second))
@@ -227,22 +227,22 @@ bool residMapToXML(const char* cFilename)
 	}
 	//oHash.close();
 	doc->InsertFirstChild(root);
-	doc->SaveFile(sFilename.c_str());
+	doc->SaveFile(ws2s(sFilename).c_str());
 	
 	return true;
 }
 
 //Save residmap.dat.xml back out to residmap.dat
-bool XMLToResidMap(const char* cFilename)
+bool XMLToResidMap(const wchar_t* cFilename)
 {
 	//Open file
-	string sXMLFile = cFilename;
-	sXMLFile += ".xml";
+	wstring sXMLFile = cFilename;
+	sXMLFile += TEXT(".xml");
 	XMLDocument* doc = new XMLDocument;
-	int iErr = doc->LoadFile(sXMLFile.c_str());
+	int iErr = doc->LoadFile(ws2s(sXMLFile).c_str());
 	if(iErr != XML_NO_ERROR)
 	{
-		cout << "Error parsing XML file " << sXMLFile << ": Error " << iErr << endl;
+		cout << "Error parsing XML file " << ws2s(sXMLFile) << ": Error " << iErr << endl;
 		delete doc;
 		return false;
 	}
@@ -251,7 +251,7 @@ bool XMLToResidMap(const char* cFilename)
 	XMLElement* root = doc->RootElement();
 	if(root == NULL)
 	{
-		cout << "Error: Root element NULL in XML file " << sXMLFile << endl;
+		cout << "Error: Root element NULL in XML file " << ws2s(sXMLFile) << endl;
 		delete doc;
 		return false;
 	}
@@ -266,33 +266,33 @@ bool XMLToResidMap(const char* cFilename)
 		int id;
 		if(elem->QueryIntAttribute("id", &id) != XML_NO_ERROR)
 		{
-			cout << "Unable to get mapping ID from XML file " << sXMLFile << endl;
+			cout << "Unable to get mapping ID from XML file " << ws2s(sXMLFile) << endl;
 			delete doc;
 			return false;
 		}
 		const char* cName = elem->Attribute("filename");
 		if(cName == NULL)
 		{
-			cout << "Unable to get mapping filename from XML file " << sXMLFile << endl;
+			cout << "Unable to get mapping filename from XML file " << ws2s(sXMLFile) << endl;
 			delete doc;
 			return false;
 		}
-		//Make mapping header that maps this resource ID to the string ID
+		//Make mapping header that maps this resource ID to the wstring ID
 		MappingHeader mh;
 		mh.resId = id;
 		mh.strId = lStringTable.size();
 		lMappings.push_back(mh);
-		//Make StringTableEntry that maps this string ID to a string data pointer
+		//Make StringTableEntry that maps this wstring ID to a wstring data pointer
 		StringTableEntry ste;
 		ste.pointerIndex = lStringPointers.size();
 		ste.pointerCount = 1;
 		lStringTable.push_back(ste);
-		//Make the StringPointerEntry that maps this pointer to a location in the string data
+		//Make the StringPointerEntry that maps this pointer to a location in the wstring data
 		StringPointerEntry spe;
 		spe.languageId = LANGID_ENGLISH;
 		spe.offset = lUTFData.size();
 		lStringPointers.push_back(spe);
-		//Add this string to our string list
+		//Add this wstring to our wstring list
 		unsigned int iStrLen = strlen(cName)+1;	//+1 so we can keep the terminating \0 character
 		for(unsigned int i = 0; i < iStrLen; i++)
 			lUTFData.push_back(cName[i]);			//Copy data over
@@ -300,7 +300,7 @@ bool XMLToResidMap(const char* cFilename)
 	delete doc;	//Done reading XML
 	
 	//Open our output file
-	FILE* f = fopen(cFilename, "wb");
+	FILE* f = _wfopen(cFilename, TEXT("wb"));
 	if(f == NULL)
 	{
 		cout << "Error: Unable to open output file " << cFilename << endl;
@@ -337,7 +337,7 @@ bool XMLToResidMap(const char* cFilename)
 	for(list<StringPointerEntry>::iterator i = lStringPointers.begin(); i != lStringPointers.end(); i++)
 		fwrite(&(*i), 1, sizeof(StringPointerEntry), f);
 	
-	//Write out our string data
+	//Write out our wstring data
 	for(list<char>::iterator i = lUTFData.begin(); i != lUTFData.end(); i++)
 		fwrite(&(*i), 1, 1, f);
 		

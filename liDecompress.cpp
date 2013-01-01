@@ -14,7 +14,7 @@ void removeTempFiles()
 
     for(ttvfs::StringList::iterator il = slFiles.begin(); il != slFiles.end(); il++)
     {
-		string s = "temp/" + (*il);
+		string s = ("temp/") + (*il);
 		unlink(s.c_str());	//Remove this file
     }
 	rmdir("temp/");	//Remove the folder itself
@@ -23,7 +23,7 @@ void removeTempFiles()
 //Create the folder that this resource ID's file will be placed in
 void makeFolder(u32 resId)
 {
-	const char* cName = getName(resId);
+	const char* cName = ws2s(getName(resId)).c_str();
 	for(int i = strlen(cName)-1; i >= 0; i--)
 	{
 		if(cName[i] == '/')
@@ -31,7 +31,7 @@ void makeFolder(u32 resId)
 			char* cFilename = (char*)malloc(i+2);
 			memset(cFilename, '\0', i+2);
 			strncpy(cFilename, cName, i+1);
-			//char cData[512];
+			//wchar_t cData[512];
 			//sprintf(cData, "output/%s", cFilename);
 			//if(!ttvfs::IsDirectory(cFilename))
 			ttvfs::CreateDirRec(cFilename);
@@ -150,8 +150,8 @@ int main(int argc, char** argv)
 			ThreadConvertHelper tch;
 			tch.bCompressed = false;
 			makeFolder(i->id);
-			const char* cName = getName(i->id);
-			oPakList << cName << endl;
+			const wchar_t* cName = getName(i->id);
+			oPakList << ws2s(cName) << endl;
 			fseek(f, i->offset, SEEK_SET);
 			tch.sFilename = cName;
 			if(i->flags == FLAG_ZLIBCOMPRESSED)
@@ -184,13 +184,13 @@ int main(int argc, char** argv)
 				fclose(fOut);
 				free(buf);
 				
-				tch.sIn = sOutFile;
+				tch.sIn = s2ws(sOutFile);
 				tch.bCompressed = true;
 			}
 			else if(i->flags == FLAG_NOCOMPRESSION)
 			{
-				tch.sIn = "";
-				FILE* fOut = fopen(cName, "wb");
+				tch.sIn = TEXT("");
+				FILE* fOut = _wfopen(cName, TEXT("wb"));
 				uint8_t* buf = (uint8_t*)malloc(i->size);
 			  
 				if(fread((void*)buf, 1, i->size, f) != i->size)

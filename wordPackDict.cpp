@@ -1,9 +1,9 @@
 #include "pakDataTypes.h"
 
-bool wordPackToXML(const char* cFilename)
+bool wordPackToXML(const wchar_t* cFilename)
 {
 	//Load the data from this file
-	FILE* f = fopen(cFilename, "rb");
+	FILE* f = _wfopen(cFilename, TEXT("rb"));
 	if(f == NULL)
 	{
 		cout << "Unable to open " << cFilename << " for reading." << endl;
@@ -33,8 +33,8 @@ bool wordPackToXML(const char* cFilename)
 		whHeaders.push_back(wh);
 	}
 	
-	//Now read in string table
-	//Now for string table header
+	//Now read in wstring table
+	//Now for wstring table header
 	StringTableHeader sth;
 	if(fread((void*)&sth, 1, sizeof(StringTableHeader), f) != sizeof(StringTableHeader))
 	{
@@ -45,14 +45,14 @@ bool wordPackToXML(const char* cFilename)
 	
 	vector<StringTableEntry> stringTableList;
 	vector<StringPointerEntry> stringPointerList;
-	vector<char> stringList;
+	vector<wchar_t> stringList;
 	
-	//Allocate memory for this many string table & pointer entries
+	//Allocate memory for this many wstring table & pointer entries
 	stringTableList.reserve(sth.numStrings);
 	stringPointerList.reserve(sth.numPointers);
-	stringList.reserve((sizeof(char) * sth.numStrings)*256);
+	stringList.reserve((sizeof(wchar_t) * sth.numStrings)*256);
 	
-	//Read in string table entries
+	//Read in wstring table entries
 	for(int i = 0; i < sth.numStrings; i++)
 	{
 		StringTableEntry ste;
@@ -66,7 +66,7 @@ bool wordPackToXML(const char* cFilename)
 		stringTableList[i] = ste;
 	}
 	
-	//and string table pointers
+	//and wstring table pointers
 	for(int i = 0; i < sth.numPointers; i++)
 	{
 		StringPointerEntry spe;
@@ -92,20 +92,20 @@ bool wordPackToXML(const char* cFilename)
 	
 	for(list<wordHeader>::iterator i = whHeaders.begin(); i != whHeaders.end(); i++)
 	{
-		char* cData = stringList.data();
-		string sWord = &cData[stringPointerList[stringTableList[i->wordStrId].pointerIndex].offset];
+		wchar_t* cData = stringList.data();
+		wstring sWord = &cData[stringPointerList[stringTableList[i->wordStrId].pointerIndex].offset];
 		
 		XMLElement* elem = doc->NewElement("word");
 		//elem->SetAttribute("id", i->wordStrId);
-		elem->SetAttribute("str", sWord.c_str());
+		elem->SetAttribute("str", ws2s(sWord).c_str());
 		elem->SetAttribute("probability", i->probability);
 		root->InsertEndChild(elem);
 	}
 	
 	doc->InsertFirstChild(root);
-	string sFilename = cFilename;
-	sFilename += ".xml";
-	doc->SaveFile(sFilename.c_str());
+	wstring sFilename = cFilename;
+	sFilename += TEXT(".xml");
+	doc->SaveFile(ws2s(sFilename).c_str());
 	
 	delete doc;
 	fclose(f);
@@ -115,27 +115,27 @@ bool wordPackToXML(const char* cFilename)
 
 typedef struct
 {
-	string word;
+	wstring word;
 	f32 probability;
 } WordPakHelper;
 
-bool XMLToWordPack(const char* cFilename)
+bool XMLToWordPack(const wchar_t* cFilename)
 {
-	string sXMLFile = cFilename;
-	sXMLFile += ".xml";
+	wstring sXMLFile = cFilename;
+	sXMLFile += TEXT(".xml");
 	
 	XMLDocument* doc = new XMLDocument;
-	int iErr = doc->LoadFile(sXMLFile.c_str());
+	int iErr = doc->LoadFile(ws2s(sXMLFile).c_str());
 	if(iErr != XML_NO_ERROR)
 	{
-		cout << "Error parsing XML file " << sXMLFile << ": Error " << iErr << endl;
+		cout << "Error parsing XML file " << ws2s(sXMLFile) << ": Error " << iErr << endl;
 		return false;
 	}
 	//Grab root element
 	XMLElement* root = doc->RootElement();
 	if(root == NULL)
 	{
-		cout << "Root element NULL in XML file " << sXMLFile << endl;
+		cout << "Root element NULL in XML file " << ws2s(sXMLFile) << endl;
 		return false;
 	}
 	
@@ -148,14 +148,14 @@ bool XMLToWordPack(const char* cFilename)
 		const char* cStr = elem->Attribute("str");
 		if(cStr == NULL)
 		{
-			cout << "Missing \"str\" attribute for word in " << sXMLFile << endl;
+			cout << "Missing \"str\" attribute for word in " << ws2s(sXMLFile) << endl;
 			return false;
 		}
-		wph.word = cStr;
+		wph.word = s2ws(cStr);
 		int iErr = elem->QueryFloatAttribute("probability", &wph.probability);
 		if(iErr != XML_NO_ERROR)
 		{
-			cout << "Error getting \"probability\" for word " << wph.word << " in XML file " << sXMLFile << ": Error " << iErr << endl;
+			cout << "Error getting \"probability\" for word " << ws2s(wph.word) << " in XML file " << ws2s(sXMLFile) << ": Error " << iErr << endl;
 			return false;
 		}
 		vWordPakList.push_back(wph);	//Hang onto this
@@ -163,7 +163,7 @@ bool XMLToWordPack(const char* cFilename)
 	}
 	
 	//Write the data to this file
-	FILE* f = fopen(cFilename, "wb");
+	FILE* f = _wfopen(cFilename, TEXT("wb"));
 	if(f == NULL)
 	{
 		cout << "Unable to open " << cFilename << " for writing." << endl;
@@ -188,12 +188,12 @@ bool XMLToWordPack(const char* cFilename)
 		fwrite(&wh, 1, sizeof(wordHeader), f);
 	}
 	
-	//Write in string table header
+	//Write in wstring table header
 	StringTableHeader sth;
 	sth.numStrings = sth.numPointers = vWordPakList.size();
 	fwrite(&sth, 1, sizeof(StringTableHeader), f);
 	
-	//Write string table entries
+	//Write wstring table entries
 	for(unsigned int i = 0; i < vWordPakList.size(); i++)
 	{
 		StringTableEntry ste;
@@ -202,7 +202,7 @@ bool XMLToWordPack(const char* cFilename)
 		fwrite(&ste, 1, sizeof(StringTableEntry), f);
 	}
 	
-	//Write string pointer entries
+	//Write wstring pointer entries
 	curOffset = 0;
 	for(unsigned int i = 0; i < vWordPakList.size(); i++)
 	{
@@ -216,7 +216,7 @@ bool XMLToWordPack(const char* cFilename)
 	//Now write the strings
 	for(unsigned int i = 0; i < vWordPakList.size(); i++)
 	{
-		fwrite(vWordPakList[i].word.c_str(), 1, strlen(vWordPakList[i].word.c_str())*sizeof(char), f);
+		fwrite(ws2s(vWordPakList[i].word).c_str(), 1, strlen(ws2s(vWordPakList[i].word).c_str())*sizeof(char), f);
 		fwrite("\0", 1, 1, f);	//Null-terminate
 	}
 	

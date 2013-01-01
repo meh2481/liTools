@@ -2,7 +2,7 @@
 #include "png.h"
 
 //Save a PNG file from decompressed data
-bool convertToPNG(const char* cFilename)
+bool convertToPNG(const wchar_t* cFilename)
 {
   ImageHeader ih;
   FILE          *png_file;
@@ -17,17 +17,17 @@ bool convertToPNG(const char* cFilename)
   int           bit_depth = 8;
   int           channels = 4;
   
-  char cTempFilename[512];
-  sprintf(cTempFilename, "%s.temp", cFilename);
+  wchar_t cTempFilename[512];
+  wsprintf(cTempFilename, TEXT("%s.temp"), cFilename);
   
-  png_file = fopen(cTempFilename, "wb");
+  png_file = _wfopen(cTempFilename, TEXT("wb"));
   if(png_file == NULL)
   {
-    cout << "PNG file " << cTempFilename << " NULL" << endl;
+    cout << "PNG file " << ws2s(cTempFilename) << " NULL" << endl;
 	return false;
   }
   
-  input_file = fopen(cFilename, "rb");
+  input_file = _wfopen(cFilename, TEXT("rb"));
   if(input_file == NULL)
   {
     cout << "input file NULL" << endl;
@@ -151,7 +151,7 @@ bool convertToPNG(const char* cFilename)
   png_write_info (png_ptr, info_ptr);
 
   // if needed we will allocate memory for an new array of row-pointers
-  if (row_pointers == (unsigned char**) NULL)
+  if (row_pointers == (png_byte**) NULL)
   {
     if ((row_pointers = (png_byte **) malloc (ih.height * sizeof (png_bytep))) == NULL)
     {
@@ -179,25 +179,45 @@ bool convertToPNG(const char* cFilename)
   // clean up after the write, and free any memory allocated
   png_destroy_write_struct (&png_ptr, (png_infopp) NULL);
 
-  if (row_pointers != (unsigned char**) NULL)
+  if (row_pointers != (png_byte**) NULL)
     free (row_pointers);
-  if (png_pixels != (unsigned char*) NULL)
+  if (png_pixels != (png_byte*) NULL)
     free (png_pixels);
 	
   //Close the files
   fclose(input_file);
   fclose(png_file);
   
-  if(unlink(cFilename))	//Delete old file
-	cout << "error unlinking " << cFilename << endl;
-  if(rename(cTempFilename, cFilename))	//Move this over the old one
-	cout << "Error renaming " << cTempFilename << endl;
+  if(unlink(ws2s(cFilename).c_str()))	//Delete old file
+	cout << "error unlinking " << ws2s(cFilename) << endl;
+  if(rename(ws2s(cTempFilename).c_str(), ws2s(cFilename).c_str()))	//Move this over the old one
+	cout << "Error renaming " << ws2s(cTempFilename) << endl;
 
   return true;
 }
 
+size_t wstrlen(const wchar_t* s)
+{
+	for(unsigned int i = 0; ; i++)
+	{
+		if(s[i] == L'\0')
+			return i+1;
+	}
+	return 0;
+}
+
+void wstrcpy(wchar_t* cOut, const wchar_t* cIn)
+{
+	for(unsigned int i = 0; ; i++)
+	{
+		cOut[i] = cIn[i];
+		if(cIn[i] == L'\0')
+			break;
+	}
+}
+
 //Unravel a PNG so it can be compressed and stuffed into a .pak file
-bool convertFromPNG(const char* cFilename)
+bool convertFromPNG(const wchar_t* cFilename)
 {
   png_struct    *png_ptr = NULL;
   png_info      *info_ptr = NULL;
@@ -216,7 +236,7 @@ bool convertFromPNG(const char* cFilename)
   int           alpha_present;
   int           ret;
 
-  png_file = fopen(cFilename, "rb");
+  png_file = _wfopen(cFilename, TEXT("rb"));
   if(png_file == NULL)
   {
 	cout << "Unable to open " << cFilename << " for reading." << endl;
@@ -354,9 +374,11 @@ bool convertFromPNG(const char* cFilename)
   ih.height = height;
   ih.flags = 0x01;
   
-  char* cOutFilename = (char*) malloc(sizeof(char)*(strlen(cFilename) + 7));
-  strcpy(cOutFilename, cFilename);
-  output_file = fopen(strcat(cOutFilename, ".temp"), "wb");
+  wchar_t* cOutFilename = (wchar_t*) malloc(sizeof(wchar_t)*(wstrlen(cFilename) + 7));
+  wstrcpy(cOutFilename, cFilename);
+  wstring sTemp = cOutFilename;
+  sTemp += TEXT(".temp");
+  output_file = _wfopen(sTemp.c_str(), TEXT("wb"));
   if(output_file == NULL)
   {
 	cout << "output file null" << endl;
@@ -407,9 +429,9 @@ bool convertFromPNG(const char* cFilename)
   fclose(output_file);								//Done
 
   //Clean up
-  if (row_pointers != (unsigned char**) NULL)
+  if (row_pointers != (png_byte**) NULL)
     free (row_pointers);
-  if (png_pixels != (unsigned char*) NULL)
+  if (png_pixels != (png_byte*) NULL)
     free (png_pixels);
 	
   free(cOutFilename);

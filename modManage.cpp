@@ -1,10 +1,41 @@
 #include "pakDataTypes.h"
 
-#define RESOURCE_1_NAME	"resource.pak"
-#define RESOURCE_2_NAME	"embed.pak"
-#define RESOURCE_3_NAME	"frontend.pak"
+#define RESOURCE_1_NAME	TEXT("resource.pak")
+#define RESOURCE_2_NAME	TEXT("embed.pak")
+#define RESOURCE_3_NAME	TEXT("frontend.pak")
+
+typedef struct
+{
+	uint16_t size;
+	uint8_t* data;
+} virtualFile;
+
+map<u32, virtualFile> g_mOrig;
+map<u32, virtualFile> g_mMods;
+ofstream oWarnings("mergeresults.txt");
 
 ttvfs::VFSHelper vfs;
+
+//Functions from Stack Overflow peoples
+wstring s2ws(const string& s)
+{
+    int len;
+    int slength = (int)s.length();
+    len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0); 
+    wstring r(len, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, &r[0], len);
+    return r;
+}
+
+string ws2s(const wstring& s)
+{
+    int len;
+    int slength = (int)s.length();
+    len = WideCharToMultiByte(CP_ACP, 0, s.c_str(), slength, 0, 0, 0, 0); 
+    string r(len, '\0');
+    WideCharToMultiByte(CP_ACP, 0, s.c_str(), slength, &r[0], len, 0, 0); 
+    return r;
+}
 
 //Remove all files in the temp/ folder, since we're done with them
 void removeTempFiles()
@@ -32,46 +63,68 @@ void removeTempFiles()
 
 void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 {
-	//Iterate through these items, splitting them out of the file and creating new files out of each
+	//Iterate through these items, splitting them out of the file and saving the data
 	for(list<resourceHeader>::iterator i = lRH->begin(); i != lRH->end(); i++)
 	{
 		fseek(f, i->offset, SEEK_SET);
 		
-		char sOutFile[256];
-		if(bMod)
-			sprintf(sOutFile, "tempmod/%u", i->id);
-		else
-			sprintf(sOutFile, "temp/%u", i->id);
-		FILE* fOut = fopen(sOutFile, "wb");
+		//char sOutFile[256];
+		
+		//FILE* fOut = fopen(sOutFile, "wb");
 		uint8_t* buf = (uint8_t*)malloc(i->size);
 	  
 		if(fread((void*)buf, 1, i->size, f) != i->size)
 		{
 			cout << "Error reading non-compressed data." << endl;
 			fclose(f);
-			fclose(fOut);
+			//fclose(fOut);
 			free(buf);
 			continue;
 		}
-		fwrite((void*)buf, 1, i->size, fOut);
-		
-		free(buf);
-		fclose(fOut);
+		//fwrite((void*)buf, 1, i->size, fOut);
+		virtualFile vf;
+		vf.size = i->size;
+		vf.data = buf;
+		if(bMod)
+		{
+			if(g_mMods.count(i->id))	//This was here already
+			{
+				oWarnings << "Conflict with mod ID " << i->id << ". Overwriting..." << endl;
+				free(g_mMods[i->id].data);	//Clean up original memory
+			}
+			g_mMods[i->id] = vf;
+		}
+		else
+		{
+			if(g_mOrig.count(i->id))	//This was here already
+			{
+				oWarnings << "Conflict with original ID " << i->id << ". Overwriting..." << endl;
+				free(g_mOrig[i->id].data);	//Clean up original memory
+			}
+			g_mOrig[i->id] = vf;
+		}
+		//free(buf);
+		//fclose(fOut);
 	}
 }
 
 void copyTempFiles()
 {
-	ttvfs::StringList slFiles;
-    ttvfs::GetFileList("tempmod", slFiles);
+	for(map<u32, virtualFile>::iterator i = g_mMods.begin(); i != g_mMods.end(); i++)
+	{
+		
+	}
 
-    for(ttvfs::StringList::iterator il = slFiles.begin(); il != slFiles.end(); il++)
-    {
-		string s = "tempmod/" + (*il);
-		string sOut = "temp/" + (*il);
-		unlink(sOut.c_str());	//Remove the old file
-		rename(s.c_str(), sOut.c_str());	//Replace it with this one
-    }
+	//ttvfs::StringList slFiles;
+    //ttvfs::GetFileList("tempmod", slFiles);
+
+    //for(ttvfs::StringList::iterator il = slFiles.begin(); il != slFiles.end(); il++)
+    //{
+	//	string s = "tempmod/" + (*il);
+	//	string sOut = "temp/" + (*il);
+	//	unlink(sOut.c_str());	//Remove the old file
+	//	rename(s.c_str(), sOut.c_str());	//Replace it with this one
+    //}
 }
 
 //Main program entry point
@@ -88,22 +141,22 @@ int main(int argc, char** argv)
 	}
 	
 	//Create temp folders if they aren't here already
-	removeTempFiles();
+	/*removeTempFiles();
 	if(!ttvfs::IsDirectory("temp"))
 		ttvfs::CreateDirRec("temp");
 	if(!ttvfs::IsDirectory("tempmod"))
-		ttvfs::CreateDirRec("tempmod");
+		ttvfs::CreateDirRec("tempmod");*/
 	
 	//First, check and see what resource ID's are in each mod to merge, and split them all out
 	list<resourceHeader> lModResHeaders[argc-1];	//For splitting mods out of the .pak files
 	map<u32, u32> mModHeader;	//For repacking, need to know the flags for this file
 	map<u32, bool> mModResources;
-	cout << endl;
+	//cout << endl;
 	for(int iArg = 1; iArg < argc; iArg++)
 	{
 		//Read in these files
 		cout << "Unpacking mod " << argv[iArg] << endl;
-		FILE* f = fopen(argv[iArg], "rb");
+		FILE* f = _wfopen(s2ws(argv[iArg]).c_str(), TEXT("rb"));
 		if(f == NULL)
 		{
 			cout << "Unable to open file " << argv[iArg] << endl;
@@ -144,7 +197,7 @@ int main(int argc, char** argv)
 	//Now that we have all the resources from the mod .pak files unpacked, check and see what original .pak files need to be changed
 	for(int iPak = 0; iPak < 3; iPak++)
 	{
-		string sArg;
+		wstring sArg;
 		
 		switch(iPak)
 		{
@@ -159,18 +212,18 @@ int main(int argc, char** argv)
 				break;
 		}
 		
-		cout << "Pulling headers from resource blob file " << sArg << endl;
-		FILE* f = fopen(sArg.c_str(), "rb");
+		cout << "Pulling headers from resource blob file " << ws2s(sArg) << endl;
+		FILE* f = _wfopen(sArg.c_str(), TEXT("rb"));
 		if(f == NULL)
 		{
-			cout << "Unable to open file " << sArg << endl;
+			cout << "Unable to open file " << ws2s(sArg) << endl;
 			continue;
 		}
 		
 		blobHeader bH;
 		if(fread((void*)&bH, 1, sizeof(blobHeader), f) != sizeof(blobHeader))
 		{
-			cout << "Error reading number of resources in file " << sArg << endl;
+			cout << "Error reading number of resources in file " << ws2s(sArg) << endl;
 			fclose(f);
 			continue;
 		}
@@ -195,14 +248,14 @@ int main(int argc, char** argv)
 		
 		if(bPack[iPak])	//Unpack this resource only if we need to
 		{
-			cout << "Unpacking resource " << sArg << endl;
+			cout << "Unpacking resource " << ws2s(sArg) << endl;
 			splitOutFiles(f, &lResourceHeaders[iPak], false);
 		}
 		
 		fclose(f);
 	}
 	
-	//Now we have all the .pak files we need extracted in temp/ and tempmod/. Copy tempmod/ files over
+	//Now we have all the .pak files we need extracted. Copy mod files over
 	copyTempFiles();
 	
 	//And recompress
@@ -210,7 +263,7 @@ int main(int argc, char** argv)
 	{
 		if(!bPack[iPak])
 			continue;
-		string sArg;
+		wstring sArg;
 		
 		switch(iPak)
 		{
@@ -225,13 +278,13 @@ int main(int argc, char** argv)
 				break;
 		}
 		
-		cout << "Repacking resource blob file " << sArg << endl;
+		cout << "Repacking resource blob file " << ws2s(sArg) << endl;
 		
 		//Open our output pakfile for writing
-		FILE* f = fopen(sArg.c_str(), "wb");
+		FILE* f = _wfopen(sArg.c_str(), TEXT("wb"));
 		if(f == NULL)
 		{
-			cout << "Unable to open file " << sArg << " for writing. Skipping..." << endl;
+			cout << "Unable to open file " << ws2s(sArg) << " for writing. Skipping..." << endl;
 			continue;
 		}
 		
@@ -273,7 +326,7 @@ int main(int argc, char** argv)
 			sprintf(cIDFilename, "temp/%u", i->id);
 			
 			size_t fileSize = ttvfs::GetFileSize(cIDFilename);
-			char* cTemp = (char*)malloc(fileSize);
+			wchar_t* cTemp = (wchar_t*)malloc(fileSize);
 			FILE* fTempIn = fopen(cIDFilename, "rb");
 			if(fTempIn == NULL)
 			{
@@ -306,6 +359,7 @@ int main(int argc, char** argv)
 	iSeconds -= iMinutes * 60;
 	
 	cout << "Time elapsed: " << iMinutes << " min, " << iSeconds << " sec" << endl;
-	
+	oWarnings << "Done." << endl;
+	oWarnings.close();
 	return 0;
 }

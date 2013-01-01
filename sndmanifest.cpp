@@ -1,15 +1,15 @@
 #include "pakDataTypes.h"
 #include "sndmanifest.h"
 
-map<u32, string> g_mSoundIDToString;
-map<string, u32> g_mStringToSoundID;
+map<u32, wstring> g_mSoundIDToString;
+map<wstring, u32> g_mStringToSoundID;
 
-string getSoundName(u32 soundResId)
+wstring getSoundName(u32 soundResId)
 {
 	return g_mSoundIDToString[soundResId];
 }
 
-u32 getSoundId(string sSound)
+u32 getSoundId(wstring sSound)
 {
 	return g_mStringToSoundID[sSound];
 }
@@ -20,8 +20,8 @@ void initSoundManifest()
 	//ofstream oHash("hash3.txt");
 	for(u32 i = 0; i < NUM_MAPPINGS; i++)
 	{
-		g_mSoundIDToString[g_soundMap[i].id] = g_soundMap[i].name;
-		g_mStringToSoundID[g_soundMap[i].name] = g_soundMap[i].id;
+		g_mSoundIDToString[g_soundMap[i].id] = s2ws(g_soundMap[i].name);
+		g_mStringToSoundID[s2ws(g_soundMap[i].name)] = g_soundMap[i].id;
 		//oHash << "id: " << g_soundMap[i].id << ", filename: " << g_soundMap[i].name << ", filename hashed: " << hash(g_soundMap[i].name) << endl;
 		//if(g_soundMap[i].id != hash(g_soundMap[i].name))
 		//	oHash << "Hash failed." << endl;
@@ -30,20 +30,20 @@ void initSoundManifest()
 	}
 }
 
-string getNameFromSoundString(string sSoundString)
+wstring getNameFromSoundString(wstring sSoundString)
 {
-	size_t end = sSoundString.rfind(".flac");
+	size_t end = sSoundString.rfind(TEXT(".flac"));
 	size_t start = sSoundString.rfind('.', end-1);
-	if(start == string::npos || end == string::npos)	//Not any numbers heres
+	if(start == wstring::npos || end == wstring::npos)	//Not any numbers heres
 		return sSoundString;
 	sSoundString.erase(start, end-start);	//Erase the numbers in the middle
 	return sSoundString;	//Done
 }
 
 //TODO: Severe problem if unknown ID and this isn't read first!!!
-bool sndManifestToXML(const char* cFilename)
+bool sndManifestToXML(const wchar_t* cFilename)
 {
-	FILE* f = fopen(cFilename, "rb");
+	FILE* f = _wfopen(cFilename, TEXT("rb"));
 	if(f == NULL)
 	{
 		cout << "Unable to open " << cFilename << endl;
@@ -105,14 +105,14 @@ bool sndManifestToXML(const char* cFilename)
 		for(int j = i->firstTakeIdx; j < i->firstTakeIdx + i->numTakes; j++)
 		{
 			XMLElement* elem2 = doc->NewElement("take");
-			string sFilename = getName(vSoundTakes[j].resId);
+			wstring sFilename = getName(vSoundTakes[j].resId);
 			//Set the sound resource's ID to be correct
 			if(j == i->firstTakeIdx)
-				elem->SetAttribute("id", getNameFromSoundString(sFilename).c_str());
+				elem->SetAttribute("id", ws2s(getNameFromSoundString(sFilename)).c_str());
 			//else if(i->numTakes == 1)
 			//	elem->SetAttribute("filename", sFilename.c_str());
-			sFilename += ".ogg";
-			elem2->SetAttribute("filename", sFilename.c_str());
+			sFilename += TEXT(".ogg");
+			elem2->SetAttribute("filename", ws2s(sFilename).c_str());
 			elem2->SetAttribute("channels", vSoundTakes[j].channels);
 			elem2->SetAttribute("samplespersec", vSoundTakes[j].samplesPerSec);
 			elem2->SetAttribute("samplecountperchannel", vSoundTakes[j].sampleCountPerChannel);
@@ -123,32 +123,32 @@ bool sndManifestToXML(const char* cFilename)
 			elem->InsertEndChild(elem2);
 		}
 		root->InsertEndChild(elem);
-		g_mSoundIDToString[i->logicalId] = elem->Attribute("id");	//Save mapping
-		g_mStringToSoundID[elem->Attribute("id")] = i->logicalId;	//And reverse mapping
+		g_mSoundIDToString[i->logicalId] = s2ws(elem->Attribute("id"));	//Save mapping
+		g_mStringToSoundID[s2ws(elem->Attribute("id"))] = i->logicalId;	//And reverse mapping
 		//ofile << "{" << i->logicalId << "u, \"" << elem->Attribute("filename") << "\"}," << endl;
 	}
 	//ofile.close();
 	
 	doc->InsertFirstChild(root);
-	string sFilename = cFilename;
-	sFilename += ".xml";
-	doc->SaveFile(sFilename.c_str());
+	wstring sFilename = cFilename;
+	sFilename += TEXT(".xml");
+	doc->SaveFile(ws2s(sFilename).c_str());
 	
 	delete doc;
 	
 	return true;
 }
 
-bool XMLToSndManifest(const char* cFilename)
+bool XMLToSndManifest(const wchar_t* cFilename)
 {
-	string sXMLFile = cFilename;
-	sXMLFile += ".xml";
+	wstring sXMLFile = cFilename;
+	sXMLFile += TEXT(".xml");
 	
 	XMLDocument* doc = new XMLDocument;
-	int iErr = doc->LoadFile(sXMLFile.c_str());
+	int iErr = doc->LoadFile(ws2s(sXMLFile).c_str());
 	if(iErr != XML_NO_ERROR)
 	{
-		cout << "Error parsing XML file " << sXMLFile << ": Error " << iErr << endl;
+		cout << "Error parsing XML file " << ws2s(sXMLFile) << ": Error " << iErr << endl;
 		delete doc;
 		return false;
 	}
@@ -156,7 +156,7 @@ bool XMLToSndManifest(const char* cFilename)
 	XMLElement* root = doc->RootElement();
 	if(root == NULL)
 	{
-		cout << "Error: Root element NULL in XML file " << sXMLFile << endl;
+		cout << "Error: Root element NULL in XML file " << ws2s(sXMLFile) << endl;
 		delete doc;
 		return false;
 	}
@@ -172,11 +172,11 @@ bool XMLToSndManifest(const char* cFilename)
 		const char* id = elem->Attribute("id");
 		if(id == NULL)
 		{
-			cout << "Error: Unable to get id of XML element in file " << sXMLFile << endl;
+			cout << "Error: Unable to get id of XML element in file " << ws2s(sXMLFile) << endl;
 			delete doc;
 			return false;
 		}
-		stg.logicalId = getSoundId(id);	//TODO: Hash this?
+		stg.logicalId = getSoundId(s2ws(id).c_str());	//TODO: Hash this?
 		stg.firstTakeIdx = vSoundTakes.size();
 		stg.numTakes = 0;
 		
@@ -189,48 +189,48 @@ bool XMLToSndManifest(const char* cFilename)
 			const char* cName = elem2->Attribute("filename");
 			if(cName == NULL)
 			{
-				cout << "Error: Unable to get filename of take record in file " << sXMLFile << endl;
+				cout << "Error: Unable to get filename of take record in file " << ws2s(sXMLFile) << endl;
 				delete doc;
 				return false;
 			}
 			if(elem2->QueryIntAttribute("channels", &tr.channels) != XML_NO_ERROR)
 			{
-				cout << "Error: Unable to get channels from take " << iCurTake << " from file " << sXMLFile << endl;
+				cout << "Error: Unable to get channels from take " << iCurTake << " from file " << ws2s(sXMLFile) << endl;
 				delete doc;
 				return false;
 			}
 			if(elem2->QueryIntAttribute("samplespersec", &tr.samplesPerSec) != XML_NO_ERROR)
 			{
-				cout << "Error: Unable to get samplesPerSec from take " << iCurTake << " from file " << sXMLFile << endl;
+				cout << "Error: Unable to get samplesPerSec from take " << iCurTake << " from file " << ws2s(sXMLFile) << endl;
 				delete doc;
 				return false;
 			}
 			if(elem2->QueryIntAttribute("samplecountperchannel", &tr.sampleCountPerChannel) != XML_NO_ERROR)
 			{
-				cout << "Error: Unable to get sampleCountPerChannel from take " << iCurTake << " from file " << sXMLFile << endl;
+				cout << "Error: Unable to get sampleCountPerChannel from take " << iCurTake << " from file " << ws2s(sXMLFile) << endl;
 				delete doc;
 				return false;
 			}
 			if(elem2->QueryIntAttribute("vorbisworkingsetsizebytes", &tr.vorbisWorkingSetSizeBytes) != XML_NO_ERROR)
 			{
-				cout << "Error: Unable to get vorbisWorkingSetSizeBytes from take " << iCurTake << " from file " << sXMLFile << endl;
+				cout << "Error: Unable to get vorbisWorkingSetSizeBytes from take " << iCurTake << " from file " << ws2s(sXMLFile) << endl;
 				delete doc;
 				return false;
 			}
 			if(elem2->QueryIntAttribute("vorbismarkerssizebytes", &tr.vorbisMarkersSizeBytes) != XML_NO_ERROR)
 			{
-				cout << "Error: Unable to get vorbisMarkersSizeBytes from take " << iCurTake << " from file " << sXMLFile << endl;
+				cout << "Error: Unable to get vorbisMarkersSizeBytes from take " << iCurTake << " from file " << ws2s(sXMLFile) << endl;
 				delete doc;
 				return false;
 			}
 			if(elem2->QueryIntAttribute("vorbispacketssizebytes", &tr.vorbisPacketsSizeBytes) != XML_NO_ERROR)
 			{
-				cout << "Error: Unable to get vorbisPacketsSizeBytes from take " << iCurTake << " from file " << sXMLFile << endl;
+				cout << "Error: Unable to get vorbisPacketsSizeBytes from take " << iCurTake << " from file " << ws2s(sXMLFile) << endl;
 				delete doc;
 				return false;
 			}
-			string sName = cName;
-			sName.erase(sName.size()-4);	//Delete the ".ogg" ending from the string
+			wstring sName = s2ws(cName);
+			sName.erase(sName.size()-4);	//Delete the ".ogg" ending from the wstring
 			tr.resId = getResID(sName);		//Get the resource ID from this filename
 			vSoundTakes.push_back(tr);
 			elem2 = elem2->NextSiblingElement("take");
@@ -243,7 +243,7 @@ bool XMLToSndManifest(const char* cFilename)
 	delete doc;	//We're done with this
 	
 	//Repack
-	FILE* f = fopen(cFilename, "wb");	//Open file for writing
+	FILE* f = _wfopen(cFilename, TEXT("wb"));	//Open file for writing
 	if(f == NULL)
 	{
 		cout << "Unable to open file " << cFilename << " for writing." << endl;

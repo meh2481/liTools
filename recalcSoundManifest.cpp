@@ -1,19 +1,40 @@
 #include "pakDataTypes.h"
 
-const char* cFilename = "vdata/sndmanifest.dat.xml";
-list<string> g_lsOggFiles;
-map<string, takeRecord> g_mtrTakes;
+const wchar_t* cFilename = TEXT("vdata/sndmanifest.dat.xml");
+list<wstring> g_lsOggFiles;
+map<wstring, takeRecord> g_mtrTakes;
 int g_iCurResource;
 int g_iNumResourcesTotal;
 
 HANDLE g_hInMutex;	//Mutex for g_lsOggFiles
 HANDLE g_hOutMutex;	//Mutex for g_mtrTakes
 
+//Functions from Stack Overflow peoples
+wstring s2ws(const string& s)
+{
+    int len;
+    int slength = (int)s.length();
+    len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0); 
+    wstring r(len, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, &r[0], len);
+    return r;
+}
+
+string ws2s(const wstring& s)
+{
+    int len;
+    int slength = (int)s.length();
+    len = WideCharToMultiByte(CP_ACP, 0, s.c_str(), slength, 0, 0, 0, 0); 
+    string r(len, '\0');
+    WideCharToMultiByte(CP_ACP, 0, s.c_str(), slength, &r[0], len, 0, 0); 
+    return r;
+}
+
 DWORD WINAPI oggParse(LPVOID lpParam)
 {
 	for(bool bDone = false;!bDone;)	//Loop until we're done
 	{
-		string sFile;
+		wstring sFile;
 		DWORD dwWaitResult = WaitForSingleObject(g_hInMutex,    // wait for mutex
 												 INFINITE);  // no time-out interval
 		
@@ -32,7 +53,7 @@ DWORD WINAPI oggParse(LPVOID lpParam)
 				
 				//Let user know which resource we're converting now
 				if(!bDone)
-					cout << "Parsing sound " << ++g_iCurResource << " out of " << g_iNumResourcesTotal << ": " << sFile << endl;
+					cout << "Parsing sound " << ++g_iCurResource << " out of " << g_iNumResourcesTotal << ": " << ws2s(sFile) << endl;
 				
 				// Release ownership of the mutex object
 				if (!ReleaseMutex(g_hInMutex)) 
@@ -143,7 +164,7 @@ int main(int argc, char** argv)
 	DWORD iTicks = GetTickCount();
 	
 	XMLDocument* doc = new XMLDocument;
-	int iErr = doc->LoadFile(cFilename);
+	int iErr = doc->LoadFile(ws2s(cFilename).c_str());
 	if(iErr != XML_NO_ERROR)
 	{
 		cout << "Error parsing XML file " << cFilename << ": Error " << iErr << endl;
@@ -177,7 +198,7 @@ int main(int argc, char** argv)
 				delete doc;
 				return 1;
 			}
-			g_lsOggFiles.push_back(cName);	//Save this for later
+			g_lsOggFiles.push_back(s2ws(cName));	//Save this for later
 			
 			elem2 = elem2->NextSiblingElement("take");	//Next item
 		}
@@ -203,7 +224,7 @@ int main(int argc, char** argv)
 		{
 			const char* cName = elem2->Attribute("filename");	//Assume this works, since we've tested for this == NULL already
 			//cout << "Parsing sound " << ++iCurSound << " out of " << iTotalSounds << ": " << cName << endl;
-			takeRecord tr = g_mtrTakes[cName];	//Grab the header data that we've parsed
+			takeRecord tr = g_mtrTakes[s2ws(cName)];	//Grab the header data that we've parsed
 			if(tr.resId != 0)
 			{
 				//Update this info
@@ -222,7 +243,7 @@ int main(int argc, char** argv)
 		elem = elem->NextSiblingElement("sound");	//Next item
 	}
 	
-	doc->SaveFile(cFilename);	//Save this back
+	doc->SaveFile(ws2s(cFilename).c_str());	//Save this back
 	delete doc;	//We're done with this
 	
 	cout << "Done" << endl;

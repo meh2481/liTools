@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <zlib.h>
 #include <stdio.h>
+#define UNICODE
+#include <windows.h>
 
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__)
 #  include <fcntl.h>
@@ -174,16 +176,16 @@ void zerr(int ret)
 }
 
 // compress or decompress from the specified input/output files
-int compdecomp(const char* cIn, const char* cOut, int iCompress)
+int compdecomp(const wchar_t* cIn, const wchar_t* cOut, int iCompress)
 {
     int ret;
     if (iCompress) //Compress
 	{
 	    FILE *in, *out;
-		in = fopen(cIn, "rb");
+		in = _wfopen(cIn, TEXT("rb"));
 		if(in == NULL)
 			return 1;
-		out = fopen(cOut, "wb");
+		out = _wfopen(cOut, TEXT("wb"));
 		if(out == NULL)
 			return 1;
         ret = def(in, out, Z_DEFAULT_COMPRESSION);
@@ -197,10 +199,10 @@ int compdecomp(const char* cIn, const char* cOut, int iCompress)
 	
 	//Decompress
 	FILE *in, *out;
-	in = fopen(cIn, "rb");
+	in = _wfopen(cIn, TEXT("rb"));
 	if(in == NULL)
 		return 1;
-	out = fopen(cOut, "wb");
+	out = _wfopen(cOut, TEXT("wb"));
 	if(out == NULL)
 		return 1;
 	ret = inf(in, out);

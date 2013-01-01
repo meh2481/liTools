@@ -41,10 +41,10 @@ struct VorbisPacket
         unsigned char *pData;
 };
  
-int binaryToOgg( const char* in, const char* out )
+int binaryToOgg( const wchar_t* in, const wchar_t* out )
 {
-        FILE *fSrc = fopen( in, "rb" );
-        FILE *fDest = fopen( out, "wb" );
+        FILE *fSrc = _wfopen( in, TEXT("rb") );
+        FILE *fDest = _wfopen( out, TEXT("wb") );
  
         // read header
         SoundHeader hdr;
@@ -143,9 +143,9 @@ int binaryToOgg( const char* in, const char* out )
 // code to convert ogg files to little inferno sound resources
 // dec 13, 2012 - allan blomquist
  
-int oggToBinary( const char* in, const char* out )
+int oggToBinary( const wchar_t* in, const wchar_t* out )
 {
-        FILE *fSrc = fopen( in, "rb" );
+        FILE *fSrc = _wfopen( in, TEXT("rb") );
  
         // get size of ogg src file
         fseek( fSrc, 0, SEEK_END );
@@ -255,7 +255,7 @@ int oggToBinary( const char* in, const char* out )
         ogg_sync_clear( &oy );
  
         // now we can write the game sound resource output
-        FILE *fDest = fopen( out, "wb" );
+        FILE *fDest = _wfopen( out, TEXT("wb") );
  
         //const int kStdWorkingSetSizeBytes = 108204;
  
@@ -294,9 +294,9 @@ int oggToBinary( const char* in, const char* out )
         return 0;
 }
 
-takeRecord getOggData( const char* cFile )
+takeRecord getOggData( const wchar_t* cFile )
 {
-        FILE *fSrc = fopen( cFile, "rb" );
+        FILE *fSrc = _wfopen( cFile, TEXT("rb") );
 		if(fSrc == NULL)
 		{
 			//std::cout << "Could not open file " << cFile << " for reading. Skipping..." << std::endl;

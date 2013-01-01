@@ -4,16 +4,16 @@
 #include "pakDataTypes.h"
 
 list<ThreadConvertHelper> g_lThreadedResources;
-extern map<string, pakHelper> g_pakHelping;	//in liCompress.cpp, used for packing stuff into the .pak files
+extern map<wstring, pakHelper> g_pakHelping;	//in liCompress.cpp, used for packing stuff into the .pak files
 u32 g_iCurResource;
 u32 g_iNumResources;
 HANDLE ghMutex;
 bool g_bProgressOverwrite;
 unsigned int g_iNumThreads;
 
-i32 getFileSize(const char* cFilename)	//Since TTVFS isn't totally threadsafe, we need some way of determining file size
+i32 getFileSize(const wchar_t* cFilename)	//Since TTVFS isn't totally threadsafe, we need some way of determining file size
 {
-	FILE *f = fopen(cFilename, "rb");
+	FILE *f = _wfopen(cFilename, TEXT("rb"));
 	fseek(f, 0, SEEK_END);
     i32 iSz = ftell(f);
     fclose(f);
@@ -50,7 +50,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 						cout.flush();
 					}
 					else
-						cout << "Compressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << tch.sIn << endl;
+						cout << "Compressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(tch.sIn) << endl;
 				}
 				
 				// Release ownership of the mutex object
@@ -70,60 +70,59 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		if(bDone)
 			continue;	//Stop here if done
 		
-		const char* cName = tch.sIn.c_str();
 		bool bNormalConvert = false;
-		string sDeleteWhenDone = "";
+		wstring sDeleteWhenDone = TEXT("");
 			
-		if(strstr(cName, ".flac") != NULL ||
-		   strstr(cName, ".FLAC") != NULL)
+		if(tch.sIn.find(TEXT(".flac")) != wstring::npos ||
+		   tch.sIn.find(TEXT(".FLAC")) != wstring::npos)
 		{
-			string s = tch.sIn + ".ogg";
+			wstring s = tch.sIn + TEXT(".ogg");
 			oggToBinary(s.c_str(), tch.sFilename.c_str());
 			WaitForSingleObject(ghMutex, INFINITE);
 			g_pakHelping[tch.sIn].bCompressed = false;	//No compression for OGG streams, since these are compressed already
 			ReleaseMutex(ghMutex);
 		}
 		//If this was a PNG image
-		else if(strstr(cName, ".png") != NULL ||
-			    strstr(cName, ".PNG") != NULL ||
-			    strstr(cName, "coloritemicon") != NULL ||
-			    strstr(cName, "colorbgicon") != NULL ||
-			    strstr(cName, "greybgicon") != NULL)			//Also would include .png.normal files as well
+		else if(tch.sIn.find(TEXT(".png")) != wstring::npos ||
+			    tch.sIn.find(TEXT(".PNG")) != wstring::npos ||
+			    tch.sIn.find(TEXT("coloritemicon")) != wstring::npos ||
+			    tch.sIn.find(TEXT("colorbgicon")) != wstring::npos ||
+			    tch.sIn.find(TEXT("greybgicon")) != wstring::npos)			//Also would include .png.normal files as well
 		{
-			convertFromPNG(cName);	//Do the conversion
+			convertFromPNG(tch.sIn.c_str());	//Do the conversion
 			
-			string s = tch.sIn + ".temp";	//Use the decompressed PNG for this
+			wstring s = tch.sIn + TEXT(".temp");	//Use the decompressed PNG for this
 			compdecomp(s.c_str(), tch.sFilename.c_str(), 1);
 			WaitForSingleObject(ghMutex, INFINITE);
 			g_pakHelping[tch.sIn].bCompressed = true;
 			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(s.c_str());	//Hang onto these for compressed header stuff
 			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
 			ReleaseMutex(ghMutex);
-			unlink(s.c_str());	//Remove the temporary file
+			unlink(ws2s(s).c_str());	//Remove the temporary file
 		}
-		else if(strstr(cName, "wordPackDict.dat") != NULL)
+		else if(tch.sIn.find(TEXT("wordPackDict.dat")) != wstring::npos)
 		{
-			XMLToWordPack(cName);	//De-XML this first
+			XMLToWordPack(tch.sIn.c_str());	//De-XML this first
 			bNormalConvert = true;	//Behave like normal
-			sDeleteWhenDone = cName;
+			sDeleteWhenDone = tch.sIn;
 		}
-		else if(strstr(cName, "sndmanifest.dat") != NULL)
+		else if(tch.sIn.find(TEXT("sndmanifest.dat")) != wstring::npos)
 		{
-			XMLToSndManifest(cName);
+			XMLToSndManifest(tch.sIn.c_str());
 			bNormalConvert = true;
-			sDeleteWhenDone = cName;
+			sDeleteWhenDone = tch.sIn;
 		}
-		else if(strstr(cName, "itemmanifest.dat") != NULL)
+		else if(tch.sIn.find(TEXT("itemmanifest.dat")) != wstring::npos)
 		{
-			XMLToItemManifest(cName);
+			XMLToItemManifest(tch.sIn.c_str());
 			bNormalConvert = true;
-			//TODO sDeleteWhenDone = cName;
+			//TODO sDeleteWhenDone = tch.sIn;
 		}
-		else if(strstr(cName, "residmap.dat") != NULL)
+		else if(tch.sIn.find(TEXT("residmap.dat")) != wstring::npos)
 		{
-			XMLToResidMap(cName);
+			XMLToResidMap(tch.sIn.c_str());
 			bNormalConvert = true;
-			sDeleteWhenDone = cName;
+			sDeleteWhenDone = tch.sIn;
 		}
 		else
 			bNormalConvert = true;
@@ -132,7 +131,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		{
 			if(compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1))
 			{
-				cout << "Error: Unable to compress file " << tch.sIn << ". Abort." << endl;
+				cout << "Error: Unable to compress file " << ws2s(tch.sIn) << ". Abort." << endl;
 				exit(1);
 			}
 			WaitForSingleObject(ghMutex, INFINITE);
@@ -143,8 +142,8 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		}
 		
 		//If we wish to delete this file when we're done
-		if(sDeleteWhenDone != "")
-			unlink(sDeleteWhenDone.c_str());
+		if(sDeleteWhenDone != TEXT(""))
+			unlink(ws2s(sDeleteWhenDone).c_str());
 	}
 	return 0;
 }
