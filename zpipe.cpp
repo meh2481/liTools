@@ -15,9 +15,7 @@ uint8_t* compress(zlibData* zIn)
 	strm.avail_in = zIn->decompressedSize;
 	strm.next_in = zIn->data;
 	strm.avail_out = zIn->decompressedSize;
-	ret = (uint8_t*) malloc(zIn->decompressedSize);	//Allocate enough memory for decompressed size. Since we're compressing, 
-													//the compressed size should always be smaller than this. If not, deflate()
-													//will return Z_OK, which we'll treat as an error
+	ret = (uint8_t*) malloc(compressBound(zIn->decompressedSize));	//Allocate enough memory for compressed size.
 	strm.next_out = ret;
 	int ok = deflate(&strm, Z_FINISH);
 	if(ok != Z_STREAM_END)							//Error

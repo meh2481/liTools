@@ -60,8 +60,9 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		if(bDone)
 			continue;	//Stop here if done
 			
-		if(dh.data.compressedSize < dh.data.decompressedSize)	//Compressed
+		if(dh.bCompressed)	//Compressed
 		{
+			//cout << "compressed. Decompressing..." << endl;
 			//compdecomp(dh.sIn.c_str(), dh.sFilename.c_str());
 			uint8_t* tempData = decompress(&dh.data);
 			if(tempData == NULL)
@@ -69,10 +70,12 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 				cout << "Error decompressing file " << ws2s(dh.sFilename) << endl;
 				return 1;
 			}
+			//cout << "Done decompressing. Freeing memory" << endl;
 			free(dh.data.data);	//Free this compressed memory
+			//cout << "Switching out memory" << endl;
 			dh.data.data = tempData;	//Now we have the decompressed data
 		}
-		
+		//cout << "Converting png" << endl;
 		//See if this was a PNG image. Convert PNG images from the data in RAM
 		if(dh.sFilename.find(TEXT(".png")) != wstring::npos ||
 		   dh.sFilename.find(TEXT(".PNG")) != wstring::npos ||
@@ -80,7 +83,10 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		   dh.sFilename.find(TEXT("colorbgicon")) != wstring::npos ||
 		   dh.sFilename.find(TEXT("greybgicon")) != wstring::npos)			//Also would include .png.normal files as well
 		{
+			//cout << "compressed size: " << dh.data.compressedSize << " decompressed size: " << dh.data.decompressedSize << endl;
+			//cout << "start conversion " << endl;
 			convertToPNG(dh.sFilename.c_str(), dh.data.data, dh.data.decompressedSize);	//Do the conversion to PNG
+			//cout << "Done conversion" << endl;
 		}
 		else	//For other file types, go ahead and write to the file before converting
 		{
@@ -103,18 +109,21 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			unlink(ws2s(dh.sFilename).c_str());
 		}
 		
+		//Convert sndmanifest.dat to XML
 		else if(dh.sFilename.find(TEXT("sndmanifest.dat")) != wstring::npos)
 		{
 			sndManifestToXML(dh.sFilename.c_str());
 			unlink(ws2s(dh.sFilename).c_str());
 		}
 		
+		//Convert itemmanifest.dat to XML
 		else if(dh.sFilename.find(TEXT("itemmanifest.dat")) != wstring::npos)
 		{
 			itemManifestToXML(dh.sFilename.c_str());
 			//TODO unlink(ws2s(dh.sFilename).c_str());
 		}
 		
+		//Convert residmap.dat to XML
 		else if(dh.sFilename.find(TEXT("residmap.dat")) != wstring::npos)
 		{
 			residMapToXML(dh.sFilename.c_str());

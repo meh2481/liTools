@@ -1,6 +1,3 @@
-//~  when single-threaded
-//~  when multi-threaded
-
 #include "pakDataTypes.h"
 
 list<ThreadConvertHelper> g_lThreadedResources;
@@ -92,7 +89,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			convertFromPNG(tch.sIn.c_str());	//Do the conversion
 			
 			wstring s = tch.sIn + TEXT(".temp");	//Use the decompressed PNG for this
-			compdecomp(s.c_str(), tch.sFilename.c_str(), 1);
+			cout << "Compress result: " << compdecomp(s.c_str(), tch.sFilename.c_str(), 1) << endl;
 			WaitForSingleObject(ghMutex, INFINITE);
 			g_pakHelping[tch.sIn].bCompressed = true;
 			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(s.c_str());	//Hang onto these for compressed header stuff

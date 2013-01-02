@@ -307,6 +307,7 @@ typedef struct
 typedef struct
 {
 	wstring sFilename;
+	bool bCompressed;
 	zlibData data;
 } decompressHelper;
 

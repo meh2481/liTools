@@ -19,6 +19,8 @@ u32 getResID(wstring sName)
 //Get a filename from a resource ID
 const wchar_t* getName(u32 resId)
 {
+	if(!g_pakMappings.count(resId))
+		cout << "No residmap entry for id " << resId << endl;
 	return g_pakMappings[resId].c_str();
 	//i32 strId = g_IDMappings[resId];
 	//const wchar_t* cData = g_stringList.data();

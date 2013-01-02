@@ -35,7 +35,9 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   //}
 	
   //Read in the image header
+  //cout << "Reading in image header" << endl;
   memcpy((void*)&ih, data, sizeof(ImageHeader));
+  //cout << "width: " << ih.width << ", height: " << ih.height << ", flags: " << ih.flags << endl;
   //if(fread((void*)&ih, 1, sizeof(ImageHeader), input_file) != sizeof(ImageHeader))
   //{
   //  cout << "Header null" << endl;
@@ -46,6 +48,8 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   
   //Read in the image
   size_t sizeToRead = ih.width * ih.height * channels * bit_depth/8;
+  //cout << "Size to read: " << sizeToRead << endl;
+  //cout << "Getting image" << endl;
   png_pixels = &data[sizeof(ImageHeader)];//(png_byte*)malloc(sizeToRead);
   //size_t sizeRead = fread((void*)png_pixels, 1, sizeToRead, input_file);
   //if(sizeRead != sizeToRead)
@@ -57,6 +61,7 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   //}
   
   //If this is greyscale, move alpha over so it works
+  //cout << "convert alpha" << endl;
   if(ih.flags & GREYSCALE_PNG)
   {
 	//Same size of image, so we don't have to worry about doing this before reading it in
@@ -92,6 +97,7 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   }
   else	//Color image; change premultiplied alpha to normal alpha
   {
+	//cout << "converting color to normal alpha" << endl;
 	for(unsigned int i = 0; i < sizeToRead; i += 4)
 	{
 		png_byte* curPtr = &png_pixels[i];
@@ -111,6 +117,7 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   
 
   // prepare the standard PNG structures 
+  //cout << "creating png structure things" << endl;
   png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   if (!png_ptr)
   {
@@ -168,6 +175,7 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   row_bytes = ih.width * channels * ((bit_depth <= 8) ? 1 : 2);
   
   // set the individual row_pointers to point at the correct offsets
+  //cout << "setting row pointers" << endl;
   for (unsigned int i = 0; i < (ih.height); i++)
     row_pointers[i] = png_pixels + i * row_bytes;
 
@@ -187,6 +195,7 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
 	
   //Close the files
   //fclose(input_file);
+  //cout << "closing file " << endl;
   fclose(png_file);
   
   //if(unlink(ws2s(cFilename).c_str()))	//Delete old file

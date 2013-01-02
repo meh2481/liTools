@@ -20,10 +20,46 @@ ttvfs::VFSHelper vfs;
 	rmdir("temp/");	//Remove the folder itself
 }*/
 
+/*bool CreateDir(const char *dir)
+{
+    if(ttvfs::IsDirectory(dir)) // do not try to create if it already exists
+        return true;
+    bool result;
+# if _WIN32
+    result = !!::CreateDirectory(s2ws(dir).c_str(), NULL);
+# else
+    result = !mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+#endif
+    return result;
+}
+
+bool CreateDirRec(const char *dir)
+{
+    if(ttvfs::IsDirectory(dir))
+        return true;
+    bool result = true;
+    ttvfs::StringList li;
+    ttvfs::StrSplit(dir, "/\\", li, false);
+    std::string d;
+    d.reserve(strlen(dir) + 1);
+    if(*dir == '/')
+        d += '/';
+    bool last = false;
+    for(ttvfs::StringList::iterator it = li.begin(); it != li.end(); ++it)
+    {
+        d += *it;
+        last = CreateDir(d.c_str());
+        result = last && result;
+        d += '/';
+    }
+    return result || last;
+}*/
+
 //Create the folder that this resource ID's file will be placed in
 void makeFolder(u32 resId)
 {
 	const char* cName = ws2s(getName(resId)).c_str();
+	
 	for(int i = strlen(cName)-1; i >= 0; i--)
 	{
 		if(cName[i] == '/')
@@ -183,6 +219,7 @@ int main(int argc, char** argv)
 				dh.data.data = buf;
 				dh.data.compressedSize = cH.compressedSizeBytes;
 				dh.data.decompressedSize = cH.uncompressedSizeBytes;
+				dh.bCompressed = true;
 				//fwrite((void*)buf, 1, size, fOut);
 				//fclose(fOut);
 				//free(buf);
@@ -206,6 +243,7 @@ int main(int argc, char** argv)
 				}
 				dh.data.data = buf;
 				dh.data.compressedSize = dh.data.decompressedSize = i->size;
+				dh.bCompressed = false;
 				//fwrite((void*)buf, 1, i->size, fOut);
 				
 			  
