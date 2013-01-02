@@ -2,14 +2,14 @@
 
 ttvfs::VFSHelper vfs;
 
-extern list<ThreadConvertHelper> g_lThreadedResources;	//Declared in threadCompress.cpp, used for multi-threaded compression
+extern list<wstring> g_lThreadedResources;	//Declared in threadCompress.cpp, used for multi-threaded compression
 extern bool g_bProgressOverwrite;
 extern unsigned int g_iNumThreads;
 
 map<wstring, pakHelper> g_pakHelping;
 
 //Remove files in the temp/ folder, recursively
-void removeTempFiles()
+/*void removeTempFiles()
 {
 	ttvfs::StringList slFiles;
     ttvfs::GetFileList("temp", slFiles);
@@ -20,7 +20,7 @@ void removeTempFiles()
 		unlink(s.c_str());	//Remove this file
     }
 	rmdir("temp/");	//Remove the folder itself
-}
+}*/
 
 void parseCmdLine(int argc, char** argv)
 {
@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 		cout << endl << "Packing resource blob file " << ws2s(sArg) << endl;
 		
 		//Determine what files to pack into this .pak file
-		list<wstring> lstrFilesToPak;
+		//list<wstring> lstrFilesToPak;
 		wstring sInfilename = sArg;
 		sInfilename += TEXT(".filelist.txt");
 		ifstream infile(ws2s(sInfilename).c_str());
@@ -96,46 +96,51 @@ int main(int argc, char** argv)
 		{
 			string ss;
 			getline(infile, ss);
-			wstring s = s2ws(ss);
+			wstring s = s2ws(ttvfs::FixSlashes(ss));
 			if(!s.length() || s == TEXT(""))
-				continue;	//Ignore blank lines
-			//Convert \\ characters to /
-			size_t found = s.find_first_of('\\');
-			while (found != wstring::npos)
 			{
-				s[found] = '/';
-				found = s.find_first_of('\\', found+1);
+				//cout << "blank" << endl;
+				continue;	//Ignore blank lines
 			}
-			lstrFilesToPak.push_back(s);
+			//cout << ws2s(s) << endl;
+			//Convert \\ characters to /
+			//size_t found = s.find_first_of(L'\\');
+			//while (found != wstring::npos)
+			//{
+			//	s[found] = '/';
+			//	found = s.find_first_of(L'\\', found+1);
+			//}
+			g_lThreadedResources.push_back(s);	//Add this to our list of files to package
 		}
+		list<wstring> lFilenames = g_lThreadedResources;	//Copy this to use later
 		
 		//Pull in each file
-		removeTempFiles();
-		if(!ttvfs::IsDirectory("temp"))
-			ttvfs::CreateDirRec("temp");
-		int iCurFilePaking = 0;
-		for(list<wstring>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
-		{
-			iCurFilePaking++;
-			u32 repakName = getResID(*i);
-			wchar_t cIDFilename[256];
-			wsprintf(cIDFilename, TEXT("temp/%u"), repakName);
+//		removeTempFiles();
+//		if(!ttvfs::IsDirectory("temp"))
+//			ttvfs::CreateDirRec("temp");
+		//int iCurFilePaking = 0;
+		//for(list<wstring>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
+		//{
+			//iCurFilePaking++;
+			//u32 repakName = getResID(*i);
+			//wchar_t cIDFilename[256];
+			//wsprintf(cIDFilename, TEXT("temp/%u"), repakName);
 			
-			ThreadConvertHelper tch;
-			tch.sIn = *i;
-			tch.sFilename = cIDFilename;
+			//ThreadConvertHelper tch;
+			//tch.sFilename = *i;
+			//tch.sFilename = cIDFilename;
 			//We don't care about compression for this tch
-			g_lThreadedResources.push_back(tch);	//Add this to our queue to compress
-		}
+			//g_lThreadedResources.push_back(*i);	//Add this to our queue to compress
+		//}
 		
 		threadedCompress();	//Compress everything
 		
-		//Ok, now we have all the compressed files in temp/ . Stick them in the .pak file and call it a day
-		ttvfs::StringList slFiles;
-		ttvfs::GetFileList("temp", slFiles);
-		if(slFiles.size() != lstrFilesToPak.size())	//These should be the same
+		//Ok, now we have all the compressed files in RAM. Stick them in the .pak file and call it a day
+		/*ttvfs::StringList slFiles;
+		ttvfs::GetFileList("temp", slFiles);*/
+		if(g_pakHelping.size() != lFilenames.size())	//These should be the same
 		{
-			cout << "Error: size of file list: " << slFiles.size() << " differs from size of files to pak: " << lstrFilesToPak.size() << endl;
+			cout << "Error: size of file list: " << g_pakHelping.size() << " differs from size of files to pak: " << lFilenames.size() << endl;
 			continue;
 		}
 		
@@ -150,31 +155,33 @@ int main(int argc, char** argv)
 		//Add the header
 		blobHeader bh;
 		bh.pakVersion = 0x01;
-		bh.numItems = slFiles.size();
+		bh.numItems = lFilenames.size();
 		
 		fwrite(&bh, 1, sizeof(blobHeader), f);
 		
 		//Get the starting file pos for where we (should) be writing objects to
-		size_t offsetPos = sizeof(blobHeader) + (lstrFilesToPak.size() * sizeof(resourceHeader));	
+		size_t offsetPos = sizeof(blobHeader) + (lFilenames.size() * sizeof(resourceHeader));	
 		
 		//Add the table of contents
 		cout << "\rAdding table of contents...                " << endl;
-		for(list<wstring>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
+		for(list<wstring>::iterator i = lFilenames.begin(); i != lFilenames.end(); i++)
 		{
 			resourceHeader rH;
 			rH.id = getResID(*i);
-			g_pakHelping[*i].id = rH.id;	//Hang onto this for later
+			//g_pakHelping[*i].id = rH.id;	//Hang onto this for later
 			rH.flags = 0x01;
 			
-			wchar_t cIDFilename[256];
-			wsprintf(cIDFilename, TEXT("temp/%u"), rH.id);
+			//wchar_t cIDFilename[256];
+			//wsprintf(cIDFilename, TEXT("temp/%u"), rH.id);
 			
 			rH.offset = offsetPos;	//Offset
+			rH.size = g_pakHelping[*i].dataSz;
 			if(g_pakHelping[*i].bCompressed)
-				rH.size = ttvfs::GetFileSize(ws2s(cIDFilename).c_str()) + sizeof(compressedHeader);	//Size with compressed header
+				rH.size += sizeof(compressedHeader);
+			//ttvfs::GetFileSize(ws2s(cIDFilename).c_str()) + sizeof(compressedHeader);	//Size with compressed header
 			else
 			{
-				rH.size = ttvfs::GetFileSize(ws2s(cIDFilename).c_str());	//Size without compressed header
+				//rH.size = ttvfs::GetFileSize(ws2s(cIDFilename).c_str());	//Size without compressed header
 				rH.flags = 0x00;	//Set the flags to uncompressed
 			}
 			
@@ -185,46 +192,56 @@ int main(int argc, char** argv)
 		
 		//Add actual resource data
 		cout << "Adding compressed files..." << endl;
-		for(list<wstring>::iterator i = lstrFilesToPak.begin(); i != lstrFilesToPak.end(); i++)
-		{			
+		for(list<wstring>::iterator i = lFilenames.begin(); i != lFilenames.end(); i++)
+		{
 			pakHelper pH = g_pakHelping[*i];
 			
-			//Write the compressed header (Only if compressed)
+			//Write the compressed header only if compressed
 			if(pH.bCompressed)
 				fwrite(&(pH.cH), 1, sizeof(compressedHeader), f);
 			
+			fwrite(pH.data, 1, pH.dataSz, f);	//One pass to write this file. Simple enough.
+			//Don't free the memory here, in case there's more than one .pak file with this data in it.
+			
 			//Write this file
-			wchar_t cIDFilename[256];
-			wsprintf(cIDFilename, TEXT("temp/%u"), pH.id);
+			//wchar_t cIDFilename[256];
+			//wsprintf(cIDFilename, TEXT("temp/%u"), pH.id);
 			
-			size_t fileSize = ttvfs::GetFileSize(ws2s(cIDFilename).c_str());
-			wchar_t* cTemp = (wchar_t*)malloc(fileSize);
-			FILE* fTempIn = _wfopen(cIDFilename, TEXT("rb"));
-			if(fTempIn == NULL)
-			{
-				cout << "Error opening " << cIDFilename << endl;
-				continue;
-			}
+			//size_t fileSize = ttvfs::GetFileSize(ws2s(cIDFilename).c_str());
+			//wchar_t* cTemp = (wchar_t*)malloc(fileSize);
+			//FILE* fTempIn = _wfopen(cIDFilename, TEXT("rb"));
+			//if(fTempIn == NULL)
+			//{
+			//	cout << "Error opening " << cIDFilename << endl;
+			//	continue;
+			//}
 			
-			if(fread(cTemp, 1, fileSize, fTempIn) != fileSize)
-			{
-				cout << "Error reading from " << cIDFilename << endl;
-				continue;
-			}
+			//if(fread(cTemp, 1, fileSize, fTempIn) != fileSize)
+			//{
+			//	cout << "Error reading from " << cIDFilename << endl;
+			//	continue;
+			//}
 			
-			fwrite(cTemp, 1, fileSize, f);	//Write this to the file
+			//fwrite(cTemp, 1, fileSize, f);	//Write this to the file
 			
-			free(cTemp);
-			fclose(fTempIn);
+			//free(cTemp);
+			//fclose(fTempIn);
 		}
 		fclose(f);	//Done packing this .pak file
-		removeTempFiles();
+		
+		//Clear memory
+		for(map<wstring, pakHelper>::iterator i = g_pakHelping.begin(); i != g_pakHelping.end(); i++)
+			free(i->second.data);
+		g_pakHelping.clear();
+		
+		//removeTempFiles();
 	}
-	removeTempFiles();
+	
+	//removeTempFiles();
 	cout << "Done." << endl;
 	
 	iTicks = GetTickCount() - iTicks;
-	int iSeconds = iTicks / 1000;	//Get seconds elapsed
+	float iSeconds = (float)iTicks / 1000.0;	//Get seconds elapsed
 	int iMinutes = iSeconds / 60;
 	iSeconds -= iMinutes * 60;
 	

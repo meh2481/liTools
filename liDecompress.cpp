@@ -1,6 +1,6 @@
 #include "pakDataTypes.h"
 
-extern list<decompressHelper> g_lThreadedResources;
+extern list<ThreadConvertHelper> g_lThreadedResources;
 extern bool g_bProgressOverwrite;
 extern unsigned int g_iNumThreads;
 
@@ -58,22 +58,30 @@ bool CreateDirRec(const char *dir)
 //Create the folder that this resource ID's file will be placed in
 void makeFolder(u32 resId)
 {
-	const char* cName = ws2s(getName(resId)).c_str();
-	
-	for(int i = strlen(cName)-1; i >= 0; i--)
-	{
-		if(cName[i] == '/')
-		{
-			char* cFilename = (char*)malloc(i+2);
-			memset(cFilename, '\0', i+2);
-			strncpy(cFilename, cName, i+1);
+	wstring sFilename = getName(resId);
+	size_t pos = sFilename.find_last_of(L'/');
+	if(pos != wstring::npos)
+		sFilename = sFilename.substr(0,pos);
+	sFilename = TEXT("./") + sFilename;
+	//cout << "Creating folder " << ws2s(sFilename) << endl;
+	ttvfs::CreateDirRec(ws2s(sFilename).c_str());
+	//const char* cName = ws2s(getName(resId)).c_str();
+	//string s = ttvfs::StripLastPath(cName);
+	//cout << "Name: " << cName << ", last path: " << endl;
+	//for(int i = strlen(cName)-1; i >= 0; i--)
+	//{
+	//	if(cName[i] == '/')
+	//	{
+			//char* cFilename = (char*)malloc(i+2);
+			//memset(cFilename, '\0', i+2);
+			//strncpy(cFilename, cName, i+1);
 			//wchar_t cData[512];
 			//sprintf(cData, "output/%s", cFilename);
 			//if(!ttvfs::IsDirectory(cFilename))
-			ttvfs::CreateDirRec(cFilename);
-			free(cFilename);
-		}
-	}
+			//ttvfs::CreateDirRec(cFilename);
+			//free(cFilename);
+	//	}
+	//}
 }
 
 void parseCmdLine(int argc, char** argv)
@@ -183,7 +191,7 @@ int main(int argc, char** argv)
 		cout << "Extracting files..." << endl;
 		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
 		{
-			decompressHelper dh;
+			ThreadConvertHelper dh;
 			//tch.bCompressed = false;
 			makeFolder(i->id);
 			const wchar_t* cName = getName(i->id);

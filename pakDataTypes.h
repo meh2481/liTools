@@ -293,8 +293,9 @@ typedef struct
 typedef struct
 {
 	compressedHeader cH;
-	u32 id;
 	bool bCompressed;
+	u32 dataSz;
+	uint8_t* data;
 } pakHelper;
 
 typedef struct
@@ -302,14 +303,15 @@ typedef struct
 	wstring sIn;
 	wstring sFilename;
 	bool bCompressed;
+	zlibData data;
 } ThreadConvertHelper;
 
-typedef struct
+/*typedef struct
 {
 	wstring sFilename;
 	bool bCompressed;
 	zlibData data;
-} decompressHelper;
+} decompressHelper;*/
 
 //global functions
 int compdecomp(const wchar_t* cIn, const wchar_t* cOut, int iCompress = false);	//Compress/decompress a file using zlib

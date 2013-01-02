@@ -29,11 +29,11 @@ The present version of the program attempts to reconstruct some of the resources
 
 Please note that can take a good amount of time to decompress these files. resource.pak takes about 2 minutes for me. The console window should tell you the overall progress, and force-killing the program shouldn't have (m)any detrimental consequences, but be prepared to be patient. It does take a while. This program is fairly unoptimized, and it's a large file to process with a lot of compression/decompression steps for each resource.
 
-Temporary files are written to temp/ and are destroyed if the program exits normally. Ignore them. The files you're after are in data/ and vdata/. The filenames are correct, but not all data formats are known yet, so not everything is openable. (For version 0.3, only png and ogg files are in the correct format, and some .dat files are converted to xml)
+After decompression, the files you're after are in data/ and vdata/. The filenames are correct, but not all data formats are known yet, so not everything is openable. (For version 0.3, only png and ogg files are in the correct format, and some .dat files are converted to xml)
 
 Accepted commandline switches:
 	--overwrite-progress	Writes over the previous progress indicator, to mimimize commandline output. Doesn't display filenames.
-	--threads=n				Decompress with n threads. Otherwise will spawn as many threads as your computer has processor cores. n=0 will also result in this behavior.
+	--threads=n				Decompress with n threads. If n=0 or omitted, will spawn as many threads as your computer has processor cores.
 
 liCompress
 ----------
@@ -45,7 +45,7 @@ Please note that these .pak files might not exist beforehand (they don't have to
 
 Accepted commandline switches:
 	--overwrite-progress	Writes over the previous progress indicator, to mimimize commandline output. Doesn't display filenames.
-	--threads=n			Compress with n threads. Otherwise will spawn as many threads as your computer has processor cores. n=0 will also result in this behavior.
+	--threads=n				Compress with n threads. If n=0 or omitted, will spawn as many threads as your computer has processor cores.
 
 
 Sound modification
@@ -83,8 +83,8 @@ And run recalcSoundManifest.exe (before recompressing), which will repopulate th
 
 Please note that all this DOES NOT mean that you can add your own sounds to the game. You can only modify existing resources; you cannot add new ones, as there is currently no way to get a resource ID from a filename. If you attempt to add a new .ogg file as a take somewhere, you'll end up with an undefined resource ID, which will likely cause a crash.
 
-Mod creation and installation
-=============================
+Mod Creation
+============
 Mods should be standard .pak files. To create your own mod, change the files you wish to change, and create a [modname].filelist.txt, which should be a list of all the filenames (relative to the Little Inferno executable) of all the files you have changed. For example, if you change the images data/items/Battery/Battery.png, data/animations/Intro/pchim1.png, data/animations/Intro/pchim2.png, and data/animations/Intro/pchim3.png, and you wish to name your mod "myMod", you'll have to create a file "myMod.filelist.txt" in the Little Inferno executable directory, and add the following lines to it:
 
     data/items/Battery/Battery.png
@@ -97,6 +97,11 @@ Then, simply run
     liCompress myMod.pak
 
 And it'll spit out the myMod.pak file. 
+
+PLEASE NOTE that the files in the .filelist.txt file must have the same extension as the filenames from residmap.dat. For example, if you modify the file "data/music/Credits.flac.ogg", then your corresponding line in the .filelist.txt should be "data/music/Credits.flac". Otherwise, the program won't work correctly. This sucks and will likely be changed in a later version. In any case, liCompress works via file extension anyway, so don't go changing any file extensions.
+
+Mod Installation
+================
 To install mods, run
 
     modManage [pakfile1] [pakfile2] ... [pakfileN]
@@ -140,7 +145,17 @@ Version 0.3.4:
 * vdata/sndmanifest.dat is parsed and written to vdata/sndmanifest.dat.xml
 * sndmanifest.dat.xml is compressed back into .dat form
 * added recalcSoundManifest.exe program to update sndmanifest.dat.xml if .ogg files are changed
-* removed residmap.dat, contents are now compiled into the compress/decompress executables
+* removed residmap.dat; its contents are now compiled into the compress/decompress executables
+
+Version 0.3.5:
+* vdata/itemmanifest.dat is partially parsed to vdata/itemmanifest.dat.xml
+* itemmanifest.dat.xml is NOT parsed back; it's just there to look pretty for now
+* Optimized liCompress and liDecompress; they should run ~40 seconds faster now, just with higher RAM usage
+* Commandline arguments for liDecompress and liCompress; see readme for details
+* Optimized modManage program to merge mods within seconds
+* residmap.dat now parsed to/from XML
+* Images now properly converted to/from premultiplied alpha
+* Initial Unicode support which is still a bit buggy
 
 
 Building
@@ -168,7 +183,7 @@ If you'd rather just read the .pak files from your executable without stripping 
 
     util/pullpakfiles.exe "Little Inferno.exe"
 
-Or copy "pullpakfiles.exe" from the "util" subdirectory into the same folder as "Little Inferno.exe" and click and drag "Little Inferno.exe" into it. Please note that this leaves the .pak files inside your executable, so the executable will not read the external pakfiles when run.
+Or copy "pullpakfiles.exe" from the "util" subdirectory into the same folder as "Little Inferno.exe" and click and drag "Little Inferno.exe" into it. Please note that this leaves the .pak files inside your executable, so the executable will still read the internal pakfiles when run.
 
 
 removeresc.exe

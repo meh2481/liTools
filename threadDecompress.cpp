@@ -3,7 +3,7 @@
 
 #include "pakDataTypes.h"
 
-list<decompressHelper> g_lThreadedResources;
+list<ThreadConvertHelper> g_lThreadedResources;
 u32 g_iCurResource;
 u32 g_iNumResources;
 HANDLE ghMutex;
@@ -14,7 +14,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 {
 	for(bool bDone = false;!bDone;)	//Loop until we're done
 	{
-		decompressHelper dh;
+		ThreadConvertHelper dh;
 		DWORD dwWaitResult = WaitForSingleObject(ghMutex,    // wait for mutex
 												 INFINITE);  // no time-out interval
 		

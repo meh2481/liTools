@@ -1,10 +1,12 @@
 #include "pakDataTypes.h"
 
-list<ThreadConvertHelper> g_lThreadedResources;
+//list<ThreadConvertHelper> g_lThreadedResources;
+list<wstring> g_lThreadedResources;
 extern map<wstring, pakHelper> g_pakHelping;	//in liCompress.cpp, used for packing stuff into the .pak files
 u32 g_iCurResource;
 u32 g_iNumResources;
 HANDLE ghMutex;
+HANDLE ghOutMutex;
 bool g_bProgressOverwrite;
 unsigned int g_iNumThreads;
 
@@ -21,7 +23,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 {
 	for(bool bDone = false;!bDone;)	//Loop until we're done
 	{
-		ThreadConvertHelper tch;
+		wstring tch;
 		DWORD dwWaitResult = WaitForSingleObject(ghMutex,    // wait for mutex
 												 INFINITE);  // no time-out interval
 		
@@ -47,7 +49,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 						cout.flush();
 					}
 					else
-						cout << "Compressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(tch.sIn) << endl;
+						cout << "Compressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(tch) << endl;
 				}
 				
 				// Release ownership of the mutex object
@@ -67,78 +69,103 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		if(bDone)
 			continue;	//Stop here if done
 		
-		bool bNormalConvert = false;
-		wstring sDeleteWhenDone = TEXT("");
-			
-		if(tch.sIn.find(TEXT(".flac")) != wstring::npos ||
-		   tch.sIn.find(TEXT(".FLAC")) != wstring::npos)
-		{
-			wstring s = tch.sIn + TEXT(".ogg");
-			oggToBinary(s.c_str(), tch.sFilename.c_str());
-			WaitForSingleObject(ghMutex, INFINITE);
-			g_pakHelping[tch.sIn].bCompressed = false;	//No compression for OGG streams, since these are compressed already
-			ReleaseMutex(ghMutex);
-		}
-		//If this was a PNG image
-		else if(tch.sIn.find(TEXT(".png")) != wstring::npos ||
-			    tch.sIn.find(TEXT(".PNG")) != wstring::npos ||
-			    tch.sIn.find(TEXT("coloritemicon")) != wstring::npos ||
-			    tch.sIn.find(TEXT("colorbgicon")) != wstring::npos ||
-			    tch.sIn.find(TEXT("greybgicon")) != wstring::npos)			//Also would include .png.normal files as well
-		{
-			convertFromPNG(tch.sIn.c_str());	//Do the conversion
-			
-			wstring s = tch.sIn + TEXT(".temp");	//Use the decompressed PNG for this
-			cout << "Compress result: " << compdecomp(s.c_str(), tch.sFilename.c_str(), 1) << endl;
-			WaitForSingleObject(ghMutex, INFINITE);
-			g_pakHelping[tch.sIn].bCompressed = true;
-			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(s.c_str());	//Hang onto these for compressed header stuff
-			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
-			ReleaseMutex(ghMutex);
-			unlink(ws2s(s).c_str());	//Remove the temporary file
-		}
-		else if(tch.sIn.find(TEXT("wordPackDict.dat")) != wstring::npos)
-		{
-			XMLToWordPack(tch.sIn.c_str());	//De-XML this first
-			bNormalConvert = true;	//Behave like normal
-			sDeleteWhenDone = tch.sIn;
-		}
-		else if(tch.sIn.find(TEXT("sndmanifest.dat")) != wstring::npos)
-		{
-			XMLToSndManifest(tch.sIn.c_str());
-			bNormalConvert = true;
-			sDeleteWhenDone = tch.sIn;
-		}
-		else if(tch.sIn.find(TEXT("itemmanifest.dat")) != wstring::npos)
-		{
-			XMLToItemManifest(tch.sIn.c_str());
-			bNormalConvert = true;
-			//TODO sDeleteWhenDone = tch.sIn;
-		}
-		else if(tch.sIn.find(TEXT("residmap.dat")) != wstring::npos)
-		{
-			XMLToResidMap(tch.sIn.c_str());
-			bNormalConvert = true;
-			sDeleteWhenDone = tch.sIn;
-		}
-		else
-			bNormalConvert = true;
+		//bool bNormalConvert = true;
+		wstring sDeleteWhenDone = TEXT("");	//If we have leftover files we want to delete when compression is done
+		wstring sFileToPak = tch;			//The file we'll be sticking in the pakfile
+		pakHelper ph;
+		ph.cH.uncompressedSizeBytes = ph.cH.compressedSizeBytes = 0;	//Supress warning
+		ph.bCompressed = true;				//Files are compressed by default
 		
-		if(bNormalConvert)
+		//OGG sound
+		if(tch.find(TEXT(".flac")) != wstring::npos ||
+		   tch.find(TEXT(".FLAC")) != wstring::npos)
 		{
-			if(compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1))
+			wstring s = tch + TEXT(".ogg");
+			oggToBinary(s.c_str(), tch.c_str());
+			sDeleteWhenDone = tch;
+			ph.bCompressed = false;	//No compression for OGG streams, since these are compressed already
+		}
+		//PNG image
+		else if(tch.find(TEXT(".png")) != wstring::npos ||
+			    tch.find(TEXT(".PNG")) != wstring::npos ||
+			    tch.find(TEXT("coloritemicon")) != wstring::npos ||
+			    tch.find(TEXT("colorbgicon")) != wstring::npos ||
+			    tch.find(TEXT("greybgicon")) != wstring::npos)			//Also would include .png.normal files as well
+		{
+			convertFromPNG(tch.c_str());	//Do the conversion
+			sDeleteWhenDone = sFileToPak = tch + TEXT(".temp");	//Use the unraveled PNG for this
+		}
+		else if(tch.find(TEXT("wordPackDict.dat")) != wstring::npos)
+		{
+			XMLToWordPack(tch.c_str());	//De-XML this first
+			sDeleteWhenDone = tch;
+		}
+		else if(tch.find(TEXT("sndmanifest.dat")) != wstring::npos)
+		{
+			XMLToSndManifest(tch.c_str());
+			sDeleteWhenDone = tch;
+		}
+		else if(tch.find(TEXT("itemmanifest.dat")) != wstring::npos)
+		{
+			//TODO XMLToItemManifest(tch.c_str());
+			//TODO sDeleteWhenDone = tch;
+		}
+		else if(tch.find(TEXT("residmap.dat")) != wstring::npos)
+		{
+			XMLToResidMap(tch.c_str());
+			sDeleteWhenDone = tch;
+		}
+		
+		//if(bNormalConvert)
+		//{
+			//if(compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1))
+			//{
+			//	cout << "Error: Unable to compress file " << ws2s(tch.sIn) << ". Abort." << endl;
+			//	exit(1);
+			//}
+		//Pull in the data from the file
+		ph.dataSz = getFileSize(sFileToPak.c_str());
+		ph.data = (uint8_t*)malloc(ph.dataSz);	//Allocate memory to hold the file data
+		FILE* f = _wfopen(sFileToPak.c_str(), TEXT("rb"));	//Whatever file we're supposed to use
+		if(f == NULL)
+		{
+			cout << "Error: Unable to open file " << ws2s(sFileToPak) << ". Abort." << endl;
+			exit(1);
+		}
+		if(fread(ph.data, 1, ph.dataSz, f) != ph.dataSz)
+		{
+			cout << "Error reading from file " << ws2s(sFileToPak) << ". Abort." << endl;
+			exit(1);
+		}
+		fclose(f);
+		
+		if(ph.bCompressed && ph.dataSz <= 256)	// Tiny files don't seem to compress right
+		{
+			ph.bCompressed = false;
+		}
+		else if(ph.bCompressed)					//Compress if we should
+		{
+			zlibData zdt;
+			zdt.data = ph.data;
+			zdt.compressedSize = zdt.decompressedSize = ph.dataSz;
+			uint8_t* temp = compress(&zdt);
+			if(temp == NULL)
 			{
-				cout << "Error: Unable to compress file " << ws2s(tch.sIn) << ". Abort." << endl;
+				cout << "Compression error: " << ws2s(sFileToPak) << endl;
 				exit(1);
 			}
-			WaitForSingleObject(ghMutex, INFINITE);
-			g_pakHelping[tch.sIn].bCompressed = true;
-			g_pakHelping[tch.sIn].cH.uncompressedSizeBytes = getFileSize(tch.sIn.c_str());	//Hang onto these for compressed header stuff
-			g_pakHelping[tch.sIn].cH.compressedSizeBytes = getFileSize(tch.sFilename.c_str());
-			ReleaseMutex(ghMutex);
+			ph.cH.uncompressedSizeBytes = zdt.decompressedSize;	//Hang onto these for compressed header stuff
+			ph.cH.compressedSizeBytes = zdt.compressedSize;
+			free(zdt.data);	//Free this uncompressed memory
+			ph.data = temp;	//Hang onto the compressed memory
+			ph.dataSz = zdt.compressedSize;	//And the compressed memory size
 		}
+		WaitForSingleObject(ghOutMutex, INFINITE);
+		g_pakHelping[tch] = ph;	//Save this
+		ReleaseMutex(ghOutMutex);
+		//}
 		
-		//If we wish to delete this file when we're done
+		//If we wish to delete a file when we're done
 		if(sDeleteWhenDone != TEXT(""))
 			unlink(ws2s(sDeleteWhenDone).c_str());
 	}
@@ -154,8 +181,9 @@ void threadedCompress()
 	ghMutex = CreateMutex(NULL,              // default security attributes
 						  FALSE,             // initially not owned
 					      NULL);             // unnamed mutex
+	ghOutMutex = CreateMutex(NULL, FALSE, NULL);
 
-    if (ghMutex == NULL) 
+    if (ghMutex == NULL || ghOutMutex == NULL) 
     {
         cout << "Error: Unable to create mutex for multithreaded compression. Aborting..." << endl;
         return;
@@ -199,6 +227,7 @@ void threadedCompress()
         CloseHandle(aThread[i]);
 
     CloseHandle(ghMutex);
+	CloseHandle(ghOutMutex);
 	
 	free(aThread);
 }

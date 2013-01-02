@@ -443,6 +443,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	return true;
 }
 
+//TODO Fix problems and stuff for next release
 bool XMLToItemManifest(const wchar_t* cFilename)
 {
 	//Open this XML file for parsing

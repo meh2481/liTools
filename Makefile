@@ -5,7 +5,7 @@ all : liDecompress.exe liCompress.exe recalcSoundManifest.exe strip.exe modManag
 liDecompress.exe : $(objects) liDecompress.o threadDecompress.o
 	g++ -Wall -O2 -o liDecompress.exe $(objects) liDecompress.o threadDecompress.o -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
 liCompress.exe : $(objects) liCompress.o threadCompress.o
-	g++ -Wall zpipe.c -O2 -o liCompress.exe $(objects) liCompress.o threadCompress.o -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
+	g++ -Wall -O2 -o liCompress.exe $(objects) liCompress.o threadCompress.o -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
 recalcSoundManifest.exe : recalcSoundManifest.o
 	g++ -Wall -O2 -o recalcSoundManifest.exe recalcSoundManifest.o ogg.o -lvorbis -logg -ltinyxml2
 strip.exe : strip.o
