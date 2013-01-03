@@ -22,9 +22,6 @@ const wchar_t* getName(u32 resId)
 	if(!g_pakMappings.count(resId))
 		cout << "No residmap entry for id " << resId << endl;
 	return g_pakMappings[resId].c_str();
-	//i32 strId = g_IDMappings[resId];
-	//const wchar_t* cData = g_stringList.data();
-	//return &cData[g_stringPointerList[g_stringTableList[strId].pointerIndex].offset];
 }
 
 //Parse our array of values to get the mappings
@@ -192,8 +189,6 @@ bool residMapToXML(const wchar_t* cFilename)
 	
 	fclose(fp);
 	
-	//ofstream ofile;
-	//ofile.open("residmap.txt");
 	//Add these mappings to our mapping list
 	for(map<u32, i32>::iterator i = mIDMappings.begin(); i != mIDMappings.end(); i++)
 	{
@@ -204,9 +199,7 @@ bool residMapToXML(const wchar_t* cFilename)
 		//Store forward and reverse mappings for this file
 		g_repakMappings[s] = finalNum;
 		g_pakMappings[finalNum] = s;
-		//ofile << "{" << finalNum << "u,\"" << s << "\"}," << endl;
 	}
-	//ofile.close();
 	
 	//Now save this out to XML
 	wstring sFilename = cFilename;
@@ -214,20 +207,13 @@ bool residMapToXML(const wchar_t* cFilename)
 	XMLDocument* doc = new XMLDocument;
 	//TODO Merge with preexisting XML
 	XMLElement* root = doc->NewElement("mappings");	//Create the root element
-	//ofstream oHash("hash.txt");
 	for(map<u32, wstring>::iterator i = g_pakMappings.begin(); i != g_pakMappings.end(); i++)
 	{
 		XMLElement* elem = doc->NewElement("mapping");
 		elem->SetAttribute("id", i->first);
 		elem->SetAttribute("filename", ws2s(i->second).c_str());
 		root->InsertEndChild(elem);
-		//oHash << "id: " << i->first << ", filename: " << i->second << ", filename hashed: " << hash(i->second) << endl;
-		//if(i->first != hash(i->second))
-		//	oHash << "Hash failed." << endl;
-		//else
-		//	oHash << "Hash worked!" << endl;
 	}
-	//oHash.close();
 	doc->InsertFirstChild(root);
 	doc->SaveFile(ws2s(sFilename).c_str());
 	

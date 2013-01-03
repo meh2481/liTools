@@ -314,13 +314,11 @@ typedef struct
 } decompressHelper;*/
 
 //global functions
-int compdecomp(const wchar_t* cIn, const wchar_t* cOut, int iCompress = false);	//Compress/decompress a file using zlib
 int binaryToOgg( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert a game sound file to .ogg
 int oggToBinary( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert an .ogg file to the game's sound format
 takeRecord getOggData( const wchar_t* cFile );				//Grab the data from an OGG file to populate sndManifest.dat
 void threadedDecompress();									//Start threaded decompression
 void threadedCompress();									//Start threaded compression
-//bool convertToPNG(const wchar_t* cFilename);				//Convert a game image file to PNG
 bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size);
 bool convertFromPNG(const wchar_t* cFilename);				//Convert a PNG image to a game image file
 bool wordPackToXML(const wchar_t* cFilename);				//Convert wordPackDict.dat to XML

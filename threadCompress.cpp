@@ -1,6 +1,5 @@
 #include "pakDataTypes.h"
 
-//list<ThreadConvertHelper> g_lThreadedResources;
 list<wstring> g_lThreadedResources;
 extern map<wstring, pakHelper> g_pakHelping;	//in liCompress.cpp, used for packing stuff into the .pak files
 u32 g_iCurResource;
@@ -69,7 +68,6 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		if(bDone)
 			continue;	//Stop here if done
 		
-		//bool bNormalConvert = true;
 		wstring sDeleteWhenDone = TEXT("");	//If we have leftover files we want to delete when compression is done
 		wstring sFileToPak = tch;			//The file we'll be sticking in the pakfile
 		pakHelper ph;
@@ -116,13 +114,6 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			sDeleteWhenDone = tch;
 		}
 		
-		//if(bNormalConvert)
-		//{
-			//if(compdecomp(tch.sIn.c_str(), tch.sFilename.c_str(), 1))
-			//{
-			//	cout << "Error: Unable to compress file " << ws2s(tch.sIn) << ". Abort." << endl;
-			//	exit(1);
-			//}
 		//Pull in the data from the file
 		ph.dataSz = getFileSize(sFileToPak.c_str());
 		ph.data = (uint8_t*)malloc(ph.dataSz);	//Allocate memory to hold the file data
@@ -163,7 +154,6 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		WaitForSingleObject(ghOutMutex, INFINITE);
 		g_pakHelping[tch] = ph;	//Save this
 		ReleaseMutex(ghOutMutex);
-		//}
 		
 		//If we wish to delete a file when we're done
 		if(sDeleteWhenDone != TEXT(""))
@@ -177,7 +167,7 @@ void threadedCompress()
 	g_iCurResource = 0;
 	g_iNumResources = g_lThreadedResources.size();
 	
-	//Create mutex
+	//Create mutexes
 	ghMutex = CreateMutex(NULL,              // default security attributes
 						  FALSE,             // initially not owned
 					      NULL);             // unnamed mutex

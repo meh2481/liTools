@@ -6,7 +6,6 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
 {
   ImageHeader ih;
   FILE          *png_file;
-  //FILE          *input_file;
   png_struct    *png_ptr = NULL;
   png_info      *info_ptr = NULL;
   png_byte      *png_pixels = NULL;
@@ -17,9 +16,6 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   int           bit_depth = 8;
   int           channels = 4;
   
-  //wchar_t cTempFilename[512];
-  //wsprintf(cTempFilename, TEXT("%s.temp"), cFilename);
-  
   png_file = _wfopen(cFilename, TEXT("wb"));
   if(png_file == NULL)
   {
@@ -27,41 +23,14 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
 	return false;
   }
   
-  //input_file = _wfopen(cFilename, TEXT("rb"));
-  //if(input_file == NULL)
-  //{
-  //  cout << "input file NULL" << endl;
-	//return false;
-  //}
-	
   //Read in the image header
-  //cout << "Reading in image header" << endl;
   memcpy((void*)&ih, data, sizeof(ImageHeader));
-  //cout << "width: " << ih.width << ", height: " << ih.height << ", flags: " << ih.flags << endl;
-  //if(fread((void*)&ih, 1, sizeof(ImageHeader), input_file) != sizeof(ImageHeader))
-  //{
-  //  cout << "Header null" << endl;
-	//fclose(input_file);
-	//fclose(png_file);
-	//return false;
-  //}
   
   //Read in the image
   size_t sizeToRead = ih.width * ih.height * channels * bit_depth/8;
-  //cout << "Size to read: " << sizeToRead << endl;
-  //cout << "Getting image" << endl;
-  png_pixels = &data[sizeof(ImageHeader)];//(png_byte*)malloc(sizeToRead);
-  //size_t sizeRead = fread((void*)png_pixels, 1, sizeToRead, input_file);
-  //if(sizeRead != sizeToRead)
-  //{
-    //cout << "Image null: Should have read " << sizeToRead << " bytes, only read " << sizeRead << " bytes" << endl;
-	//fclose(input_file);
-	//fclose(png_file);
-	//return false;
-  //}
+  png_pixels = &data[sizeof(ImageHeader)];
   
   //If this is greyscale, move alpha over so it works
-  //cout << "convert alpha" << endl;
   if(ih.flags & GREYSCALE_PNG)
   {
 	//Same size of image, so we don't have to worry about doing this before reading it in
@@ -97,7 +66,6 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   }
   else	//Color image; change premultiplied alpha to normal alpha
   {
-	//cout << "converting color to normal alpha" << endl;
 	for(unsigned int i = 0; i < sizeToRead; i += 4)
 	{
 		png_byte* curPtr = &png_pixels[i];
@@ -117,12 +85,10 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   
 
   // prepare the standard PNG structures 
-  //cout << "creating png structure things" << endl;
   png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   if (!png_ptr)
   {
     cout << "png_ptr Null" << endl;
-	//fclose(input_file);
 	fclose(png_file);
 	return false;
   }
@@ -132,7 +98,6 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   {
     cout << "Info ptr null" << endl;
     png_destroy_write_struct (&png_ptr, (png_infopp) NULL);
-	//fclose(input_file);
 	fclose(png_file);
 	return false;
   }
@@ -142,7 +107,6 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   {
     cout << "unable to setjmp" << endl;
     png_destroy_write_struct (&png_ptr, (png_infopp) NULL);
-	//fclose(input_file);
 	fclose(png_file);
 	return false;
   }
@@ -165,7 +129,6 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
     {
       png_destroy_write_struct (&png_ptr, (png_infopp) NULL);
 	  cout << "Error allocating row pointers" << endl;
-	  //fclose(input_file);
 	  fclose(png_file);
 	  return false;
     }
@@ -175,7 +138,6 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
   row_bytes = ih.width * channels * ((bit_depth <= 8) ? 1 : 2);
   
   // set the individual row_pointers to point at the correct offsets
-  //cout << "setting row pointers" << endl;
   for (unsigned int i = 0; i < (ih.height); i++)
     row_pointers[i] = png_pixels + i * row_bytes;
 
@@ -190,18 +152,9 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
 
   if (row_pointers != (png_byte**) NULL)
     free (row_pointers);
-  //if (png_pixels != (png_byte*) NULL)
-  //  free (png_pixels);
 	
-  //Close the files
-  //fclose(input_file);
-  //cout << "closing file " << endl;
+  //Close the file
   fclose(png_file);
-  
-  //if(unlink(ws2s(cFilename).c_str()))	//Delete old file
-//	cout << "error unlinking " << ws2s(cFilename) << endl;
-//  if(rename(ws2s(cTempFilename).c_str(), ws2s(cFilename).c_str()))	//Move this over the old one
-//	cout << "Error renaming " << ws2s(cTempFilename) << endl;
 
   return true;
 }

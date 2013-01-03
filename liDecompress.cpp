@@ -6,55 +6,6 @@ extern unsigned int g_iNumThreads;
 
 ttvfs::VFSHelper vfs;
 
-//Remove all files in the temp/ folder, since we're done with them
-/*void removeTempFiles()
-{
-	ttvfs::StringList slFiles;
-    ttvfs::GetFileList("temp", slFiles);
-
-    for(ttvfs::StringList::iterator il = slFiles.begin(); il != slFiles.end(); il++)
-    {
-		string s = ("temp/") + (*il);
-		unlink(s.c_str());	//Remove this file
-    }
-	rmdir("temp/");	//Remove the folder itself
-}*/
-
-/*bool CreateDir(const char *dir)
-{
-    if(ttvfs::IsDirectory(dir)) // do not try to create if it already exists
-        return true;
-    bool result;
-# if _WIN32
-    result = !!::CreateDirectory(s2ws(dir).c_str(), NULL);
-# else
-    result = !mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-#endif
-    return result;
-}
-
-bool CreateDirRec(const char *dir)
-{
-    if(ttvfs::IsDirectory(dir))
-        return true;
-    bool result = true;
-    ttvfs::StringList li;
-    ttvfs::StrSplit(dir, "/\\", li, false);
-    std::string d;
-    d.reserve(strlen(dir) + 1);
-    if(*dir == '/')
-        d += '/';
-    bool last = false;
-    for(ttvfs::StringList::iterator it = li.begin(); it != li.end(); ++it)
-    {
-        d += *it;
-        last = CreateDir(d.c_str());
-        result = last && result;
-        d += '/';
-    }
-    return result || last;
-}*/
-
 //Create the folder that this resource ID's file will be placed in
 void makeFolder(u32 resId)
 {
@@ -65,23 +16,6 @@ void makeFolder(u32 resId)
 	sFilename = TEXT("./") + sFilename;
 	//cout << "Creating folder " << ws2s(sFilename) << endl;
 	ttvfs::CreateDirRec(ws2s(sFilename).c_str());
-	//const char* cName = ws2s(getName(resId)).c_str();
-	//string s = ttvfs::StripLastPath(cName);
-	//cout << "Name: " << cName << ", last path: " << endl;
-	//for(int i = strlen(cName)-1; i >= 0; i--)
-	//{
-	//	if(cName[i] == '/')
-	//	{
-			//char* cFilename = (char*)malloc(i+2);
-			//memset(cFilename, '\0', i+2);
-			//strncpy(cFilename, cName, i+1);
-			//wchar_t cData[512];
-			//sprintf(cData, "output/%s", cFilename);
-			//if(!ttvfs::IsDirectory(cFilename))
-			//ttvfs::CreateDirRec(cFilename);
-			//free(cFilename);
-	//	}
-	//}
 }
 
 void parseCmdLine(int argc, char** argv)
@@ -130,7 +64,6 @@ int main(int argc, char** argv)
 	if(argc < 2)
 	{
 		cout << "Usage: liDecompress [filename1] [filename2] ... [filenameN]" << endl;
-		//system("PAUSE");
 		return 0;
 	}
 	
@@ -169,11 +102,6 @@ int main(int argc, char** argv)
 			}
 			lResourceHeaders.push_back(rH);
 		}
-		
-		//Create temp folder if it isn't here already
-		/*removeTempFiles();
-		if(!ttvfs::IsDirectory("temp"))
-			ttvfs::CreateDirRec("temp");*/
 			
 		//Create list file with all the files that were in this .pak
 		string sPakListFilename = "";
@@ -192,7 +120,6 @@ int main(int argc, char** argv)
 		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
 		{
 			ThreadConvertHelper dh;
-			//tch.bCompressed = false;
 			makeFolder(i->id);
 			const wchar_t* cName = getName(i->id);
 			oPakList << ws2s(cName) << endl;
@@ -208,10 +135,6 @@ int main(int argc, char** argv)
 					continue;
 				}
 				
-				//char sOutFile[256];
-				//sprintf(sOutFile, "temp/%u", i->id);
-				//FILE* fOut = fopen(sOutFile, "wb");
-				
 				uint32_t size = cH.compressedSizeBytes;
 				
 				uint8_t* buf = (uint8_t*)malloc(size);
@@ -220,7 +143,6 @@ int main(int argc, char** argv)
 				{
 					cout << "Error reading compressed data. Size: " << size << " read: " << sizeRead << endl;
 					fclose(f);
-					//fclose(fOut);
 					free(buf);
 					continue;
 				}
@@ -228,35 +150,21 @@ int main(int argc, char** argv)
 				dh.data.compressedSize = cH.compressedSizeBytes;
 				dh.data.decompressedSize = cH.uncompressedSizeBytes;
 				dh.bCompressed = true;
-				//fwrite((void*)buf, 1, size, fOut);
-				//fclose(fOut);
-				//free(buf);
-				
-				//tch.sIn = s2ws(sOutFile);
-				//tch.bCompressed = true;
 			}
 			else if(i->flags == FLAG_NOCOMPRESSION)
 			{
-				//tch.sIn = TEXT("");
-				//FILE* fOut = _wfopen(cName, TEXT("wb"));
 				uint8_t* buf = (uint8_t*)malloc(i->size);
 			  
 				if(fread((void*)buf, 1, i->size, f) != i->size)
 				{
 					cout << "Error reading non-compressed data." << endl;
 					fclose(f);
-					//fclose(fOut);
 					free(buf);
 					continue;
 				}
 				dh.data.data = buf;
 				dh.data.compressedSize = dh.data.decompressedSize = i->size;
 				dh.bCompressed = false;
-				//fwrite((void*)buf, 1, i->size, fOut);
-				
-			  
-				//free(buf);
-				//fclose(fOut);
 			}
 			else
 				cout << "Invalid resource flag " << i->flags << endl;
@@ -270,8 +178,6 @@ int main(int argc, char** argv)
 		fclose(f);
 		oPakList.close();
 	}
-	
-	//removeTempFiles();
 	cout << "\rDone.                                " << endl;
 	
 	iTicks = GetTickCount() - iTicks;
