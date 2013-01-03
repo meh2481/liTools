@@ -5,6 +5,7 @@ ttvfs::VFSHelper vfs;
 extern list<wstring> g_lThreadedResources;	//Declared in threadCompress.cpp, used for multi-threaded compression
 extern bool g_bProgressOverwrite;
 extern unsigned int g_iNumThreads;
+extern int g_iCompressAmount;
 
 map<wstring, pakHelper> g_pakHelping;
 
@@ -17,20 +18,37 @@ void parseCmdLine(int argc, char** argv)
 			g_bProgressOverwrite = true;
 		else if(s.find("--threads=") != wstring::npos)
 		{
-			size_t pos = s.find('=')+1;
+			size_t pos = s.find(L'=')+1;
 			if(s.length() <= pos)
 			{
-				cout << "missing thread count" << endl;
+				cout << "missing thread count. Ignoring..." << endl;
 				continue;
 			}
 			int iNumThreads = atoi(&s.c_str()[pos]);
 			if(iNumThreads < 0 ||
 			   iNumThreads > MAX_NUM_THREADS)
 			{
-				cout << "Invalid number of threads: " << iNumThreads << endl;
+				cout << "Invalid number of threads: " << iNumThreads << ". Ignoring..." << endl;
 				continue;
 			}
 			g_iNumThreads = iNumThreads;
+		}
+		else if(s.find("--level=") != wstring::npos)
+		{
+			size_t pos = s.find(L'=')+1;
+			if(s.length() <= pos)
+			{
+				cout << "Missing compression level. Ignoring..." << endl;
+				continue;
+			}
+			int iCompressLevel = atoi(&s.c_str()[pos]);
+			if(iCompressLevel < Z_DEFAULT_COMPRESSION ||
+			   iCompressLevel > Z_BEST_COMPRESSION)
+			{
+				cout << "Invalid compression level: " << iCompressLevel << ". Ignoring..." << endl;
+				continue;
+			}
+			g_iCompressAmount = iCompressLevel;
 		}
 		else if(argv[i][0] == '-')
 			cout << "Unknown commandline switch " << argv[i] << ". Ignoring..." << endl;
@@ -42,6 +60,7 @@ int main(int argc, char** argv)
 {
 	g_bProgressOverwrite = false;
 	g_iNumThreads = 0;
+	g_iCompressAmount = Z_DEFAULT_COMPRESSION;
 	DWORD iTicks = GetTickCount();
 
 	vfs.Prepare();

@@ -1,5 +1,6 @@
-#include <zlib.h>
 #include "pakDataTypes.h"
+
+int g_iCompressAmount;
 
 // compress from the specified buffer, returning the compressed buffer
 uint8_t* compress(zlibData* zIn)
@@ -10,18 +11,20 @@ uint8_t* compress(zlibData* zIn)
 	strm.zalloc = Z_NULL;
 	strm.zfree = Z_NULL;
 	strm.opaque = Z_NULL;
-	if (deflateInit(&strm, Z_DEFAULT_COMPRESSION) != Z_OK)
+	if (deflateInit(&strm, g_iCompressAmount) != Z_OK)
 		return NULL;
 	strm.avail_in = zIn->decompressedSize;
 	strm.next_in = zIn->data;
 	strm.avail_out = zIn->decompressedSize;
-	ret = (uint8_t*) malloc(compressBound(zIn->decompressedSize));	//Allocate enough memory for compressed size.
+	ret = (uint8_t*) malloc(zIn->decompressedSize);	//Allocate enough memory for uncompressed size. If we go over this, ignore
 	strm.next_out = ret;
 	int ok = deflate(&strm, Z_FINISH);
-	if(ok != Z_STREAM_END)							//Error
+	if(ok != Z_STREAM_END)							//Error, or out of memory
 	{
-		cout << "zlib deflate error: " << ok << endl;
+		if(ok != Z_OK)	//== Z_OK means ran out of space and we shouldn't compress this resource
+			cout << "zlib deflate error: " << ok << endl;
 		(void)deflateEnd(&strm);
+		free(ret);	//Clear this memory, since we won't be using it
 		return NULL;
 	}
 	zIn->compressedSize = zIn->decompressedSize - strm.avail_out;	//Save the size that we compressed to

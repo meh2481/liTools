@@ -1,11 +1,8 @@
 Support for new IDs and filenames in pakfiles; small residmap.dat and sndmanifest.dat and such in each mod?
-Fix random directory bug
+Split itemmanifest.dat.xml stuff into separate files
 
-Some kind of backup capability so that mods can be uninstalled easily
 XML specification instead of .filelist.txt for mod creation?
-XML specification for which files go in which pakfiles?
 Work with puggsoy/others for GUI ease of use
-
 
 Done
 * 12/18/12 * Multithreading for faster compression/decompression
@@ -15,3 +12,4 @@ Done
 * 12/22/12 * XML specification for takes, so that those can be modified as well	
 * 1/1/13 * Full UTF-16 support
 * 1/2/13 * Minimize file I/O for speed
+* 1/2/13 * Fix random directory bug

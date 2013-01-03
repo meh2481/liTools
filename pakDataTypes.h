@@ -17,6 +17,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
+#include <zlib.h>
 #define UNICODE
 #include <windows.h>
 using namespace tinyxml2;
