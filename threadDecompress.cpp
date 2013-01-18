@@ -46,17 +46,25 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 				//Let user know which resource we're converting now
 				if(!bDone)
 				{
-					if(g_bProgressOverwrite)
+					g_iCurResource++;
+					if(!(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1))
 					{
-						cout << "\rDecompressing file " << ++g_iCurResource << " out of " << g_iNumResources;
-						cout.flush();
+						if(g_bProgressOverwrite)
+						{
+							cout << "\rDecompressing file " << g_iCurResource << " out of " << g_iNumResources;
+							cout.flush();
+						}
+						else
+							cout << "Decompressing file " << g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(sFilename) << endl;
 					}
-					else
-						cout << "Decompressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(sFilename) << endl;
 				}
 				
 				// Release ownership of the mutex object
-				if(sFilename != TEXT(RESIDMAP_NAME))	//Don't release residmap.dat mutex until we've read in all the filenames
+				if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)	//Don't release residmap.dat mutex until we've read in all the filenames
+				{
+					g_iNumResources--;
+				}
+				else
 				{
 					if (!ReleaseMutex(ghMutex)) 
 					{ 
@@ -74,7 +82,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		}
 		if(bDone)
 		{
-			if(sFilename == TEXT(RESIDMAP_NAME))
+			if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)
 				ReleaseMutex(ghMutex);
 			continue;	//Stop here if done
 		}
@@ -85,7 +93,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			if(tempData == NULL)
 			{
 				cout << "Error decompressing file " << ws2s(sFilename) << endl;
-				if(sFilename == TEXT(RESIDMAP_NAME))
+				if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)
 					ReleaseMutex(ghMutex);
 				return 1;
 			}
@@ -109,7 +117,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			if(fOut == NULL)
 			{
 				cout << "Unable to open output file " << ws2s(sFilename) << endl;
-				if(sFilename == TEXT(RESIDMAP_NAME))
+				if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)
 					ReleaseMutex(ghMutex);
 				return 1;
 			}
@@ -156,8 +164,11 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			unlink(ws2s(sFilename).c_str());	//Delete temporary .flac file
 		}
 		
-		if(sFilename == TEXT(RESIDMAP_NAME))
+		if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)
+		{
 			ReleaseMutex(ghMutex);
+			g_iCurResource--;
+		}
 	}
 	return 0;
 }

@@ -170,7 +170,7 @@ int main(int argc, char** argv)
 		ofstream oPakList(sPakListFilename.c_str());
 		wstring sIsResidFilename = getName(lResourceHeaders.front().id);
 		if(sIsResidFilename == TEXT(RESIDMAP_NAME))
-			lResourceHeaders.pop_front();	//HACK: So we don't end up with recursive residmap.dat files in our pakfile...
+			lResourceHeaders.pop_front();	//HACK: So we don't end up with recursive residmap.dat files in our pakfiles...
 		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
 		{
 			oPakList << ws2s(getName(i->id)) << endl;
