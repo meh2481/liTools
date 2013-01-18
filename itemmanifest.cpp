@@ -86,7 +86,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	FILE* f = _wfopen(cFilename, TEXT("rb"));
 	if(f == NULL)
 	{
-		cout << "Error: could not open " << cFilename << " for reading." << endl;
+		cout << "Error: could not open " << ws2s(cFilename) << " for reading." << endl;
 		return false;
 	}
 	
@@ -94,7 +94,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	itemManifestHeader imh;
 	if(fread(&imh, 1, sizeof(itemManifestHeader), f) != sizeof(itemManifestHeader))
 	{
-		cout << "Error: unable to read itemManifestHeader from file " << cFilename << endl;
+		cout << "Error: unable to read itemManifestHeader from file " << ws2s(cFilename) << endl;
 		fclose(f);
 		return false;
 	}
@@ -108,7 +108,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		itemManifestRecord imr;
 		if(fread(&imr, 1, sizeof(itemManifestRecord), f) != sizeof(itemManifestRecord))
 		{
-			cout << "Error: unable to read itemManifestRecord from file " << cFilename << endl;
+			cout << "Error: unable to read itemManifestRecord from file " << ws2s(cFilename) << endl;
 			fclose(f);
 			return false;
 		}
@@ -124,7 +124,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		normalDependency nd;
 		if(fread(&nd, 1, sizeof(normalDependency), f) != sizeof(normalDependency))
 		{
-			cout << "Error: unable to read normalDependency from file " << cFilename << endl;
+			cout << "Error: unable to read normalDependency from file " << ws2s(cFilename) << endl;
 			fclose(f);
 			return false;
 		}
@@ -139,7 +139,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		soundDependency sd;
 		if(fread(&sd, 1, sizeof(soundDependency), f) != sizeof(soundDependency))
 		{
-			cout << "Error: unable to read soundDependency from file " << cFilename << endl;
+			cout << "Error: unable to read soundDependency from file " << ws2s(cFilename) << endl;
 			fclose(f);
 			return false;
 		}
@@ -154,7 +154,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		effectDependency ed;
 		if(fread(&ed, 1, sizeof(effectDependency), f) != sizeof(effectDependency))
 		{
-			cout << "Error: unable to read effectDependency from file " << cFilename << endl;
+			cout << "Error: unable to read effectDependency from file " << ws2s(cFilename) << endl;
 			fclose(f);
 			return false;
 		}
@@ -169,7 +169,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		itemDependency id;
 		if(fread(&id, 1, sizeof(itemDependency), f) != sizeof(itemDependency))
 		{
-			cout << "Error: unable to read itemDependency from file " << cFilename << endl;
+			cout << "Error: unable to read itemDependency from file " << ws2s(cFilename) << endl;
 			fclose(f);
 			return false;
 		}
@@ -178,17 +178,50 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	
 	//Read in the item data
 	vector<itemDataHeader> vItemDataHeaders;
+	vector< list<skelsRecord> > vSkeletonRecords;
+	vector< vector<jointRecord> > vJointRecords;
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
 		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes, SEEK_SET);	//Seek to this position to read
+		//Read in header
 		itemDataHeader idh;
 		if(fread(&idh, 1, sizeof(itemDataHeader), f) != sizeof(itemDataHeader))
 		{
-			cout << "Error: Unable to read itemDataHeader from file " << cFilename << endl;
+			cout << "Error: Unable to read itemDataHeader from file " << ws2s(cFilename) << endl;
 			fclose(f); 
 			return false;
 		}
 		vItemDataHeaders.push_back(idh);
+		
+		//Read in skeleton records for this item data header
+		list<skelsRecord> srl;
+		for(int j = 0; j < idh.skels.count; j++)
+		{
+			skelsRecord sr;
+			if(fread(&sr, 1, sizeof(skelsRecord), f) != sizeof(skelsRecord))
+			{
+				cout << "Error: Unable to read skelsRecord from file " << ws2s(cFilename) << ": " << j << ": " << ftell(f) << endl;
+				fclose(f);
+				return false;
+			}
+			srl.push_back(sr);
+		}
+		vSkeletonRecords.push_back(srl);
+		
+		//Read in joint records for this item data header
+		vector<jointRecord> jrv;
+		for(int j = 0; j < idh.joints.count; j++)
+		{
+			jointRecord jr;
+			if(fread(&jr, 1, sizeof(jointRecord), f) != sizeof(jointRecord))
+			{
+				cout << "Error: Unable to read jointRecord from file " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+			}
+			jrv.push_back(jr);
+		}
+		vJointRecords.push_back(jrv);
 	}
 	
 	//TODO Read rest of item data
@@ -223,13 +256,13 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		elem2->SetAttribute("value", i->recentlyModifiedRank);
 		elem->InsertEndChild(elem2);
 		elem2 = doc->NewElement("coloritemicon");
-		elem2->SetAttribute("filename", getName(i->catalogIconColorItemTexResId));
+		elem2->SetAttribute("filename", ws2s(getName(i->catalogIconColorItemTexResId)).c_str());
 		elem->InsertEndChild(elem2);
 		elem2 = doc->NewElement("colorbgicon");
-		elem2->SetAttribute("filename", getName(i->catalogIconColorBGTexResId));
+		elem2->SetAttribute("filename", ws2s(getName(i->catalogIconColorBGTexResId)).c_str());
 		elem->InsertEndChild(elem2);
 		elem2 = doc->NewElement("greybgicon");
-		elem2->SetAttribute("filename", getName(i->catalogIconGreyBGTexResId));
+		elem2->SetAttribute("filename", ws2s(getName(i->catalogIconGreyBGTexResId)).c_str());
 		elem->InsertEndChild(elem2);
 		//TODO: binDataOffsetBytes stuff
 		//Now insert dependencies for this item
@@ -237,7 +270,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		for(int j = i->firstNormalDepends; j < i->firstNormalDepends + i->numNormalDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("normal");
-			elem3->SetAttribute("filename", getName(vNormalDependencies[j].normalTexResId));
+			elem3->SetAttribute("filename", ws2s(getName(vNormalDependencies[j].normalTexResId)).c_str());
 			elem2->InsertEndChild(elem3);
 		}
 		for(int j = i->firstSoundDepends; j < i->firstSoundDepends + i->numSoundDepends; j++)
@@ -250,7 +283,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		for(int j = i->firstEffectDepends; j < i->firstEffectDepends + i->numEffectDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("effect");
-			elem3->SetAttribute("id", getName(vEffectDependencies[j].effectResId));
+			elem3->SetAttribute("id", ws2s(getName(vEffectDependencies[j].effectResId)).c_str());
 			elem2->InsertEndChild(elem3);
 		}
 		for(int j = i->firstItemDepends; j < i->firstItemDepends + i->numItemDepends; j++)
@@ -377,7 +410,56 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		elem2->SetAttribute("valueCoins", vItemDataHeaders[iCurItemData].valueCoins);
 		if(vItemDataHeaders[iCurItemData].valueStamps != DEFAULT_VALUESTAMPS)
 			elem2->SetAttribute("valueStamps", vItemDataHeaders[iCurItemData].valueStamps);
-
+		
+		//Create skeletons for this item
+		XMLElement* elem3;// = doc->NewElement("skeleton");
+		for(list<skelsRecord>::iterator j = vSkeletonRecords[iCurItemData].begin(); j != vSkeletonRecords[iCurItemData].end(); j++)
+		{
+			elem3 = doc->NewElement("skeleton");
+			elem3->SetAttribute("burnExport", j->burnExport);
+			elem3->SetAttribute("selectWeight", j->selectWeight);
+			elem3->SetAttribute("hasAnimThresh", j->hasAnimThresh);
+			elem3->SetAttribute("animThresh", j->animThresh);
+			elem3->SetAttribute("animExportStrId", j->animExportStrId);
+			elem3->SetAttribute("animBoundsMinx", j->animBoundsMin.x);
+			elem3->SetAttribute("animBoundsMiny", j->animBoundsMin.y);
+			elem3->SetAttribute("animBoundsMaxx", j->animBoundsMax.x);
+			elem3->SetAttribute("animBoundsMaxy", j->animBoundsMax.y);
+			/*i32 firstJointIdx;
+			i32 numJoints;
+			i32 firstBoneIdx;
+			i32 numBones;
+			u32 burnExport;
+			f32 selectWeight;
+			i32 hasAnimThresh;
+			f32 animThresh;
+			i32 animExportStrId;
+			vec2 animBoundsMin;
+			vec2 animBoundsMax;*/
+			
+			//Add joints for this skeleton
+			XMLElement* elem4;
+			for(int k = j->firstJointIdx; k < j->firstJointIdx + j->numJoints; k++)
+			{
+				elem4 = doc->NewElement("joint");
+				elem4->SetAttribute("boneIdx1", vJointRecords[iCurItemData][k].boneIdx[0]);
+				elem4->SetAttribute("boneIdx2", vJointRecords[iCurItemData][k].boneIdx[1]);
+				elem4->SetAttribute("boneBurnGridCellIdx1", vJointRecords[iCurItemData][k].boneBurnGridCellIdx[0]);
+				elem4->SetAttribute("boneBurnGridCellIdx2", vJointRecords[iCurItemData][k].boneBurnGridCellIdx[1]);
+				elem4->SetAttribute("burnable", vJointRecords[iCurItemData][k].burnable);
+				elem4->SetAttribute("allowExtDamage", vJointRecords[iCurItemData][k].allowExtDamage);
+				elem4->SetAttribute("modelSpacePosx", vJointRecords[iCurItemData][k].modelSpacePos.x);
+				elem4->SetAttribute("modelSpacePosy", vJointRecords[iCurItemData][k].modelSpacePos.y);
+				elem4->SetAttribute("strength", vJointRecords[iCurItemData][k].strength.value);
+				elem4->SetAttribute("angleLimit", vJointRecords[iCurItemData][k].angleLimit.value);
+				elem4->SetAttribute("speed", vJointRecords[iCurItemData][k].speed.value);
+				elem4->SetAttribute("spin", vJointRecords[iCurItemData][k].spin.value);
+				elem4->SetAttribute("wobble", vJointRecords[iCurItemData][k].wobble.value);
+				elem3->InsertEndChild(elem4);
+			}
+			
+			elem2->InsertEndChild(elem3);
+		}
 		
 		//DEBUG Now loop back through here and pull data from it all
 		//for(const XMLAttribute* att = elem2->FirstAttribute(); att != NULL; att = att->Next())

@@ -272,9 +272,40 @@ typedef struct
 	f32 modYSpeedMax;
 } itemDataHeader;
 
+typedef struct
+{
+	i32 firstJointIdx;
+	i32 numJoints;
+	i32 firstBoneIdx;
+	i32 numBones;
+	u32 burnExport;
+	f32 selectWeight;
+	i32 hasAnimThresh;
+	f32 animThresh;
+	i32 animExportStrId;
+	vec2 animBoundsMin;
+	vec2 animBoundsMax;
+} skelsRecord;
 
+typedef struct 
+{
+	f32 value;
+	u32 tuneId;
+} BinTuneDataFloat;
 
-
+typedef struct
+{
+	i32 boneIdx[2];
+	i32 boneBurnGridCellIdx[2];
+	i32 burnable;
+	i32 allowExtDamage;
+	vec2 modelSpacePos;
+	BinTuneDataFloat strength;
+	BinTuneDataFloat angleLimit;
+	BinTuneDataFloat speed;
+	BinTuneDataFloat spin;
+	BinTuneDataFloat wobble;
+} jointRecord;
 
 
 //Structures for my use

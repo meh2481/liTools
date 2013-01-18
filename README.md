@@ -33,7 +33,7 @@ After decompression, the files you're after are in data/ and vdata/. The filenam
 
 Accepted commandline switches:
 	--overwrite-progress	Writes over the previous progress indicator, to mimimize commandline output. Doesn't display filenames.
-	--threads=n				Decompress with n threads. If n=0 or omitted, will spawn as many threads as your computer has processor cores.
+	--threads=n				Decompress with n threads. If n=0, will spawn as many threads as your computer has processor cores. Default is n=0.
 
 liCompress
 ----------
@@ -45,8 +45,8 @@ Please note that these .pak files might not exist beforehand (they don't have to
 
 Accepted commandline switches:
 	--overwrite-progress	Writes over the previous progress indicator, to mimimize commandline output. Doesn't display filenames.
-	--threads=n				Compress with n threads. If n=0 or omitted, will spawn as many threads as your computer has processor cores.
-	--level=n				Compress with the zlib compression level n, which should be between 0 (no compression) and 9 (full compression).
+	--threads=n				Compress with n threads. If n=0, will spawn as many threads as your computer has processor cores. Default is n=0.
+	--level=n				Compress with the zlib compression level n, which should be between 0 (no compression) and 9 (full compression). Default is n=-1.
 
 
 Sound modification
