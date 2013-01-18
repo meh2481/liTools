@@ -7,11 +7,24 @@ HANDLE ghMutex;
 bool g_bProgressOverwrite;
 unsigned int g_iNumThreads;
 
+//Create the folder that this resource ID's file will be placed in
+void makeFolder(u32 resId)
+{
+	wstring sFilename = getName(resId);
+	size_t pos = sFilename.find_last_of(L'/');
+	if(pos != wstring::npos)
+		sFilename = sFilename.substr(0,pos);
+	sFilename = TEXT("./") + sFilename;
+	//cout << "Creating folder " << ws2s(sFilename) << endl;
+	ttvfs::CreateDirRec(ws2s(sFilename).c_str());
+}
+
 DWORD WINAPI decompressResource(LPVOID lpParam)
 {
 	for(bool bDone = false;!bDone;)	//Loop until we're done
 	{
 		ThreadConvertHelper dh;
+		wstring sFilename;
 		DWORD dwWaitResult = WaitForSingleObject(ghMutex,    // wait for mutex
 												 INFINITE);  // no time-out interval
 		
@@ -25,6 +38,8 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 				{
 					//Grab the top item off the list
 					dh = g_lThreadedResources.front();
+					sFilename = getName(dh.id);	//Mutex on this too, since getName() isn't really threadsafe
+					makeFolder(dh.id);	//Also create folder (not threadsafe, either)
 					g_lThreadedResources.pop_front();	//Done with this element
 				}
 				
@@ -37,14 +52,17 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 						cout.flush();
 					}
 					else
-						cout << "Decompressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(dh.sFilename) << endl;
+						cout << "Decompressing file " << ++g_iCurResource << " out of " << g_iNumResources << ": " << ws2s(sFilename) << endl;
 				}
 				
 				// Release ownership of the mutex object
-				if (!ReleaseMutex(ghMutex)) 
-				{ 
-					cout << "Error: Unable to release mutex." << endl;
-					return 1;
+				if(sFilename != TEXT(RESIDMAP_NAME))	//Don't release residmap.dat mutex until we've read in all the filenames
+				{
+					if (!ReleaseMutex(ghMutex)) 
+					{ 
+						cout << "Error: Unable to release mutex." << endl;
+						return 1;
+					}
 				}
 				break; 
 
@@ -55,14 +73,20 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 				return 1; 
 		}
 		if(bDone)
+		{
+			if(sFilename == TEXT(RESIDMAP_NAME))
+				ReleaseMutex(ghMutex);
 			continue;	//Stop here if done
+		}
 			
 		if(dh.bCompressed)	//Compressed
 		{
 			uint8_t* tempData = decompress(&dh.data);
 			if(tempData == NULL)
 			{
-				cout << "Error decompressing file " << ws2s(dh.sFilename) << endl;
+				cout << "Error decompressing file " << ws2s(sFilename) << endl;
+				if(sFilename == TEXT(RESIDMAP_NAME))
+					ReleaseMutex(ghMutex);
 				return 1;
 			}
 			free(dh.data.data);	//Free this compressed memory
@@ -70,21 +94,23 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		}
 		
 		//See if this was a PNG image. Convert PNG images from the data in RAM
-		if(dh.sFilename.find(TEXT(".png")) != wstring::npos ||
-		   dh.sFilename.find(TEXT(".PNG")) != wstring::npos ||
-		   dh.sFilename.find(TEXT("coloritemicon")) != wstring::npos ||
-		   dh.sFilename.find(TEXT("colorbgicon")) != wstring::npos ||
-		   dh.sFilename.find(TEXT("greybgicon")) != wstring::npos)			//Also would include .png.normal files as well
+		if(sFilename.find(TEXT(".png")) != wstring::npos ||
+		   sFilename.find(TEXT(".PNG")) != wstring::npos ||
+		   sFilename.find(TEXT("coloritemicon")) != wstring::npos ||
+		   sFilename.find(TEXT("colorbgicon")) != wstring::npos ||
+		   sFilename.find(TEXT("greybgicon")) != wstring::npos)			//Also would include .png.normal files as well
 		{
-			convertToPNG(dh.sFilename.c_str(), dh.data.data, dh.data.decompressedSize);	//Do the conversion to PNG
+			convertToPNG(sFilename.c_str(), dh.data.data, dh.data.decompressedSize);	//Do the conversion to PNG
 		}
 		else	//For other file types, go ahead and write to the file before converting
 		{
 			//Write this out to the file
-			FILE* fOut = _wfopen(dh.sFilename.c_str(), TEXT("wb"));
+			FILE* fOut = _wfopen(sFilename.c_str(), TEXT("wb"));
 			if(fOut == NULL)
 			{
-				cout << "Unable to open output file " << ws2s(dh.sFilename) << endl;
+				cout << "Unable to open output file " << ws2s(sFilename) << endl;
+				if(sFilename == TEXT(RESIDMAP_NAME))
+					ReleaseMutex(ghMutex);
 				return 1;
 			}
 			fwrite(dh.data.data, 1, dh.data.decompressedSize, fOut);
@@ -93,42 +119,45 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		free(dh.data.data);	//Free memory from this file
 		
 		//Convert wordPackDict.dat to XML
-		if(dh.sFilename.find(TEXT("wordPackDict.dat")) != wstring::npos)
+		if(sFilename.find(TEXT("wordPackDict.dat")) != wstring::npos)
 		{
-			wordPackToXML(dh.sFilename.c_str());
-			unlink(ws2s(dh.sFilename).c_str());
+			wordPackToXML(sFilename.c_str());
+			unlink(ws2s(sFilename).c_str());
 		}
 		
 		//Convert sndmanifest.dat to XML
-		else if(dh.sFilename.find(TEXT("sndmanifest.dat")) != wstring::npos)
+		else if(sFilename.find(TEXT("sndmanifest.dat")) != wstring::npos)
 		{
-			sndManifestToXML(dh.sFilename.c_str());
-			unlink(ws2s(dh.sFilename).c_str());
+			sndManifestToXML(sFilename.c_str());
+			unlink(ws2s(sFilename).c_str());
 		}
 		
 		//Convert itemmanifest.dat to XML
-		else if(dh.sFilename.find(TEXT("itemmanifest.dat")) != wstring::npos)
+		else if(sFilename.find(TEXT("itemmanifest.dat")) != wstring::npos)
 		{
-			itemManifestToXML(dh.sFilename.c_str());
-			//TODO unlink(ws2s(dh.sFilename).c_str());
+			itemManifestToXML(sFilename.c_str());
+			//TODO unlink(ws2s(sFilename).c_str());
 		}
 		
 		//Convert residmap.dat to XML
-		else if(dh.sFilename.find(TEXT("residmap.dat")) != wstring::npos)
+		else if(sFilename.find(TEXT("residmap.dat")) != wstring::npos)
 		{
-			residMapToXML(dh.sFilename.c_str());
-			unlink(ws2s(dh.sFilename).c_str());
+			residMapToXML(sFilename.c_str());
+			unlink(ws2s(sFilename).c_str());
 		}
 		
 		//Convert .flac binary files to OGG
-		else if(dh.sFilename.find(TEXT(".flac")) != wstring::npos ||
-				dh.sFilename.find(TEXT(".FLAC")) != wstring::npos)
+		else if(sFilename.find(TEXT(".flac")) != wstring::npos ||
+				sFilename.find(TEXT(".FLAC")) != wstring::npos)
 		{
-			wstring s = dh.sFilename;
+			wstring s = sFilename;
 			s += TEXT(".ogg");
-			binaryToOgg(dh.sFilename.c_str(), s.c_str());
-			unlink(ws2s(dh.sFilename).c_str());	//Delete temporary .flac file
+			binaryToOgg(sFilename.c_str(), s.c_str());
+			unlink(ws2s(sFilename).c_str());	//Delete temporary .flac file
 		}
+		
+		if(sFilename == TEXT(RESIDMAP_NAME))
+			ReleaseMutex(ghMutex);
 	}
 	return 0;
 }

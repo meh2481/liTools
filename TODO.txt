@@ -1,5 +1,7 @@
-Support for new IDs and filenames in pakfiles; small residmap.dat and sndmanifest.dat and such in each mod?
+Support for new IDs and filenames in pakfiles; small residmap.dat and sndmanifest.dat and such in each mod
 Split itemmanifest.dat.xml stuff into separate files
+Add security features to prevent any old executable or potential virus from being inside a .pak file
+Add security (and bug-prevention) features to prevent any file outside of vdata/ or data/ from being compressed/decompressed
 
 XML specification instead of .filelist.txt for mod creation?
 Work with puggsoy/others for GUI ease of use

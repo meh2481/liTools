@@ -277,7 +277,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		{
 			XMLElement* elem3 = doc->NewElement("sound");
 			elem3->SetAttribute("id", ws2s(getSoundName(vSoundDependencies[j].soundResId)).c_str());
-			//elem3->SetAttribute("id", getName(vSoundDependencies[j].soundResId));
 			elem2->InsertEndChild(elem3);
 		}
 		for(int j = i->firstEffectDepends; j < i->firstEffectDepends + i->numEffectDepends; j++)
@@ -566,7 +565,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			delete doc;
 			return false;
 		}
-		imr.itemId = hash(s2ws(id)); //TODO
+		imr.itemId = hash(s2ws(id)); //TODO ????
 		imr.recentlyModifiedRank = 1;	//Because why not
 		
 		//get all the XML children of this

@@ -166,8 +166,9 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 	return 0;
 }
 
-void threadedCompress()
+void threadedCompress(list<wstring> resources)
 {
+	g_lThreadedResources = resources;
 	g_iCurResource = 0;
 	g_iNumResources = g_lThreadedResources.size();
 	

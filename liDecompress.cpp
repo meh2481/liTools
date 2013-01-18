@@ -6,18 +6,6 @@ extern unsigned int g_iNumThreads;
 
 ttvfs::VFSHelper vfs;
 
-//Create the folder that this resource ID's file will be placed in
-void makeFolder(u32 resId)
-{
-	wstring sFilename = getName(resId);
-	size_t pos = sFilename.find_last_of(L'/');
-	if(pos != wstring::npos)
-		sFilename = sFilename.substr(0,pos);
-	sFilename = TEXT("./") + sFilename;
-	//cout << "Creating folder " << ws2s(sFilename) << endl;
-	ttvfs::CreateDirRec(ws2s(sFilename).c_str());
-}
-
 void parseCmdLine(int argc, char** argv)
 {
 	for(int i = 1; i < argc; i++)
@@ -113,18 +101,18 @@ int main(int argc, char** argv)
 			sPakListFilename.insert(sPakListFilename.begin(), argv[iArg][i]);
 		}
 		sPakListFilename += ".filelist.txt";
-		ofstream oPakList(sPakListFilename.c_str());
 		
 		//Iterate through these items, splitting them out of the file and creating new files out of each
 		cout << "Extracting files..." << endl;
 		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
 		{
 			ThreadConvertHelper dh;
-			makeFolder(i->id);
-			const wchar_t* cName = getName(i->id);
-			oPakList << ws2s(cName) << endl;
+			//makeFolder(i->id);
+			//const wchar_t* cName = getName(i->id);
+			//oPakList << ws2s(cName) << endl;
 			fseek(f, i->offset, SEEK_SET);
-			dh.sFilename = cName;
+			//dh.sFilename = cName;
+			dh.id = i->id;
 			if(i->flags == FLAG_ZLIBCOMPRESSED)
 			{
 				compressedHeader cH;
@@ -167,7 +155,10 @@ int main(int argc, char** argv)
 				dh.bCompressed = false;
 			}
 			else
-				cout << "Invalid resource flag " << i->flags << endl;
+			{
+				cout << "Invalid resource flag " << i->flags << ". Skipping resource " << i->id << endl;
+				continue;
+			}
 			
 			g_lThreadedResources.push_back(dh);
 			
@@ -176,6 +167,14 @@ int main(int argc, char** argv)
 		threadedDecompress();
 		
 		fclose(f);
+		ofstream oPakList(sPakListFilename.c_str());
+		wstring sIsResidFilename = getName(lResourceHeaders.front().id);
+		if(sIsResidFilename == TEXT(RESIDMAP_NAME))
+			lResourceHeaders.pop_front();	//HACK: So we don't end up with recursive residmap.dat files in our pakfile...
+		for(list<resourceHeader>::iterator i = lResourceHeaders.begin(); i != lResourceHeaders.end(); i++)
+		{
+			oPakList << ws2s(getName(i->id)) << endl;
+		}
 		oPakList.close();
 	}
 	cout << "\rDone.                                " << endl;

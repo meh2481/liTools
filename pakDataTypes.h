@@ -26,6 +26,8 @@ using namespace std;
 #define u32 uint32_t
 #define f32	float
 #define MAX_NUM_THREADS 128
+#define RESIDMAP_ID		0xB7E44207
+#define RESIDMAP_NAME	"vdata/residmap.dat"
 
 //Mark I structures - .pak file headers
 typedef struct 
@@ -332,25 +334,19 @@ typedef struct
 
 typedef struct
 {
-	wstring sIn;
-	wstring sFilename;
+	//wstring sIn;
+	//wstring sFilename;
+	u32 id;
 	bool bCompressed;
 	zlibData data;
 } ThreadConvertHelper;
-
-/*typedef struct
-{
-	wstring sFilename;
-	bool bCompressed;
-	zlibData data;
-} decompressHelper;*/
 
 //global functions
 int binaryToOgg( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert a game sound file to .ogg
 int oggToBinary( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert an .ogg file to the game's sound format
 takeRecord getOggData( const wchar_t* cFile );				//Grab the data from an OGG file to populate sndManifest.dat
 void threadedDecompress();									//Start threaded decompression
-void threadedCompress();									//Start threaded compression
+void threadedCompress(list<wstring> resources);				//Compress resources with multiple threads
 bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size);
 bool convertFromPNG(const wchar_t* cFilename);				//Convert a PNG image to a game image file
 bool wordPackToXML(const wchar_t* cFilename);				//Convert wordPackDict.dat to XML

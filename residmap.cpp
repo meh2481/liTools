@@ -1,6 +1,8 @@
 #include "pakDataTypes.h"
 #include "residmap.h"
 
+//#define RESIDMAP_FILENAME	"vdata/residmap.dat.xml"
+
 map<wstring, u32> g_repakMappings;
 map<u32, wstring> g_pakMappings;
 
@@ -10,8 +12,8 @@ u32 getResID(wstring sName)
 	if(!g_repakMappings.count(sName))
 	{
 		//TODO: Hash filenames yadda yadda yadda
-		cout << "ERROR: Invalid filename for recompression: " << ws2s(sName) << ". Only files in the original residmap.dat can be compressed." << endl;
-		exit(1);
+		//cout << "ERROR: Invalid filename for recompression: " << ws2s(sName) << ". Only files in the original residmap.dat can be compressed." << endl;
+		return 0;
 	}
 	return g_repakMappings[sName];
 }
@@ -74,7 +76,7 @@ wstring stolower( const wstring s )
   return result;
 }
 
-//Function from Allan for getting a hash from a filename
+//Function from Allan for getting a hash from a filename NOTE: Don't use directly! Use hash() instead
 u32 LIHash( const wchar_t *pCaseInsensitiveStr )
 {
 	u32 hash = 0xABABABAB;
@@ -88,17 +90,16 @@ u32 LIHash( const wchar_t *pCaseInsensitiveStr )
 	return hash;
 }
 
-//Have to do some converting to get from std::wstring to wchar_t*. TODO: Native UTF-16 support or such?
+//Have to do some converting to get from std::wstring to wchar_t*
 u32 hash(wstring sFilename)
 {
 	//Convert to lowercase first
 	return LIHash(stolower(sFilename).c_str());
 }
 
-
-//TODO: Severe problem if unknown ID and this isn't read first!!!
-bool residMapToXML(const wchar_t* cFilename)
-{	
+//Read in mappings from a residmap.dat file
+bool parseResidMap(const wchar_t* cFilename)
+{
 	//Read in the mappings directly from residmap.dat
 	FILE* fp = _wfopen(cFilename, TEXT("rb"));
 	if(fp == NULL)
@@ -132,7 +133,7 @@ bool residMapToXML(const wchar_t* cFilename)
 		mIDMappings[mh.resId] = mh.strId;
 	}
 	
-	//Now for wstring table header
+	//Now for string table header
 	StringTableHeader sth;
 	fseek(fp, rmh.stringTableBytes.offset, SEEK_SET);
 	if(fread((void*)&sth, 1, sizeof(StringTableHeader), fp) != sizeof(StringTableHeader))
@@ -142,7 +143,7 @@ bool residMapToXML(const wchar_t* cFilename)
 		return false;
 	}
 	
-	//Allocate memory for this many wstring table & pointer entries
+	//Allocate memory for this many string table & pointer entries
 	vector<StringTableEntry> vStringTableList;
 	vector<StringPointerEntry> vStringPointerList;
 	vector<wchar_t> vStringList;
@@ -150,7 +151,7 @@ bool residMapToXML(const wchar_t* cFilename)
 	vStringPointerList.reserve(sth.numPointers);
 	vStringList.reserve((sizeof(wchar_t) * sth.numStrings)*256);
 	
-	//Read in wstring table entries
+	//Read in string table entries
 	for(int i = 0; i < sth.numStrings; i++)
 	{
 		StringTableEntry ste;
@@ -164,7 +165,7 @@ bool residMapToXML(const wchar_t* cFilename)
 		vStringTableList[i] = ste;
 	}
 	
-	//and wstring table pointers
+	//and string table pointers
 	for(int i = 0; i < sth.numPointers; i++)
 	{
 		StringPointerEntry spe;
@@ -201,22 +202,65 @@ bool residMapToXML(const wchar_t* cFilename)
 		g_pakMappings[finalNum] = s;
 	}
 	
+	return true;
+}
+
+//TODO: Severe problem if unknown ID and this isn't read first. Write small residmap.dat files to beginnings of pakfiles
+bool residMapToXML(const wchar_t* cFilename)
+{	
+	//Pull our mappings out of this file
+	if(!parseResidMap(cFilename))
+		return false;
+	
 	//Now save this out to XML
 	wstring sFilename = cFilename;
 	sFilename += TEXT(".xml");
 	XMLDocument* doc = new XMLDocument;
-	//TODO Merge with preexisting XML
-	XMLElement* root = doc->NewElement("mappings");	//Create the root element
+	int iErr = doc->LoadFile(ws2s(sFilename).c_str());
+	XMLElement* root;
+	map<u32,wstring> mCurXMLMappings;
+	if(iErr != XML_NO_ERROR)
+	{
+		// residmap.xml isn't here or is malformed; overwrite
+		delete doc;
+		doc = new XMLDocument;
+		root = doc->NewElement("mappings");	//Create the root element
+		doc->InsertFirstChild(root);
+	}
+	else
+	{
+		root = doc->RootElement();	//Get the root element
+		//Parse all elements in the XML and populate our map
+		for(XMLElement* elem = root->FirstChildElement(); elem != NULL; elem = elem->NextSiblingElement())
+		{
+			u32 id = 0;
+			elem->QueryUnsignedAttribute("id", &id);
+			if(id != 0)
+				mCurXMLMappings[id] = s2ws(elem->Attribute("filename"));
+		}
+	}
+	//Merge with preexisting XML
 	for(map<u32, wstring>::iterator i = g_pakMappings.begin(); i != g_pakMappings.end(); i++)
 	{
+		if(mCurXMLMappings.count(i->first))
+		{
+			if(mCurXMLMappings[i->first] != i->second)
+			{
+				cout << "Error: Conflict in IDs in residMapToXML(). Abort." << endl;
+				delete doc;
+				return false;
+			}
+			continue;
+		}
 		XMLElement* elem = doc->NewElement("mapping");
 		elem->SetAttribute("id", i->first);
 		elem->SetAttribute("filename", ws2s(i->second).c_str());
 		root->InsertEndChild(elem);
 	}
-	doc->InsertFirstChild(root);
-	doc->SaveFile(ws2s(sFilename).c_str());
 	
+	//Done
+	doc->SaveFile(ws2s(sFilename).c_str());
+	delete doc;
 	return true;
 }
 

@@ -2,7 +2,6 @@
 
 ttvfs::VFSHelper vfs;
 
-extern list<wstring> g_lThreadedResources;	//Declared in threadCompress.cpp, used for multi-threaded compression
 extern bool g_bProgressOverwrite;
 extern unsigned int g_iNumThreads;
 extern int g_iCompressAmount;
@@ -55,6 +54,107 @@ void parseCmdLine(int argc, char** argv)
 	}
 }
 
+void createMiniResidMap(map<u32,wstring> *mappings)
+{
+	//Fill in the residmap data
+	list<char> lUTFData;
+	list<MappingHeader> lMappings;
+	list<StringTableEntry> lStringTable;
+	list<StringPointerEntry> lStringPointers;
+	for(map<u32,wstring>::iterator i = mappings->begin(); i != mappings->end(); i++) 
+	{
+		int id = i->first;
+		const char* cName = ws2s(i->second).c_str();
+		//Make mapping header that maps this resource ID to the string ID
+		MappingHeader mh;
+		mh.resId = id;
+		mh.strId = lStringTable.size();
+		lMappings.push_back(mh);
+		//Make StringTableEntry that maps this string ID to a string data pointer
+		StringTableEntry ste;
+		ste.pointerIndex = lStringPointers.size();
+		ste.pointerCount = 1;
+		lStringTable.push_back(ste);
+		//Make the StringPointerEntry that maps this pointer to a location in the string data
+		StringPointerEntry spe;
+		spe.languageId = LANGID_ENGLISH;
+		spe.offset = lUTFData.size();
+		lStringPointers.push_back(spe);
+		//Add this string to our string list
+		unsigned int iStrLen = strlen(cName)+1;	//+1 so we can keep the terminating \0 character
+		for(unsigned int i = 0; i < iStrLen; i++)
+			lUTFData.push_back(cName[i]);			//Copy data over
+	}
+		
+	//Write everything to a pakHelper virtual "file"	
+	pakHelper pH;
+	pH.bCompressed = false;
+	pH.dataSz = sizeof(ResidMapHeader) + 
+				sizeof(MappingHeader) * lMappings.size() +
+				sizeof(StringTableHeader) +
+				sizeof(StringTableEntry) * lStringTable.size() +
+				sizeof(StringPointerEntry) * lStringPointers.size() +
+				lUTFData.size();
+	pH.data = (uint8_t*)malloc(pH.dataSz);
+	
+	//Write out our ResidMapHeader
+	ResidMapHeader rmh;
+	size_t curOffset = sizeof(ResidMapHeader);
+	rmh.maps.count = lMappings.size();
+	rmh.maps.offset = curOffset;
+	curOffset += sizeof(MappingHeader) * lMappings.size();
+	//The count for this is the number of bytes for all of it
+	rmh.stringTableBytes.count = sizeof(StringTableHeader) + sizeof(StringTableEntry) * lStringTable.size() + lUTFData.size();
+	rmh.stringTableBytes.offset = curOffset;
+	
+	curOffset = 0;	//Use this from now on to keep track of where we're writing
+	memcpy(&pH.data[curOffset], (uint8_t*)&rmh, sizeof(ResidMapHeader));
+	curOffset += sizeof(ResidMapHeader);
+	//fwrite(&rmh, 1, sizeof(ResidMapHeader), f);
+	
+	//Write out our MappingHeaders
+	for(list<MappingHeader>::iterator i = lMappings.begin(); i != lMappings.end(); i++)
+	{
+		//fwrite(&(*i), 1, sizeof(MappingHeader), f);
+		memcpy(&pH.data[curOffset], (uint8_t*)&(*i), sizeof(MappingHeader));
+		curOffset += sizeof(MappingHeader);
+	}
+		
+	//Write out our StringTableHeader
+	StringTableHeader sth;
+	sth.numStrings = lStringTable.size();
+	sth.numPointers = lStringPointers.size();
+	//fwrite(&sth, 1, sizeof(StringTableHeader), f);
+	memcpy(&pH.data[curOffset], (uint8_t*)&sth, sizeof(StringTableHeader));
+	curOffset += sizeof(StringTableHeader);
+	
+	//Write out our StringTableEntries
+	for(list<StringTableEntry>::iterator i = lStringTable.begin(); i != lStringTable.end(); i++)
+	{
+		//fwrite(&(*i), 1, sizeof(StringTableEntry), f);
+		memcpy(&pH.data[curOffset], (uint8_t*)&(*i), sizeof(StringTableEntry));
+		curOffset += sizeof(StringTableEntry);
+	}
+	
+	//Write out our StringPointerEntries
+	for(list<StringPointerEntry>::iterator i = lStringPointers.begin(); i != lStringPointers.end(); i++)
+	{
+		//fwrite(&(*i), 1, sizeof(StringPointerEntry), f);
+		memcpy(&pH.data[curOffset], (uint8_t*)&(*i), sizeof(StringPointerEntry));
+		curOffset += sizeof(StringPointerEntry);
+	}
+	
+	//Write out our string data
+	for(list<char>::iterator i = lUTFData.begin(); i != lUTFData.end(); i++)
+	{
+		//fwrite(&(*i), 1, 1, f);
+		memcpy(&pH.data[curOffset], (uint8_t*)&(*i), 1);
+		curOffset++;
+	}
+	
+	g_pakHelping[TEXT(RESIDMAP_NAME)] = pH;	//Done
+}
+
 //Main program entry point
 int main(int argc, char** argv)
 {
@@ -80,7 +180,8 @@ int main(int argc, char** argv)
 	{
 		if(argv[iArg][0] == '-')	//Skip over commandline switches
 			continue;
-			
+		
+		list<wstring> lFilenames;	//Files in this pakfile that we're going to compress
 		wstring sArg = s2ws(argv[iArg]);
 		size_t pos = sArg.find(TEXT(".filelist.txt"));
 		if(pos != wstring::npos)
@@ -96,6 +197,7 @@ int main(int argc, char** argv)
 			cout << "Cannot open " << ws2s(sInfilename) << " to pack " << ws2s(sArg) << " Skipping..." << endl;
 			continue;
 		}
+		
 		while(!infile.fail() && !infile.eof())	//Pull in all the lines out of this file
 		{
 			string ss;
@@ -103,17 +205,39 @@ int main(int argc, char** argv)
 			wstring s = s2ws(ttvfs::FixSlashes(ss));
 			if(!s.length() || s == TEXT(""))
 				continue;	//Ignore blank lines
-			g_lThreadedResources.push_back(s);	//Add this to our list of files to package
+			lFilenames.push_back(s);	//Add this to our list of files to package
 		}
-		list<wstring> lFilenames = g_lThreadedResources;	//Copy this to use later
 		
-		threadedCompress();	//Compress everything
+		threadedCompress(lFilenames);	//Compress everything
 		
 		//Ok, now we have all the compressed files in RAM. Stick them in the .pak file and call it a day
 		if(g_pakHelping.size() != lFilenames.size())	//These should be the same
 		{
 			cout << "Error: size of file list: " << g_pakHelping.size() << " differs from size of files to pak: " << lFilenames.size() << endl;
 			continue;
+		}
+		
+		//Create a mini residmap.dat file and stick it into g_pakHelping to compress if we need to
+		//See what IDs are known and unknown
+		map<wstring, u32> mResIDs;
+		map<u32, wstring> mUnknownIDs;
+		for(list<wstring>::iterator i = lFilenames.begin(); i != lFilenames.end(); i++)
+		{
+			u32 id = getResID(*i);
+			if(!id)	//The ID mapping is unknown
+			{
+				id = hash(*i);
+				mUnknownIDs[id] = *i;
+			}
+			mResIDs[*i] = id;
+		}
+		
+		//If there are any unknown mappings, make our residmap.dat
+		if(mUnknownIDs.size())
+		{
+			lFilenames.push_front(TEXT(RESIDMAP_NAME));	//Add this to the front, so it'll decompress first so we'll have all the filenames
+			mResIDs[TEXT(RESIDMAP_NAME)] = RESIDMAP_ID;	//Add this to the IDs we'll compress
+			createMiniResidMap(&mUnknownIDs);	//And create the file in memory
 		}
 		
 		//Open our output pakfile for writing
@@ -139,7 +263,7 @@ int main(int argc, char** argv)
 		for(list<wstring>::iterator i = lFilenames.begin(); i != lFilenames.end(); i++)
 		{
 			resourceHeader rH;
-			rH.id = getResID(*i);
+			rH.id = mResIDs[*i];
 			rH.flags = 0x01;
 			
 			rH.offset = offsetPos;	//Offset
