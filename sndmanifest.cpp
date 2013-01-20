@@ -30,6 +30,7 @@ void initSoundManifest()
 	}
 }
 
+//Strip numbers from a take to get the sound ID
 wstring getNameFromSoundString(wstring sSoundString)
 {
 	size_t end = sSoundString.rfind(TEXT(".flac"));
@@ -108,7 +109,12 @@ bool sndManifestToXML(const wchar_t* cFilename)
 			wstring sFilename = getName(vSoundTakes[j].resId);
 			//Set the sound resource's ID to be correct
 			if(j == i->firstTakeIdx)
-				elem->SetAttribute("id", ws2s(getNameFromSoundString(sFilename)).c_str());
+			{
+				if(i->numTakes == 1)
+					elem->SetAttribute("id", ws2s(sFilename).c_str());
+				else
+					elem->SetAttribute("id", ws2s(getNameFromSoundString(sFilename)).c_str());
+			}
 			//else if(i->numTakes == 1)
 			//	elem->SetAttribute("filename", sFilename.c_str());
 			sFilename += TEXT(".ogg");

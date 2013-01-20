@@ -204,7 +204,8 @@ int main(int argc, char** argv)
 	//Now we have all the .pak files we need extracted. Copy mod files over
 	copyTempFiles();
 	
-	//And recompress
+	//And recompress 
+	//TODO: Stick all unknown files in resource.pak
 	for(int iPak = 0; iPak < 3; iPak++)
 	{
 		if(!bPack[iPak])
