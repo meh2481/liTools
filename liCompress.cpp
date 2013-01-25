@@ -227,7 +227,7 @@ int main(int argc, char** argv)
 			if(!id)	//The ID mapping is unknown
 			{
 				id = hash(*i);
-				mUnknownIDs[id] = *i;
+				mUnknownIDs[id] = toBackslashes(*i);	//Make sure we use backslashes inside a residmap.dat
 			}
 			mResIDs[*i] = id;
 		}

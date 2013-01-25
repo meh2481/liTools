@@ -1,7 +1,12 @@
-Support for new IDs and filenames in pakfiles; small residmap.dat and sndmanifest.dat and such in each mod
-Split itemmanifest.dat.xml stuff into separate files
+Support for new IDs and filenames in pakfiles:
+	-- small sndmanifest.dat in each mod where there are new sound files?
+	-- modManage support for these new files - spec for what files go in what pakfiles?
+Split itemmanifest.dat.xml stuff into separate files -- think of good way to merge new stuff in
 Add security features to prevent any old executable or potential virus from being inside a .pak file
 Add security (and bug-prevention) features to prevent any file outside of vdata/ or data/ from being compressed/decompressed
+fontmanifest decompression/compression
+font file decompression/compression
+myPicturesImage.dat, smokeImage.dat, & fluidPalettes.dat compression/decompression
 
 XML specification instead of .filelist.txt for mod creation?
 Work with puggsoy/others for GUI ease of use
@@ -15,3 +20,4 @@ Done
 * 1/1/13 * Full UTF-16 support
 * 1/2/13 * Minimize file I/O for speed
 * 1/2/13 * Fix random directory bug
+* 1/19/13 * Small residmap.dat in each mod where there are new files

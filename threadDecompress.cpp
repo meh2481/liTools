@@ -137,7 +137,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		else if(sFilename.find(TEXT("sndmanifest.dat")) != wstring::npos)
 		{
 			sndManifestToXML(sFilename.c_str());
-			unlink(ws2s(sFilename).c_str());
+			//unlink(ws2s(sFilename).c_str());
 		}
 		
 		//Convert itemmanifest.dat to XML
@@ -162,6 +162,19 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			s += TEXT(".ogg");
 			binaryToOgg(sFilename.c_str(), s.c_str());
 			unlink(ws2s(sFilename).c_str());	//Delete temporary .flac file
+		}
+		
+		//Convert vdata/fontmanifest.dat to XML
+		else if(sFilename.find(TEXT("fontmanifest.dat")) != wstring::npos)
+		{
+			fontManifestToXML(sFilename);
+			unlink(ws2s(sFilename).c_str());
+		}
+		
+		//Convert font files to XML
+		else if(sFilename.find(TEXT(".font.xml")) != wstring::npos)
+		{
+			fontToXML(sFilename);
 		}
 		
 		if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)

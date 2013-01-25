@@ -24,6 +24,8 @@ using namespace tinyxml2;
 using namespace std;
 #define i32 int32_t
 #define u32 uint32_t
+#define i16 int16_t
+#define u16 uint32_t
 #define f32	float
 #define MAX_NUM_THREADS 128
 #define RESIDMAP_ID		0xB7E44207
@@ -309,6 +311,91 @@ typedef struct
 	BinTuneDataFloat wobble;
 } jointRecord;
 
+//Mark VI Structures - reverse-engineered .dat files
+typedef struct
+{
+	BinHdrPtr pictureMetadata;
+	BinHdrPtr pictureBytes;
+} myPicturesHeader;
+
+typedef struct
+{
+	i32 width;
+	i32 height;
+	i32 offset;
+} myPicturesMetadata;
+
+typedef struct
+{
+	BinHdrPtr pictureMetadata;
+	BinHdrPtr pictureBytes;
+} smokeImageHeader;
+
+typedef struct
+{
+	u32 id;
+	i32 width;
+	i32 height;
+	i32 offset;
+} smokeImageMetadata;
+
+typedef struct
+{
+	BinHdrPtr pictureMetadata;
+	BinHdrPtr pictureBytes;
+} fluidPalettesHeader;
+
+typedef struct
+{
+	u32 id;
+	i32 offset;
+	i32 width; // height always equals to 1
+} fluidPalettesMetadata;
+
+//Mark VII Structures - font data types
+typedef struct 
+{
+	i32 numFonts;
+} fontManifestHeader;
+
+typedef struct
+{
+	u32 fontResId;
+	i32 firstTexDependsIdx;
+	i32 numTexDepends;
+} fontManifestRecord;
+
+typedef struct
+{
+	u32 texResId;
+} fontManifestTexture;
+
+typedef struct
+{
+	BinHdrPtr chars;
+	BinHdrPtr kerns;
+	i32 pointSize;
+	f32 extLeading;
+	f32 maxAscent;
+	f32 maxDescent;
+} fontResourceHeader;
+
+typedef struct
+{
+	i32 codepoint;
+	i32 texPageIdx;
+	i16 texX, texY;
+	i16 texW, texH;
+	f32 offsetX;
+	f32 offsetY;
+	f32 advance;
+} fontCharacterRecord;
+
+typedef struct
+{
+	i16 codepoints[2];
+	f32 kernAmount;
+} fontKerningRecord;
 
 //Structures for my use
 typedef struct
@@ -342,32 +429,45 @@ typedef struct
 } ThreadConvertHelper;
 
 //global functions
-int binaryToOgg( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert a game sound file to .ogg
-int oggToBinary( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert an .ogg file to the game's sound format
-takeRecord getOggData( const wchar_t* cFile );				//Grab the data from an OGG file to populate sndManifest.dat
+string ws2s(const wstring& s);								//For converting UTF-16 to UTF-8
+wstring s2ws(const string& s);								//For converting UTF-8 to UTF-16
 void threadedDecompress();									//Start threaded decompression
 void threadedCompress(list<wstring> resources);				//Compress resources with multiple threads
+//png.cpp functions
 bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size);
 bool convertFromPNG(const wchar_t* cFilename);				//Convert a PNG image to a game image file
+//wordPackDict.cpp functions
 bool wordPackToXML(const wchar_t* cFilename);				//Convert wordPackDict.dat to XML
 bool XMLToWordPack(const wchar_t* cFilename);				//Convert wordPackDict.dat.xml back to binary .dat form
+//sndmanifest.cpp functions
 bool sndManifestToXML(const wchar_t* cFilename);			//Convert sndManifest.dat to XML
 bool XMLToSndManifest(const wchar_t* cFilename);			//Convert sndManifest.dat.xml back to binary .dat form
 void initSoundManifest();									//Read in sndManifest.dat so that we can have the correct filenames for all sounds
 u32 getSoundId(wstring sSound);								//Get a sound ID from the filename
 wstring getSoundName(u32 soundResId);						//Get a sound filename from the sound ID
+//itemmanifest.cpp functions
 bool itemManifestToXML(const wchar_t* cFilename);			//Convert itemmanifest.dat to XML
 bool XMLToItemManifest(const wchar_t* cFilename);			//Convert itemmanifest.dat.xml back to binary .dat form
+//residmap.cpp functions
 void initResMap();											//Read in residmap.dat so that we can have the correct filenames for all resource files
 bool residMapToXML(const wchar_t* cFilename);				//Convert residmap.dat to XML
 bool XMLToResidMap(const wchar_t* cFilename);				//Convert residmap.dat.xml back to binary .dat form
 const wchar_t* getName(u32 resId);							//Get a resource filename from the resource ID
 u32 getResID(wstring sName);								//Get a resource ID from its filename
 u32 hash(wstring sFilename);								//Hash a filename to get an ID
-string ws2s(const wstring& s);								//For converting UTF-16 to UTF-8
-wstring s2ws(const string& s);								//For converting UTF-8 to UTF-16
+wstring toBackslashes(const wstring s);						//Convert forward slashes in a filename to backslashes
+//zpipe.cpp functions
 uint8_t* compress(zlibData* zIn);							//Compress via zlib
 uint8_t* decompress(const zlibData* zIn);					//Decompress via zlib
+//font.cpp functions
+bool fontManifestToXML(wstring sFilename);					//Convert vdata/fontmanifest.dat to XML
+bool XMLToFontManifest(wstring sFilename);					//Convert vdata/fontmanifest.dat.xml back to .dat form
+bool fontToXML(wstring sFilename);							//Convert font files (like data/fonts/TwCen.font.xml) to XML form
+bool XMLToFont(wstring sFilename);							//Convert font XML files back to original form
+//ogg.cpp functions
+int binaryToOgg( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert a game sound file to .ogg
+int oggToBinary( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert an .ogg file to the game's sound format
+takeRecord getOggData( const wchar_t* cFile );				//Grab the data from an OGG file to populate sndManifest.dat
 
 
 

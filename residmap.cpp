@@ -57,7 +57,7 @@ string ws2s(const wstring& s)
     return r;
 }
 
-//convert a wstring to lowercase. Also change forward slashes back to backslashes.
+//convert a string to lowercase. Also change forward slashes back to backslashes.
 wstring stolower( const wstring s )
 {
   wstring result = s;
@@ -69,6 +69,20 @@ wstring stolower( const wstring s )
 		c += L'a' - L'A';
 		result[i] = c;
 	}
+	if(c == L'/')
+		result[i] = L'\\';
+  }
+  
+  return result;
+}
+
+//Converts forward slashes to backslashes
+wstring toBackslashes(const wstring s)
+{
+  wstring result = s;
+  for(unsigned int i = 0; i < s.size(); i++)
+  {
+	wchar_t c = s[i];
 	if(c == L'/')
 		result[i] = L'\\';
   }
@@ -324,10 +338,11 @@ bool XMLToResidMap(const wchar_t* cFilename)
 		spe.languageId = LANGID_ENGLISH;
 		spe.offset = lUTFData.size();
 		lStringPointers.push_back(spe);
-		//Add this wstring to our wstring list
-		unsigned int iStrLen = strlen(cName)+1;	//+1 so we can keep the terminating \0 character
+		//Add this string to our string list
+		const char* cFile = ws2s(toBackslashes(s2ws(cName))).c_str();
+		unsigned int iStrLen = strlen(cFile)+1;	//+1 so we can keep the terminating \0 character
 		for(unsigned int i = 0; i < iStrLen; i++)
-			lUTFData.push_back(cName[i]);			//Copy data over
+			lUTFData.push_back(cFile[i]);			//Copy data over
 	}
 	delete doc;	//Done reading XML
 	

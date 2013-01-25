@@ -156,7 +156,7 @@ Version 0.3.5:
 * Optimized modManage program to merge mods within seconds
 * residmap.dat now parsed to/from XML
 * Images now properly converted to/from premultiplied alpha
-* Initial Unicode support which is still a bit buggy
+* Initial Unicode support
 
 
 Building
@@ -165,7 +165,7 @@ Build with:
 
     make
 
-These utilities depend on the following third-party libraries, which you'll need installed if you wish to compile:
+These utilities depend on the following third-party libraries, which you'll need to link in:
 libogg - http://xiph.org/downloads/
 libpng - http://www.libpng.org/pub/png/libpng.html
 tinyxml2 - http://www.grinninglizard.com/tinyxml2/index.html
@@ -173,7 +173,7 @@ ttvfs - https://github.com/fgenesis/ttvfs
 libvorbis - http://xiph.org/downloads/
 zlib - http://www.zlib.net/
 
-Apologies for hastily-thrown-together code that isn't commented much at all.
+Apologies for hastily-thrown-together code that isn't commented much at all. It should be fairly straightforward and readable, but no guarantees.
 
 
 Utilities ("util" subdirectory)

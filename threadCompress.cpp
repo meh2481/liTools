@@ -100,8 +100,8 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		}
 		else if(tch.find(TEXT("sndmanifest.dat")) != wstring::npos)
 		{
-			XMLToSndManifest(tch.c_str());
-			sDeleteWhenDone = tch;
+			//XMLToSndManifest(tch.c_str());
+			//sDeleteWhenDone = tch;
 		}
 		else if(tch.find(TEXT("itemmanifest.dat")) != wstring::npos)
 		{
@@ -113,6 +113,16 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			XMLToResidMap(tch.c_str());
 			sDeleteWhenDone = tch;
 		}
+		else if(tch.find(TEXT("fontmanifest.dat")) != wstring::npos)
+		{
+			XMLToFontManifest(tch);
+			sDeleteWhenDone = tch;
+		}
+		else if(tch.find(TEXT(".font.xml")) != wstring::npos)
+		{
+			XMLToFont(tch);
+			//TODO sDeleteWhenDone = sFileToPak = tch + TEXT(".temp");
+		}	
 		
 		//Pull in the data from the file
 		ph.dataSz = getFileSize(sFileToPak.c_str());
@@ -130,31 +140,22 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		}
 		fclose(f);
 		
-		//if(ph.bCompressed && ph.dataSz <= 256)	// Tiny files don't seem to compress right
-		//{
-		//	ph.bCompressed = false;
-		//}
-		//if(ph.bCompressed)					//Compress if we should
-		//{
-			zlibData zdt;
-			zdt.data = ph.data;
-			zdt.compressedSize = zdt.decompressedSize = ph.dataSz;
-			uint8_t* temp = compress(&zdt);
-			if(temp == NULL)
-			{
-				ph.bCompressed = false;
-				//cout << "Compression error: " << ws2s(sFileToPak) << endl;
-				//exit(1);
-			}
-			else
-			{
-				ph.cH.uncompressedSizeBytes = zdt.decompressedSize;	//Hang onto these for compressed header stuff
-				ph.cH.compressedSizeBytes = zdt.compressedSize;
-				free(zdt.data);	//Free this uncompressed memory
-				ph.data = temp;	//Hang onto the compressed memory
-				ph.dataSz = zdt.compressedSize;	//And the compressed memory size
-			}
-		//}
+		zlibData zdt;
+		zdt.data = ph.data;
+		zdt.compressedSize = zdt.decompressedSize = ph.dataSz;
+		uint8_t* temp = compress(&zdt);
+		if(temp == NULL)
+		{
+			ph.bCompressed = false;
+		}
+		else
+		{
+			ph.cH.uncompressedSizeBytes = zdt.decompressedSize;	//Hang onto these for compressed header stuff
+			ph.cH.compressedSizeBytes = zdt.compressedSize;
+			free(zdt.data);	//Free this uncompressed memory
+			ph.data = temp;	//Hang onto the compressed memory
+			ph.dataSz = zdt.compressedSize;	//And the compressed memory size
+		}
 		WaitForSingleObject(ghOutMutex, INFINITE);
 		g_pakHelping[tch] = ph;	//Save this
 		ReleaseMutex(ghOutMutex);
