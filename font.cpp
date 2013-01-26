@@ -239,7 +239,13 @@ bool fontToXML(wstring sFilename)
 	
 	//Now output this to XML
 	XMLDocument* doc = new XMLDocument;
+	//doc->SetBOM(true);
+	//doc->Parse("<\?xml version=\"1.0\" encoding=\"UTF-8\"\?>");
 	XMLElement* root = doc->NewElement("font");
+	root->SetAttribute("pointsize", frh.pointSize);
+	root->SetAttribute("extleading", frh.extLeading);
+	root->SetAttribute("maxascent", frh.maxAscent);
+	root->SetAttribute("maxdescent", frh.maxDescent);
 	
 	//Write out our font characters
 	for(list<fontCharacterRecord>::iterator i = lFontChars.begin(); i != lFontChars.end(); i++)
@@ -267,19 +273,156 @@ bool fontToXML(wstring sFilename)
 		root->InsertEndChild(elem);
 	}
 	
-	doc->InsertFirstChild(root);
+	doc->InsertEndChild(root);
 	wstring sXMLFilename = sFilename;
-	sXMLFilename += TEXT(".temp.xml"); //TODO Overwrite old file
+	//sXMLFilename += TEXT(".temp.xml"); //TODO Overwrite old file
 	doc->SaveFile(ws2s(sXMLFilename).c_str());
 	
 	delete doc;
 	return true;
-	return true;
+}
+
+//ofstream utffile("utftest.txt");
+i32 getFontCodepoint(const char* cText)
+{
+	i32 codepoint = 0;
+	if(cText == NULL || cText[0] == '\0')
+	{
+		return codepoint;
+	}
+	unsigned char c = cText[0];
+	if(c >> 7 == 0)	//Case 1: One byte
+	{
+		codepoint = c;
+		//utffile << "Case 1: codepoint " << codepoint << " strlen: " << strlen(cText) << endl;
+	}
+	else if(c >> 5 == 0x6)	//Case 2: Two bytes
+	{
+		codepoint = (c & 0x1F) << 6;
+		c = cText[1];
+		codepoint |= c & 0x3F;
+		//utffile << "Case 2: codepoint " << codepoint << endl;
+	}
+	else if(c >> 4 == 0xE)	//Case 3: Three bytes
+	{
+		codepoint = (c & 0xF) << 12;
+		c = cText[1];
+		codepoint |= (c & 0x3F) << 6;
+		c = cText[2];
+		codepoint |= c & 0x3F;
+		//utffile << "Case 3: codepoint " << codepoint << endl;
+	}
+	
+	return codepoint;
 }
 
 bool XMLToFont(wstring sFilename)
 {
-	//TODO create .temp file
+	XMLDocument* doc = new XMLDocument;
+	//doc->SetBOM(true);
+	int iErr = doc->LoadFile(ws2s(sFilename).c_str());
+	if(iErr != XML_NO_ERROR)
+	{
+		cout << "Error parsing XML file " << ws2s(sFilename) << ": Error " << iErr << endl;
+		delete doc;
+		return false;
+	}
+	
+	//Grab root element
+	XMLElement* root = doc->RootElement();
+	if(root == NULL)
+	{
+		cout << "Error: Root element NULL in XML file " << ws2s(sFilename) << endl;
+		delete doc;
+		return false;
+	}
+	
+	//Read in fontResourceHeader stuff
+	fontResourceHeader frh;
+	root->QueryIntAttribute("pointsize", &frh.pointSize);
+	root->QueryFloatAttribute("extleading", &frh.extLeading);
+	root->QueryFloatAttribute("maxascent", &frh.maxAscent);
+	root->QueryFloatAttribute("maxdescent", &frh.maxDescent);
+	
+	//Read in XML character and kerning records
+	list<fontCharacterRecord> lCharRecords;
+	list<fontKerningRecord> lKerningRecords;
+	for(XMLElement* elem = root->FirstChildElement(); elem != NULL; elem = elem->NextSiblingElement())
+	{
+		const char* cName = elem->Name();
+		if(cName == NULL) continue;
+		string sName = cName;
+		if(sName == "char")	//Character
+		{
+			fontCharacterRecord fcr;
+			fcr.texPageIdx = 0;	//Set default values because we're using QueryXAttribute() stuff
+			fcr.offsetX = 0.0;
+			fcr.offsetY = 0.0;
+			fcr.advance = 0.0;
+			
+			fcr.codepoint = getFontCodepoint(elem->Attribute("value"));
+			elem->QueryIntAttribute("texpage", &fcr.texPageIdx);
+			int iTemp = 0;
+			elem->QueryIntAttribute("texx", &iTemp);
+			fcr.texX = iTemp;
+			iTemp = 0;
+			elem->QueryIntAttribute("texy", &iTemp);
+			fcr.texY = iTemp;
+			iTemp = 0;
+			elem->QueryIntAttribute("texw", &iTemp);
+			fcr.texW = iTemp;
+			iTemp = 0;
+			elem->QueryIntAttribute("texh", &iTemp);
+			fcr.texH = iTemp;
+			iTemp = 0;
+			elem->QueryFloatAttribute("offsetx", &fcr.offsetX);
+			elem->QueryFloatAttribute("offsety", &fcr.offsetY);
+			elem->QueryFloatAttribute("advance", &fcr.advance);
+			
+			lCharRecords.push_back(fcr);
+		}
+		else if(sName == "kerning")	//Kerning value
+		{
+			fontKerningRecord fkr;
+			fkr.kernAmount = 0.0;
+			
+			fkr.codepoints[0] = getFontCodepoint(elem->Attribute("char1"));
+			fkr.codepoints[1] = getFontCodepoint(elem->Attribute("char2"));
+			elem->QueryFloatAttribute("amount", &fkr.kernAmount);
+			
+			lKerningRecords.push_back(fkr);
+		}
+	}
+	
+	delete doc;	//Done parsing
+	
+	//Open our output file
+	wstring sOut = sFilename;
+	sOut += TEXT(".temp");
+	FILE* f = _wfopen(sOut.c_str(), TEXT("wb"));
+	if(f == NULL)
+	{
+		cout << "Error: Unable to open output file " << ws2s(sOut) << endl;
+		return false;
+	}
+	
+	//Write out our fontResourceHeader
+	frh.chars.count = lCharRecords.size();
+	frh.chars.offset = sizeof(fontResourceHeader);
+	frh.kerns.count = lKerningRecords.size();
+	frh.kerns.offset = frh.chars.offset + sizeof(fontCharacterRecord) * frh.chars.count;
+	fwrite(&frh, 1, sizeof(fontResourceHeader), f);
+	
+	//Write out our font characters
+	for(list<fontCharacterRecord>::iterator i = lCharRecords.begin(); i != lCharRecords.end(); i++)
+		fwrite(&(*i), 1, sizeof(fontCharacterRecord), f);
+	
+	//Write out our font kernings
+	for(list<fontKerningRecord>::iterator i = lKerningRecords.begin(); i != lKerningRecords.end(); i++)
+		fwrite(&(*i), 1, sizeof(fontKerningRecord), f);
+
+	//Done
+	fclose(f);
 	return true;
 }
 

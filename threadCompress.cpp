@@ -121,7 +121,8 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		else if(tch.find(TEXT(".font.xml")) != wstring::npos)
 		{
 			XMLToFont(tch);
-			//TODO sDeleteWhenDone = sFileToPak = tch + TEXT(".temp");
+			sFileToPak += TEXT(".temp");
+			sDeleteWhenDone = sFileToPak;
 		}	
 		
 		//Pull in the data from the file
