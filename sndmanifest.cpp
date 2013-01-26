@@ -37,6 +37,9 @@ wstring getNameFromSoundString(wstring sSoundString)
 	size_t start = sSoundString.rfind('.', end-1);
 	if(start == wstring::npos || end == wstring::npos)	//Not any numbers heres
 		return sSoundString;
+	if(end-start > 3)
+		return sSoundString;	//Some strings are formatted to have periods in the middle 
+								//*cough* "data/music/SugarPlumps_1.5_SomethingToTellYou.flac" *cough*
 	sSoundString.erase(start, end-start);	//Erase the numbers in the middle
 	return sSoundString;	//Done
 }
@@ -110,9 +113,9 @@ bool sndManifestToXML(const wchar_t* cFilename)
 			//Set the sound resource's ID to be correct
 			if(j == i->firstTakeIdx)
 			{
-				if(i->numTakes == 1)
-					elem->SetAttribute("id", ws2s(sFilename).c_str());
-				else
+				//wstring except = TEXT("data/music/SugarPlumps_1.5_SomethingToTellYou.flac");
+				//if(sFilename == except) ;
+				//else
 					elem->SetAttribute("id", ws2s(getNameFromSoundString(sFilename)).c_str());
 			}
 			//else if(i->numTakes == 1)

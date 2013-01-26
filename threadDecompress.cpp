@@ -137,7 +137,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		else if(sFilename.find(TEXT("sndmanifest.dat")) != wstring::npos)
 		{
 			sndManifestToXML(sFilename.c_str());
-			//unlink(ws2s(sFilename).c_str());
+			unlink(ws2s(sFilename).c_str());
 		}
 		
 		//Convert itemmanifest.dat to XML
