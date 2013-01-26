@@ -82,7 +82,7 @@ Note that you don't have to worry about all the Vorbis data; you could also just
 
 And run recalcSoundManifest.exe (before recompressing), which will repopulate the rest of the XML.
 
-Please note that all this DOES NOT mean that you can add your own sounds to the game. You can only modify existing resources; you cannot add new ones, as there is currently no way to get a resource ID from a filename. If you attempt to add a new .ogg file as a take somewhere, you'll end up with an undefined resource ID, which will likely cause a crash.
+Please note that all this DOES NOT mean that you can add your own sounds to the game. New sound resources are not supported yet. If you attempt to add a new .ogg file as a take somewhere, you'll end up with an undefined sound ID, which will likely cause a crash.
 
 Mod Creation
 ============
