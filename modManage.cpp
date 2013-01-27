@@ -205,7 +205,7 @@ int main(int argc, char** argv)
 	copyTempFiles();
 	
 	//And recompress 
-	//TODO: Stick all unknown files in resource.pak
+	//TODO: Stick all unknown files in embed.pak or something
 	for(int iPak = 0; iPak < 3; iPak++)
 	{
 		if(!bPack[iPak])

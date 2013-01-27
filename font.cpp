@@ -316,6 +316,18 @@ i32 getFontCodepoint(const char* cText)
 	return codepoint;
 }
 
+bool compare_character(fontCharacterRecord first, fontCharacterRecord second)
+{
+	return (first.codepoint < second.codepoint);
+}
+
+bool compare_kerning(fontKerningRecord first, fontKerningRecord second)
+{
+	if(first.codepoints[0] == second.codepoints[0])
+		return (first.codepoints[1] < second.codepoints[1]);
+	return (first.codepoints[0] < second.codepoints[0]);
+}
+
 bool XMLToFont(wstring sFilename)
 {
 	XMLDocument* doc = new XMLDocument;
@@ -393,6 +405,10 @@ bool XMLToFont(wstring sFilename)
 			lKerningRecords.push_back(fkr);
 		}
 	}
+	
+	//Sort our lists
+	lCharRecords.sort(compare_character);
+	lKerningRecords.sort(compare_kerning);
 	
 	delete doc;	//Done parsing
 	

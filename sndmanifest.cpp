@@ -239,7 +239,7 @@ bool XMLToSndManifest(const wchar_t* cFilename)
 				return false;
 			}
 			wstring sName = s2ws(cName);
-			sName.erase(sName.size()-4);	//Delete the ".ogg" ending from the wstring
+			sName.erase(sName.size()-4);	//Delete the ".ogg" ending from the string
 			tr.resId = getResID(sName);		//Get the resource ID from this filename
 			vSoundTakes.push_back(tr);
 			elem2 = elem2->NextSiblingElement("take");

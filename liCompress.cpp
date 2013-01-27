@@ -223,7 +223,7 @@ int main(int argc, char** argv)
 		map<u32, wstring> mUnknownIDs;
 		for(list<wstring>::iterator i = lFilenames.begin(); i != lFilenames.end(); i++)
 		{
-			u32 id = getResID(*i);
+			u32 id = getKnownResID(*i);
 			if(!id)	//The ID mapping is unknown
 			{
 				id = hash(*i);

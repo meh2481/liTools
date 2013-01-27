@@ -4,7 +4,7 @@ Tools for compression and decompression of Little Inferno .pak files, and routin
 
 Created by Daxar (aka MOM4Evr) from the infernofans forum -- http://infernofans.com/user/13
 
-RUN ALL THESE PROGRAMS OFF A BACKUP COPY OF YOUR GAME, NOT THE ORIGINAL VERSION! You have been warned.
+RUN ALL THESE PROGRAMS OFF A BACKUP COPY OF YOUR GAME, NOT THE ORIGINAL VERSION! You have been warned. It's also a good idea to have a backup copy of your embed.pak, frontend.pak, and resource.pak just in case something goes terribly horribly wrong, since errors tend to multiply rather than vanish as you compress/decompress pakfiles.
 
 Also please note that it's best to have the the input files (Such as the Little Inferno executable, or the pak files you want to extract) in the same directory as these tools when running them. It'll save you a lot of hassle if you're using the command line, and it'll alleviate potential working directory issues if you're clicking and dragging files into executables.
 

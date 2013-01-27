@@ -6,8 +6,8 @@
 map<wstring, u32> g_repakMappings;
 map<u32, wstring> g_pakMappings;
 
-//Get a resource ID from a filename
-u32 getResID(wstring sName)
+//Get a resource ID from the lookup table
+u32 getKnownResID(wstring sName)
 {
 	if(!g_repakMappings.count(sName))
 	{
@@ -15,6 +15,14 @@ u32 getResID(wstring sName)
 		//cout << "ERROR: Invalid filename for recompression: " << ws2s(sName) << ". Only files in the original residmap.dat can be compressed." << endl;
 		return 0;
 	}
+	return g_repakMappings[sName];
+}
+
+//Get a resource ID from the lookup table, or by hashing if unknown
+u32 getResID(wstring sName)
+{
+	if(!g_repakMappings.count(sName))
+		return hash(sName);
 	return g_repakMappings[sName];
 }
 
