@@ -161,7 +161,7 @@ const soundMap g_soundMap[NUM_MAPPINGS] = {{1493394940u, "data/animations/Intro/
 {3814536959u, "data/music/MissNancyWelcomesYou.flac"},
 {2557329964u, "data/music/ProductivityTango_loop.flac"},
 {3791452086u, "data/music/ReportingFromTheWeatherBalloon_loop.flac"},
-{1730772514u, "data/music/SugarPlumps_1.flac"},
+{1730772514u, "data/music/SugarPlumps_1.5_SomethingToTellYou.flac"},
 {313357266u, "data/music/SugarPlumps_1_BestFriends.flac"},
 {3306171218u, "data/music/SugarPlumps_2_JustLikeYou.flac"},
 {1151899540u, "data/music/SugarPlumps_3_UpUpTheChimney.flac"},
