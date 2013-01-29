@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 			fseek(f, i->offset, SEEK_SET);
 			//dh.sFilename = cName;
 			dh.id = i->id;
-			if(i->flags == FLAG_ZLIBCOMPRESSED)
+			if(i->flags & FLAG_ZLIBCOMPRESSED)
 			{
 				compressedHeader cH;
 				if(fread((void*)&cH, 1, sizeof(compressedHeader), f) != sizeof(compressedHeader))
@@ -139,7 +139,7 @@ int main(int argc, char** argv)
 				dh.data.decompressedSize = cH.uncompressedSizeBytes;
 				dh.bCompressed = true;
 			}
-			else if(i->flags == FLAG_NOCOMPRESSION)
+			else// if(i->flags & FLAG_ZLIBCOMPRESSED == FLAG_NOCOMPRESSION)	//Uncompressed
 			{
 				uint8_t* buf = (uint8_t*)malloc(i->size);
 			  
@@ -154,11 +154,11 @@ int main(int argc, char** argv)
 				dh.data.compressedSize = dh.data.decompressedSize = i->size;
 				dh.bCompressed = false;
 			}
-			else
+			/*else
 			{
 				cout << "Invalid resource flag " << i->flags << ". Skipping resource " << i->id << endl;
 				continue;
-			}
+			}*/
 			
 			g_lThreadedResources.push_back(dh);
 			

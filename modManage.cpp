@@ -6,6 +6,7 @@
 
 map<u32, virtualFile> g_mOrig;
 map<u32, virtualFile> g_mMods;
+list<resourceHeader> g_lResourceHeaders[3];
 ofstream oWarnings("mergeresults.txt");
 
 //Functions from Stack Overflow peoples
@@ -53,6 +54,7 @@ void splitOutFiles(FILE* f, list<resourceHeader>* lRH, bool bMod)
 		{
 			if(g_mMods.count(i->id))	//This was here already
 			{
+				//TODO: Merge residmap.dat files together
 				oWarnings << "Warning: Conflict with mod resource " << i->id << ". Overwriting..." << endl;
 				free(g_mMods[i->id].data);	//Clean up original memory
 			}
@@ -78,6 +80,15 @@ void copyTempFiles()
 		{
 			oWarnings << "Note: Mod overwriting original resource: " << i->first << endl;
 			free(g_mOrig[i->first].data);	//Clean up this memory
+		}
+		else	//We're copying in a new file. Stick it in embed.pak for now. TODO: Some sort of selection
+		{
+			resourceHeader rH;
+			rH.id = i->first;	//Only need the ID, the rest will be filled in later
+			if(rH.id != RESIDMAP_ID)
+				//g_lResourceHeaders[1].push_front(rH);	//TODO: pakfile selection
+			//else
+				g_lResourceHeaders[1].push_back(rH);
 		}
 		g_mOrig[i->first] = i->second;
 	}
@@ -138,7 +149,6 @@ int main(int argc, char** argv)
 	}
 	
 	bool bPack[3];
-	list<resourceHeader> lResourceHeaders[3];
 	
 	//Now that we have all the resources from the mod .pak files unpacked, check and see what original .pak files need to be changed
 	for(int iPak = 0; iPak < 3; iPak++)
@@ -175,6 +185,8 @@ int main(int argc, char** argv)
 		}
 		
 		bPack[iPak] = false;
+		if(iPak == 1)	//TODO: Stick new files in other .pak files instead of embed.pak
+			bPack[iPak] = true;	//TODO: Actually test to see if new files, and in what pakfiles
 		
 		for(int i = 0; i < bH.numItems; i++)
 		{
@@ -186,7 +198,7 @@ int main(int argc, char** argv)
 				fclose(f);
 				continue;
 			}
-			lResourceHeaders[iPak].push_back(rH);
+			g_lResourceHeaders[iPak].push_back(rH);
 			
 			if(mModResources.count(rH.id))
 				bPack[iPak] = true;
@@ -195,7 +207,7 @@ int main(int argc, char** argv)
 		if(bPack[iPak])	//Unpack this resource only if we need to
 		{
 			cout << "Unpacking resource " << ws2s(sArg) << endl;
-			splitOutFiles(f, &lResourceHeaders[iPak], false);
+			splitOutFiles(f, &g_lResourceHeaders[iPak], false);
 		}
 		
 		fclose(f);
@@ -204,8 +216,7 @@ int main(int argc, char** argv)
 	//Now we have all the .pak files we need extracted. Copy mod files over
 	copyTempFiles();
 	
-	//And recompress 
-	//TODO: Stick all unknown files in embed.pak or something
+	//And recompress
 	for(int iPak = 0; iPak < 3; iPak++)
 	{
 		if(!bPack[iPak])
@@ -238,21 +249,21 @@ int main(int argc, char** argv)
 		//Add the header
 		blobHeader bh;
 		bh.pakVersion = 0x01;
-		bh.numItems = lResourceHeaders[iPak].size();
+		bh.numItems = g_lResourceHeaders[iPak].size();
 		
 		fwrite(&bh, 1, sizeof(blobHeader), f);
 		
 		//Get the starting file pos for where we (should) be writing objects to
-		size_t offsetPos = sizeof(blobHeader) + (lResourceHeaders[iPak].size() * sizeof(resourceHeader));	
+		size_t offsetPos = sizeof(blobHeader) + (g_lResourceHeaders[iPak].size() * sizeof(resourceHeader));	
 		
 		//Add the table of contents
 		cout << "Adding table of contents..." << endl;
-		for(list<resourceHeader>::iterator i = lResourceHeaders[iPak].begin(); i != lResourceHeaders[iPak].end(); i++)
+		for(list<resourceHeader>::iterator i = g_lResourceHeaders[iPak].begin(); i != g_lResourceHeaders[iPak].end(); i++)
 		{			
 			i->offset = offsetPos;	//Offset
 			i->size = g_mOrig[i->id].size;	//Size of file
 			if(mModHeader.count(i->id))
-				i->flags = mModHeader[i->id];	//Set the flags to the flags of this file copied over
+				i->flags = mModHeader[i->id];	//Set the flags to the flags of this file copied over (otherwise keep the same flags)
 			
 			fwrite(&(*i), 1, sizeof(resourceHeader), f);	//Write this to the file
 			
@@ -261,7 +272,7 @@ int main(int argc, char** argv)
 		
 		//Add actual resource data
 		cout << "Adding files..." << endl;
-		for(list<resourceHeader>::iterator i = lResourceHeaders[iPak].begin(); i != lResourceHeaders[iPak].end(); i++)
+		for(list<resourceHeader>::iterator i = g_lResourceHeaders[iPak].begin(); i != g_lResourceHeaders[iPak].end(); i++)
 		{			
 			virtualFile vfIn = g_mOrig[i->id];
 			if(vfIn.data == NULL)
@@ -269,6 +280,8 @@ int main(int argc, char** argv)
 				cout << "Error: resource " << i->id << " is in more than one output .pak file. Abort." << endl;
 				return 1;
 			}
+			
+			//cout << "Merging " << i->id << endl;
 			
 			fwrite(vfIn.data, 1, vfIn.size, f);	//Write this to the file
 			
