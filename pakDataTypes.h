@@ -452,9 +452,15 @@ string ws2s(const wstring& s);								//For converting UTF-16 to UTF-8
 wstring s2ws(const string& s);								//For converting UTF-8 to UTF-16
 void threadedDecompress();									//Start threaded decompression
 void threadedCompress(list<wstring> resources);				//Compress resources with multiple threads
-//png.cpp functions
+//image.cpp functions
 bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size);
 bool convertFromPNG(const wchar_t* cFilename);				//Convert a PNG image to a game image file
+bool myPicturesToXML(wstring sFilename);					//Convert vdata/myPicturesImage.dat
+bool XMLToMyPictures(wstring sFilename);
+bool smokeImageToXML(wstring sFilename);					//Convert vdata/smokeImage.dat
+bool XMLToSmokeImage(wstring sFilename);
+bool fluidPalettesToXML(wstring sFilename);					//Convert vdata/fluidPalettes.dat
+bool XMLToFluidPalettes(wstring sFilename);
 //wordPackDict.cpp functions
 bool wordPackToXML(const wchar_t* cFilename);				//Convert wordPackDict.dat to XML
 bool XMLToWordPack(const wchar_t* cFilename);				//Convert wordPackDict.dat.xml back to binary .dat form

@@ -129,6 +129,21 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			XMLToLoctexManifest(tch);
 			sDeleteWhenDone = tch;
 		}
+		else if(tch.find(TEXT("myPicturesImage.dat")) != wstring::npos)
+		{
+			XMLToMyPictures(tch);
+			sDeleteWhenDone = tch;
+		}
+		else if(tch.find(TEXT("smokeImage.dat")) != wstring::npos)
+		{
+			XMLToSmokeImage(tch);
+			sDeleteWhenDone = tch;
+		}
+		else if(tch.find(TEXT("fluidPalettes.dat")) != wstring::npos)
+		{
+			XMLToFluidPalettes(tch);
+			//TODO sDeleteWhenDone = tch;
+		}
 		
 		//Pull in the data from the file
 		ph.dataSz = getFileSize(sFileToPak.c_str());

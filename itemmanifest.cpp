@@ -527,7 +527,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 //TODO Fix problems and stuff for next release
 bool XMLToItemManifest(const wchar_t* cFilename)
 {
-	//Open this XML file for parsing
+	/*//Open this XML file for parsing
 	wstring sXMLFile = cFilename;
 	sXMLFile += TEXT(".xml");
 	XMLDocument* doc = new XMLDocument;
@@ -764,7 +764,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	
 	//TODO Write our binDataOffsetBytes stuff
 	
-	fclose(f);
+	fclose(f);*/
 	return true;
 }
 

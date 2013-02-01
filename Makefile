@@ -1,4 +1,4 @@
-objects = wordPackDict.o sndmanifest.o itemmanifest.o residmap.o zpipe.o ogg.o convertpng.o font.o loctex.o
+objects = wordPackDict.o sndmanifest.o itemmanifest.o residmap.o zpipe.o ogg.o image.o font.o loctex.o
 
 all : liDecompress.exe liCompress.exe recalcSoundManifest.exe strip.exe modManage.exe util/pullpakfiles.exe util/removeresc.exe util/repack.exe util/test.exe util/WinResource.exe
  
@@ -39,8 +39,8 @@ zpipe.o : zpipe.cpp pakDataTypes.h
 	g++ -Wall -O2 -c zpipe.cpp
 ogg.o : ogg.cpp pakDataTypes.h
 	g++ -Wall -O2 -c ogg.cpp
-convertpng.o : convertpng.cpp pakDataTypes.h
-	g++ -Wall -O2 -c convertpng.cpp
+image.o : image.cpp pakDataTypes.h
+	g++ -Wall -O2 -c image.cpp
 liDecompress.o : liDecompress.cpp pakDataTypes.h
 	g++ -Wall -O2 -c liDecompress.cpp
 liCompress.o : liCompress.cpp pakDataTypes.h

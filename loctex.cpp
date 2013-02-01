@@ -1,6 +1,5 @@
 #include "pakDataTypes.h"
 
-
 bool LoctexManifestToXML(wstring sFilename)
 {
 	FILE* f = _wfopen(sFilename.c_str(), TEXT("rb"));
@@ -108,7 +107,6 @@ bool XMLToLoctexManifest(wstring sFilename)
 	for(XMLElement* elem = root->FirstChildElement("file"); elem != NULL; elem = elem->NextSiblingElement("file"))
 	{
 		const char* id = elem->Attribute("filename");
-		//cout << "ID: " << id << endl;
 		if(id == NULL) continue;
 		loctexFile lf;
 		lf.resId = getResID(s2ws(id));
@@ -118,7 +116,6 @@ bool XMLToLoctexManifest(wstring sFilename)
 		for(XMLElement* elem2 = elem->FirstChildElement("record"); elem2 != NULL; elem2 = elem2->NextSiblingElement("record"))
 		{
 			const char* resid = elem2->Attribute("langfilename");
-			//cout << "resID: " << resid << endl;
 			if(resid == NULL) continue;
 			loctexRecord lr;
 			lr.languageId = 0;

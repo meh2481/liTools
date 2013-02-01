@@ -184,6 +184,27 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			unlink(ws2s(sFilename).c_str());
 		}
 		
+		//Convert vdata/myPicturesImage.dat to XML
+		else if(sFilename.find(TEXT("myPicturesImage.dat")) != wstring::npos)
+		{
+			myPicturesToXML(sFilename);
+			unlink(ws2s(sFilename).c_str());
+		}
+		
+		//Convert vdata/smokeImage.dat to XML
+		else if(sFilename.find(TEXT("smokeImage.dat")) != wstring::npos)
+		{
+			smokeImageToXML(sFilename);
+			unlink(ws2s(sFilename).c_str());
+		}
+		
+		//Convert vdata/fluidPalettes.dat to XML
+		else if(sFilename.find(TEXT("fluidPalettes.dat")) != wstring::npos)
+		{
+			fluidPalettesToXML(sFilename);
+			//TODO unlink(ws2s(sFilename).c_str());
+		}
+		
 		if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)
 		{
 			ReleaseMutex(ghMutex);
