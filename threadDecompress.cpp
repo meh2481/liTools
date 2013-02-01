@@ -202,7 +202,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		else if(sFilename.find(TEXT("fluidPalettes.dat")) != wstring::npos)
 		{
 			fluidPalettesToXML(sFilename);
-			//TODO unlink(ws2s(sFilename).c_str());
+			unlink(ws2s(sFilename).c_str());
 		}
 		
 		if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)

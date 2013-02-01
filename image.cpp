@@ -774,17 +774,186 @@ bool XMLToSmokeImage(wstring sFilename)
 	fclose(f);
 	
 	return true;
-	return true;
 }
 
 bool fluidPalettesToXML(wstring sFilename)
 {
+	FILE* f = _wfopen(sFilename.c_str(), TEXT("rb"));
+	if(f == NULL)
+	{
+		cout << "Error: could not open " << ws2s(sFilename) << " for reading." << endl;
+		return false;
+	}
+	
+	//Read in our header
+	fluidPalettesHeader fph;
+	if(fread(&fph, 1, sizeof(fluidPalettesHeader), f) != sizeof(fluidPalettesHeader))
+	{
+		cout << "Error: unable to read fluidPalettesHeader from file " << ws2s(sFilename) << endl;
+		fclose(f);
+		return false;
+	}
+	
+	//Read in fluidPalettesMetadata
+	list<fluidPalettesMetadata> lPictureMeta;
+	fseek(f, fph.pictureMetadata.offset, SEEK_SET);
+	for(int i = 0; i < fph.pictureMetadata.count; i++)
+	{
+		fluidPalettesMetadata fpm;
+		if(fread(&fpm, 1, sizeof(fluidPalettesMetadata), f) != sizeof(fluidPalettesMetadata))
+		{
+			cout << "Error: Unable to read fluidPalettesMetadata from file " << ws2s(sFilename) << endl;
+			fclose(f);
+			return false;
+		}
+		lPictureMeta.push_back(fpm);
+	}
+	
+	//Read in picture data
+	fph.pictureBytes.count *= 4;	//For some reason these are all scaled for i32 pixels rather than i8 pixels
+	char cPictureBytes[fph.pictureBytes.count];
+	fseek(f, fph.pictureBytes.offset, SEEK_SET);
+	//int iNum = ;
+	if(fread(&cPictureBytes, 1, fph.pictureBytes.count, f) != u32(fph.pictureBytes.count))
+	{
+		cout << "Error: Unable to read picture bytes from file " << ws2s(sFilename) << endl;// << ". Only read " << iNum << endl;
+		fclose(f);
+		return false;
+	}
+	
+	//Done here
+	fclose(f);
+	
+	//Now, create XML file
+	wstring sXMLFile = sFilename;
+	sXMLFile += TEXT(".xml");
+	XMLDocument* doc = new XMLDocument;
+	XMLElement* root = doc->NewElement("images");
+	
+	//Loop through for each image
+	int iCurImg = 0;
+	for(list<fluidPalettesMetadata>::iterator i = lPictureMeta.begin(); i != lPictureMeta.end(); i++)
+	{
+		uint8_t data[i->width * 4 + sizeof(ImageHeader)];
+		ImageHeader ih;
+		ih.width = i->width;
+		ih.height = 1;
+		ih.flags = STANDARD_PNG;
+		memcpy(data, &ih, sizeof(ImageHeader));	//Copy in header
+		memcpy(&data[sizeof(ImageHeader)], &cPictureBytes[i->offset*4], i->width*4);	//Copy in image data
+		
+		wchar_t cName[256];
+		wsprintf(cName, TEXT("%s.%d.png"), sFilename.c_str(), iCurImg++);
+		convertToPNG(cName, data, i->width * 4);
+		XMLElement* elem = doc->NewElement("image");
+		elem->SetAttribute("filename", ws2s(cName).c_str());
+		elem->SetAttribute("id", i->id);		
+		root->InsertEndChild(elem);
+	}
+	
+	doc->InsertFirstChild(root);
+	doc->SaveFile(ws2s(sXMLFile).c_str());
 	
 	return true;
 }
 
 bool XMLToFluidPalettes(wstring sFilename)
 {
+	wstring sXMLFile = sFilename;
+	sXMLFile += TEXT(".xml");
+	XMLDocument* doc = new XMLDocument;
+	int iErr = doc->LoadFile(ws2s(sXMLFile).c_str());
+	if(iErr != XML_NO_ERROR)
+	{
+		cout << "Error parsing XML file " << ws2s(sXMLFile) << ": Error " << iErr << endl;
+		delete doc;
+		return false;
+	}
+	
+	//Grab root element
+	XMLElement* root = doc->RootElement();
+	if(root == NULL)
+	{
+		cout << "Error: No root element in XML file " << ws2s(sXMLFile) << endl;
+		delete doc;
+		return false;
+	}
+	
+	//Read in images
+	list<fluidPalettesMetadata> lMetadata;
+	vector<uint8_t> vPicData;
+	for(XMLElement* elem = root->FirstChildElement("image"); elem != NULL; elem = elem->NextSiblingElement("image"))
+	{
+		const char* cName = elem->Attribute("filename");
+		if(cName == NULL) continue;
+		wstring sTempFile = s2ws(cName);
+		
+		//Convert this PNG to usable form
+		convertFromPNG(sTempFile.c_str());
+		
+		//Open the temp image file
+		sTempFile += TEXT(".temp");
+		FILE* fp = _wfopen(sTempFile.c_str(), TEXT("rb"));
+		if(fp == NULL) continue;
+		
+		//Read in image header
+		ImageHeader ih;
+		if(fread(&ih, 1, sizeof(ImageHeader), fp) != sizeof(ImageHeader))
+		{
+			fclose(fp);
+			continue;
+		}
+		
+		//Read in image data
+		fluidPalettesMetadata fpm;
+		fpm.width = ih.width;
+		fpm.offset = vPicData.size()/4;
+		fpm.id = 0;
+		if(elem->QueryUnsignedAttribute("id", &fpm.id) != XML_NO_ERROR) continue;
+		for(u32 i = 0; i < ih.width * ih.height * 4; i++)
+		{
+			uint8_t c;
+			if(fread(&c, 1, 1, fp) != 1)
+			{
+				cout << "Error parsing image data for image " << cName << endl;
+				return false;
+			}
+			vPicData.push_back(c);
+		}
+		
+		fclose(fp);
+		unlink(ws2s(sTempFile).c_str());	//Delete our .png.temp file
+		lMetadata.push_back(fpm);
+	}
+	
+	delete doc;	//Done with this
+	
+	//Open our output file
+	FILE* f = _wfopen(sFilename.c_str(), TEXT("wb"));
+	if(f == NULL)
+	{
+		cout << "Error: Unable to open output file " << ws2s(sFilename) << endl;
+		return false;
+	}
+	
+	//Write header
+	fluidPalettesHeader fph;
+	fph.pictureMetadata.count = lMetadata.size();
+	fph.pictureMetadata.offset = sizeof(fluidPalettesHeader);
+	fph.pictureBytes.count = vPicData.size()/4;
+	fph.pictureBytes.offset = sizeof(fluidPalettesHeader) + sizeof(fluidPalettesMetadata) * lMetadata.size();
+	
+	fwrite(&fph, 1, sizeof(fluidPalettesHeader), f);
+	
+	//Write out metadata
+	for(list<fluidPalettesMetadata>::iterator i = lMetadata.begin(); i != lMetadata.end(); i++)
+		fwrite(&(*i), 1, sizeof(fluidPalettesMetadata), f);
+		
+	//Write out picture data
+	for(vector<uint8_t>::iterator i = vPicData.begin(); i != vPicData.end(); i++)
+		fwrite(&(*i), 1, 1, f);
+		
+	fclose(f);
 	
 	return true;
 }

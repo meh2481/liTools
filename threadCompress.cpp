@@ -142,7 +142,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		else if(tch.find(TEXT("fluidPalettes.dat")) != wstring::npos)
 		{
 			XMLToFluidPalettes(tch);
-			//TODO sDeleteWhenDone = tch;
+			sDeleteWhenDone = tch;
 		}
 		
 		//Pull in the data from the file
