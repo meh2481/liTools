@@ -358,7 +358,7 @@ bool XMLToResidMap(const wchar_t* cFilename)
 	FILE* f = _wfopen(cFilename, TEXT("wb"));
 	if(f == NULL)
 	{
-		cout << "Error: Unable to open output file " << cFilename << endl;
+		cout << "Error: Unable to open output file " << ws2s(cFilename) << endl;
 		return false;
 	}
 	

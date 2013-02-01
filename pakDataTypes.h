@@ -311,7 +311,7 @@ typedef struct
 	BinTuneDataFloat wobble;
 } jointRecord;
 
-//Mark VI Structures - reverse-engineered .dat files
+//Mark VI Structures - reverse-engineered .dat files (Thanks to Mygod)
 typedef struct
 {
 	BinHdrPtr pictureMetadata;
@@ -351,6 +351,25 @@ typedef struct
 	i32 offset;
 	i32 width; // height always equals to 1
 } fluidPalettesMetadata;
+
+typedef struct
+{
+	BinHdrPtr files;
+	BinHdrPtr records;
+} loctexManifestHeader;
+
+typedef struct
+{
+	u32 resId; // common file id
+	i32 index; // record pointer
+	i32 count;
+} loctexFile;
+
+typedef struct
+{
+	u32 languageId;
+	u32 localizedResId;
+} loctexRecord;
 
 //Mark VII Structures - font data types
 typedef struct 
@@ -469,6 +488,9 @@ bool XMLToFont(wstring sFilename);							//Convert font XML files back to origin
 int binaryToOgg( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert a game sound file to .ogg
 int oggToBinary( const wchar_t* in, const wchar_t* out );	//Function from Allan to convert an .ogg file to the game's sound format
 takeRecord getOggData( const wchar_t* cFile );				//Grab the data from an OGG file to populate sndManifest.dat
+//loctex.cpp functions
+bool LoctexManifestToXML(wstring sFilename);				//Convert loctexmanifest.bin to XML
+bool XMLToLoctexManifest(wstring sFilename);				//Convert loctexmanifest.bin.xml back to binary form
 
 
 

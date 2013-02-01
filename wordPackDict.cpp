@@ -202,7 +202,7 @@ bool XMLToWordPack(const wchar_t* cFilename)
 		fwrite(&ste, 1, sizeof(StringTableEntry), f);
 	}
 	
-	//Write wstring pointer entries
+	//Write string pointer entries
 	curOffset = 0;
 	for(unsigned int i = 0; i < vWordPakList.size(); i++)
 	{

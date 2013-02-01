@@ -123,7 +123,12 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			XMLToFont(tch);
 			sFileToPak += TEXT(".temp");
 			sDeleteWhenDone = sFileToPak;
-		}	
+		}
+		else if(tch.find(TEXT("loctexmanifest.bin")) != wstring::npos)
+		{
+			XMLToLoctexManifest(tch);
+			sDeleteWhenDone = tch;
+		}
 		
 		//Pull in the data from the file
 		ph.dataSz = getFileSize(sFileToPak.c_str());

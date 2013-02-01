@@ -177,6 +177,13 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			fontToXML(sFilename);
 		}
 		
+		//Convert vdata/loctexmanifest.bin to XML
+		else if(sFilename.find(TEXT("loctexmanifest.bin")) != wstring::npos)
+		{
+			LoctexManifestToXML(sFilename);
+			unlink(ws2s(sFilename).c_str());
+		}
+		
 		if(sFilename == TEXT(RESIDMAP_NAME) && g_iCurResource == 1)
 		{
 			ReleaseMutex(ghMutex);

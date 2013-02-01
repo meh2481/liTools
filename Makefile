@@ -1,4 +1,4 @@
-objects = wordPackDict.o sndmanifest.o itemmanifest.o residmap.o zpipe.o ogg.o convertpng.o font.o
+objects = wordPackDict.o sndmanifest.o itemmanifest.o residmap.o zpipe.o ogg.o convertpng.o font.o loctex.o
 
 all : liDecompress.exe liCompress.exe recalcSoundManifest.exe strip.exe modManage.exe util/pullpakfiles.exe util/removeresc.exe util/repack.exe util/test.exe util/WinResource.exe
  

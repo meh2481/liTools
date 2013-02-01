@@ -22,6 +22,7 @@ bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
     cout << "PNG file " << ws2s(cFilename) << " NULL" << endl;
 	return false;
   }
+  setvbuf ( png_file , NULL , _IOFBF , 4096 );
   
   //Read in the image header
   memcpy((void*)&ih, data, sizeof(ImageHeader));
@@ -205,6 +206,7 @@ bool convertFromPNG(const wchar_t* cFilename)
 	cout << "Unable to open " << cFilename << " for reading." << endl;
 	return false;
   }
+  setvbuf ( png_file , NULL , _IOFBF , 4096 );
 	
   // read and check signature in PNG file 
   ret = fread (buf, 1, 8, png_file);
