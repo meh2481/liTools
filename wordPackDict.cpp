@@ -66,7 +66,7 @@ bool wordPackToXML(const wchar_t* cFilename)
 		stringTableList[i] = ste;
 	}
 	
-	//and wstring table pointers
+	//and string table pointers
 	for(int i = 0; i < sth.numPointers; i++)
 	{
 		StringPointerEntry spe;
@@ -173,7 +173,9 @@ bool XMLToWordPack(const wchar_t* cFilename)
 	wordPackDictHeader wpdHeader;
 	wpdHeader.words.count = vWordPakList.size();
 	wpdHeader.words.offset = curOffset;	//Offset this from this header
-	wpdHeader.stringTableBytes.count = vWordPakList.size();
+	wpdHeader.stringTableBytes.count = 0;
+	for(unsigned int i = 0; i < vWordPakList.size(); i++)
+		wpdHeader.stringTableBytes.count += vWordPakList[i].word.size() + 1;	//Null-terminated, hence the +1
 	curOffset += vWordPakList.size() * sizeof(wordHeader);
 	wpdHeader.stringTableBytes.offset = curOffset;
 	
@@ -193,7 +195,7 @@ bool XMLToWordPack(const wchar_t* cFilename)
 	sth.numStrings = sth.numPointers = vWordPakList.size();
 	fwrite(&sth, 1, sizeof(StringTableHeader), f);
 	
-	//Write wstring table entries
+	//Write string table entries
 	for(unsigned int i = 0; i < vWordPakList.size(); i++)
 	{
 		StringTableEntry ste;

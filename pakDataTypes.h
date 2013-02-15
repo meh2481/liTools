@@ -311,6 +311,93 @@ typedef struct
 	BinTuneDataFloat wobble;
 } jointRecord;
 
+typedef struct
+{
+	f32 _11, _12, _13;
+	f32 _21, _22, _23;
+} mtx23;
+
+typedef struct
+{
+	u32 id;
+	i32 animBlockIdx;
+	mtx23 animBlockTransform;
+	vec2 itemSpacePosition;
+	i32 firstBoneMainShapeIdx;
+	i32 numBoneMainShapes;
+	vec2 burnBoundsMin;
+	vec2 burnBoundsMax;
+	f32 burnGridSize;
+	i32 burnGridWidth;
+	i32 burnGridHeight;
+	i32 firstBurnUsedIdx;
+	i32 firstPartsIdx;
+	i32 numParts;
+	i32 firstPartTreeValIdx;
+	i32 numPartTreeVals;
+	i32 connectedGroupIdx;
+	i32 firstRgnCellIdx;
+	i32 numRgnCells;
+	u32 igniteTimeEnumValId;
+	u32 burnTimeEnumValId;
+	u32 attackSpeedEnumValId;
+	u32 attackAmountEnumValId;
+	u32 decaySpeedEnumValId;
+	u32 burnAmountEnumValId;
+	u32 boneDensityEnumValId;
+	u32 collideSoundEnumValId;
+	u32 igniteSoundEnumValId;
+	u32 decayParticlesEnumValId;
+	u32 igniteParticlesEnumValId;
+	u32 frictionEnumValId;
+	u32 restitutionEnumValId;
+	u32 linearDampEnumValId;
+	u32 angularDampEnumValId;
+	i32 behavior;
+	u32 shatterExpRadiusEnumValId;
+	u32 shatterExpFireAmountEnumValId;
+	u32 shatterExpFireSpeedEnumValId;
+	u32 shatterExpForceEnumValId;
+	u32 shatterExpSoundEnumValId;
+	u32 shatterExpEffectEnumValId;
+	u32 shatterExpTimeRampDownEnumValId;
+	u32 shatterExpTimeHoldDownEnumValId;
+	u32 shatterExpTimeRampUpEnumValId;
+	u32 shatterExpTimeFactorEnumValId;
+	u32 shatterExpDoCamShakeEnumValId;
+	u32 ashBreakMinAccelEnumValId;
+	u32 ashBreakMaxAccelEnumValId;
+	u32 splitSFXSmallEnumValId;
+	u32 splitSFXMediumEnumValId;
+	u32 splitSFXLargeEnumValId;
+	u32 splitBrittleEnumValId;
+	u32 splitThresholdEnumValId;
+	u32 splitEffectEnumValId;
+	u32 ashSplitTimeBaseEnumValId;
+	u32 ashSplitTimeVarEnumValId;
+	u32 splitDespawnEffectEnumValId;
+	u32 stampBlackWhitePctEnumValId;
+	u32 smearAmountEnumValId;
+	u32 collideParticlesEnumValId;
+	u32 explodeIgnoreBurnTriggerEnumValId;
+	u32 postExplodeSplitTimeBaseEnumValId;
+	u32 postExplodeSplitTimeVarEnumValId;
+	u32 explodeIgnitePiecesEnumValId;
+	u32 postExplodeAshBreakMinAccelEnumValId;
+	u32 autoRotateUprightEnumValId;
+	u32 mouseGrabSoundEnumValId;
+	u32 instAshOnCollideEnumValId;
+	u32 applyGravityEnumValId;
+	u32 splatParticlesEnumValId;
+} boneRecord;
+
+typedef struct
+{
+	u32 flags;
+	i32 numVerts;
+	vec2 verts[ 8 ];
+} boneShapeRecord;
+
 //Mark VI Structures - reverse-engineered .dat files (Thanks to Mygod)
 typedef struct
 {

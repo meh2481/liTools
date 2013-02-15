@@ -1,5 +1,8 @@
 #include "pakDataTypes.h"
 
+#define TYPE_POLYGON	0x04
+#define TYPE_CIRCLE		0x02
+
 //Defaults for item XML data
 #define DEFAULT_ABSPOSITION				0
 #define DEFAULT_ALLOWDIRECTIONALLIGHT	1
@@ -180,6 +183,8 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	vector<itemDataHeader> vItemDataHeaders;
 	vector< list<skelsRecord> > vSkeletonRecords;
 	vector< vector<jointRecord> > vJointRecords;
+	vector< list<boneRecord> > vBoneRecords;
+	vector< vector<boneShapeRecord> > vBoneShapes;
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
 		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes, SEEK_SET);	//Seek to this position to read
@@ -222,6 +227,36 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			jrv.push_back(jr);
 		}
 		vJointRecords.push_back(jrv);
+		
+		//Read in bone records for this item data header
+		list<boneRecord> brl;
+		for(int j = 0; j < idh.bones.count; j++)
+		{
+			boneRecord br;
+			if(fread(&br, 1, sizeof(boneRecord), f) != sizeof(boneRecord))
+			{
+				cout << "Error: Unable to read boneRecord from file " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+ 			}
+			brl.push_back(br);
+		}
+		vBoneRecords.push_back(brl);
+		
+		//Read in bone shape records for this item data header
+		vector<boneShapeRecord> bsrv;
+		for(int j = 0; j < idh.boneShapes.count; j++)
+		{
+			boneShapeRecord bsr;
+			if(fread(&bsr, 1, sizeof(boneShapeRecord), f) != sizeof(boneShapeRecord))
+			{
+				cout << "Error: Unable to read boneShapeRecord from file " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+ 			}
+			bsrv.push_back(bsr);
+		}
+		vBoneShapes.push_back(bsrv);
 	}
 	
 	//TODO Read rest of item data
@@ -454,6 +489,147 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				elem4->SetAttribute("speed", vJointRecords[iCurItemData][k].speed.value);
 				elem4->SetAttribute("spin", vJointRecords[iCurItemData][k].spin.value);
 				elem4->SetAttribute("wobble", vJointRecords[iCurItemData][k].wobble.value);
+				elem3->InsertEndChild(elem4);
+			}
+			
+			elem2->InsertEndChild(elem3);
+		}
+		
+		//Create bones for this item
+		for(list<boneRecord>::iterator j = vBoneRecords[iCurItemData].begin(); j != vBoneRecords[iCurItemData].end(); j++)
+		{
+			elem3 = doc->NewElement("bone");
+			elem3->SetAttribute("id", j->id);
+			elem3->SetAttribute("animBlockIdx", j->animBlockIdx);
+			//elem3->SetAttribute("animBlockTransform", j->animBlockTransform);
+			elem3->SetAttribute("itemSpacePositionx", j->itemSpacePosition.x);
+			elem3->SetAttribute("itemSpacePositiony", j->itemSpacePosition.y);
+			//elem3->SetAttribute("firstBoneMainShapeIdx", j->firstBoneMainShapeIdx);
+			//elem3->SetAttribute("numBoneMainShapes", j->numBoneMainShapes);
+			elem3->SetAttribute("burnBoundsMinx", j->burnBoundsMin.x);
+			elem3->SetAttribute("burnBoundsMiny", j->burnBoundsMin.y);
+			elem3->SetAttribute("burnBoundsMaxx", j->burnBoundsMax.x);
+			elem3->SetAttribute("burnBoundsMaxy", j->burnBoundsMax.y);
+			elem3->SetAttribute("burnGridSize", j->burnGridSize);
+			elem3->SetAttribute("burnGridWidth", j->burnGridWidth);
+			elem3->SetAttribute("burnGridHeight", j->burnGridHeight);
+			elem3->SetAttribute("firstBurnUsedIdx", j->firstBurnUsedIdx);
+			elem3->SetAttribute("firstPartsIdx", j->firstPartsIdx);
+			elem3->SetAttribute("numParts", j->numParts);
+			elem3->SetAttribute("firstPartTreeValIdx", j->firstPartTreeValIdx);
+			elem3->SetAttribute("numPartTreeVals", j->numPartTreeVals);
+			elem3->SetAttribute("connectedGroupIdx", j->connectedGroupIdx);
+			elem3->SetAttribute("firstRgnCellIdx", j->firstRgnCellIdx);
+			elem3->SetAttribute("numRgnCells", j->numRgnCells);
+			elem3->SetAttribute("igniteTimeEnumValId", j->igniteTimeEnumValId);
+			elem3->SetAttribute("burnTimeEnumValId", j->burnTimeEnumValId);
+			elem3->SetAttribute("attackSpeedEnumValId", j->attackSpeedEnumValId);
+			elem3->SetAttribute("attackAmountEnumValId", j->attackAmountEnumValId);
+			elem3->SetAttribute("decaySpeedEnumValId", j->decaySpeedEnumValId);
+			elem3->SetAttribute("burnAmountEnumValId", j->burnAmountEnumValId);
+			elem3->SetAttribute("boneDensityEnumValId", j->boneDensityEnumValId);
+			elem3->SetAttribute("collideSoundEnumValId", j->collideSoundEnumValId);
+			elem3->SetAttribute("igniteSoundEnumValId", j->igniteSoundEnumValId);
+			elem3->SetAttribute("decayParticlesEnumValId", j->decayParticlesEnumValId);
+			elem3->SetAttribute("igniteParticlesEnumValId", j->igniteParticlesEnumValId);
+			elem3->SetAttribute("frictionEnumValId", j->frictionEnumValId);
+			elem3->SetAttribute("restitutionEnumValId", j->restitutionEnumValId);
+			elem3->SetAttribute("linearDampEnumValId", j->linearDampEnumValId);
+			elem3->SetAttribute("angularDampEnumValId", j->angularDampEnumValId);
+			elem3->SetAttribute("behavior", j->behavior);
+			elem3->SetAttribute("shatterExpRadiusEnumValId", j->shatterExpRadiusEnumValId);
+			elem3->SetAttribute("shatterExpFireAmountEnumValId", j->shatterExpFireAmountEnumValId);
+			elem3->SetAttribute("shatterExpFireSpeedEnumValId", j->shatterExpFireSpeedEnumValId);
+			elem3->SetAttribute("shatterExpForceEnumValId", j->shatterExpForceEnumValId);
+			elem3->SetAttribute("shatterExpSoundEnumValId", j->shatterExpSoundEnumValId);
+			elem3->SetAttribute("shatterExpEffectEnumValId", j->shatterExpEffectEnumValId);
+			elem3->SetAttribute("shatterExpTimeRampDownEnumValId", j->shatterExpTimeRampDownEnumValId);
+			elem3->SetAttribute("shatterExpTimeHoldDownEnumValId", j->shatterExpTimeHoldDownEnumValId);
+			elem3->SetAttribute("shatterExpTimeRampUpEnumValId", j->shatterExpTimeRampUpEnumValId);
+			elem3->SetAttribute("shatterExpTimeFactorEnumValId", j->shatterExpTimeFactorEnumValId);
+			elem3->SetAttribute("shatterExpDoCamShakeEnumValId", j->shatterExpDoCamShakeEnumValId);
+			elem3->SetAttribute("ashBreakMinAccelEnumValId", j->ashBreakMinAccelEnumValId);
+			elem3->SetAttribute("ashBreakMaxAccelEnumValId", j->ashBreakMaxAccelEnumValId);
+			elem3->SetAttribute("splitSFXSmallEnumValId", j->splitSFXSmallEnumValId);
+			elem3->SetAttribute("splitSFXMediumEnumValId", j->splitSFXMediumEnumValId);
+			elem3->SetAttribute("splitSFXLargeEnumValId", j->splitSFXLargeEnumValId);
+			elem3->SetAttribute("splitBrittleEnumValId", j->splitBrittleEnumValId);
+			elem3->SetAttribute("splitThresholdEnumValId", j->splitThresholdEnumValId);
+			elem3->SetAttribute("splitEffectEnumValId", j->splitEffectEnumValId);
+			elem3->SetAttribute("ashSplitTimeBaseEnumValId", j->ashSplitTimeBaseEnumValId);
+			elem3->SetAttribute("ashSplitTimeVarEnumValId", j->ashSplitTimeVarEnumValId);
+			elem3->SetAttribute("splitDespawnEffectEnumValId", j->splitDespawnEffectEnumValId);
+			elem3->SetAttribute("stampBlackWhitePctEnumValId", j->stampBlackWhitePctEnumValId);
+			elem3->SetAttribute("smearAmountEnumValId", j->smearAmountEnumValId);
+			elem3->SetAttribute("collideParticlesEnumValId", j->collideParticlesEnumValId);
+			elem3->SetAttribute("explodeIgnoreBurnTriggerEnumValId", j->explodeIgnoreBurnTriggerEnumValId);
+			elem3->SetAttribute("postExplodeSplitTimeBaseEnumValId", j->postExplodeSplitTimeBaseEnumValId);
+			elem3->SetAttribute("postExplodeSplitTimeVarEnumValId", j->postExplodeSplitTimeVarEnumValId);
+			elem3->SetAttribute("explodeIgnitePiecesEnumValId", j->explodeIgnitePiecesEnumValId);
+			elem3->SetAttribute("postExplodeAshBreakMinAccelEnumValId", j->postExplodeAshBreakMinAccelEnumValId);
+			elem3->SetAttribute("autoRotateUprightEnumValId", j->autoRotateUprightEnumValId);
+			elem3->SetAttribute("mouseGrabSoundEnumValId", j->mouseGrabSoundEnumValId);
+			elem3->SetAttribute("instAshOnCollideEnumValId", j->instAshOnCollideEnumValId);
+			elem3->SetAttribute("applyGravityEnumValId", j->applyGravityEnumValId);
+			elem3->SetAttribute("splatParticlesEnumValId", j->splatParticlesEnumValId);
+			
+			//Add shapes for this bone
+			XMLElement* elem4;
+			for(int k = j->firstBoneMainShapeIdx; k < j->firstBoneMainShapeIdx + j->numBoneMainShapes; k++)
+			{
+				elem4 = doc->NewElement("shape");
+				
+				if(vBoneShapes[iCurItemData][k].flags == TYPE_POLYGON)	//Polygon shape
+				{
+					elem4->SetAttribute("type", "polygon");
+					//Write vertices for this shape
+					XMLElement* elem5;
+					for(int l = 0; l < vBoneShapes[iCurItemData][k].numVerts; l++)
+					{
+						elem5 = doc->NewElement("vert");
+						
+						elem5->SetAttribute("x", vBoneShapes[iCurItemData][k].verts[l].x);
+						elem5->SetAttribute("y", vBoneShapes[iCurItemData][k].verts[l].y);
+						
+						elem4->InsertEndChild(elem5);
+					}
+				}
+				else if(vBoneShapes[iCurItemData][k].flags == TYPE_CIRCLE)	//Circle shape
+				{
+					elem4->SetAttribute("type", "circle");
+					//Write vertices for this shape
+					XMLElement* elem5;
+					elem5 = doc->NewElement("center");
+					elem5->SetAttribute("x", vBoneShapes[iCurItemData][k].verts[0].x);
+					elem5->SetAttribute("y", vBoneShapes[iCurItemData][k].verts[0].y);
+					elem4->InsertEndChild(elem5);
+					elem5 = doc->NewElement("radius");
+					elem5->SetAttribute("value", vBoneShapes[iCurItemData][k].verts[1].x);
+					elem4->InsertEndChild(elem5);
+				}
+				
+				/*elem4->SetAttribute("numVerts", vBoneShapes[iCurItemData][k].numVerts);
+				elem4->SetAttribute("vert1x", vBoneShapes[iCurItemData][k].verts[0].x);
+				elem4->SetAttribute("vert1y", vBoneShapes[iCurItemData][k].verts[0].y);
+				elem4->SetAttribute("vert2x", vBoneShapes[iCurItemData][k].verts[1].x);
+				elem4->SetAttribute("vert2y", vBoneShapes[iCurItemData][k].verts[1].y);
+				elem4->SetAttribute("vert3x", vBoneShapes[iCurItemData][k].verts[2].x);
+				elem4->SetAttribute("vert3y", vBoneShapes[iCurItemData][k].verts[2].y);
+				elem4->SetAttribute("vert4x", vBoneShapes[iCurItemData][k].verts[3].x);
+				elem4->SetAttribute("vert4y", vBoneShapes[iCurItemData][k].verts[3].y);
+				elem4->SetAttribute("vert5x", vBoneShapes[iCurItemData][k].verts[4].x);
+				elem4->SetAttribute("vert5y", vBoneShapes[iCurItemData][k].verts[4].y);
+				elem4->SetAttribute("vert6x", vBoneShapes[iCurItemData][k].verts[5].x);
+				elem4->SetAttribute("vert6y", vBoneShapes[iCurItemData][k].verts[5].y);
+				elem4->SetAttribute("vert7x", vBoneShapes[iCurItemData][k].verts[6].x);
+				elem4->SetAttribute("vert7y", vBoneShapes[iCurItemData][k].verts[6].y);
+				elem4->SetAttribute("vert8x", vBoneShapes[iCurItemData][k].verts[7].x);
+				elem4->SetAttribute("vert8y", vBoneShapes[iCurItemData][k].verts[7].y);
+				u32 flags;
+				i32 numVerts;
+				vec2 verts[ 8 ];*/
+				
+				
 				elem3->InsertEndChild(elem4);
 			}
 			
