@@ -3,7 +3,9 @@
 #define TYPE_POLYGON	0x04
 #define TYPE_CIRCLE		0x02
 
-//Defaults for item XML data
+#define SPLIT_XML_FILES
+
+//Defaults for item data XML
 #define DEFAULT_ABSPOSITION				0
 #define DEFAULT_ALLOWDIRECTIONALLIGHT	1
 #define DEFAULT_ALLOWEXPLODESTREAKS		1
@@ -57,22 +59,70 @@
 #define DEFAULT_UNLISTED				0
 #define DEFAULT_VALUESTAMPS				0
 
+//Default values for bone data XML
+#define DEFAULT_APPLYGRAVITYENUMVALID					4108830781u
+#define DEFAULT_ASHSPLITTIMEBASEENUMVALID				1227225697
+#define DEFAULT_ASHSPLITTIMEVARENUMVALID				1227225697
+#define DEFAULT_AUTOROTATEUPRIGHTENUMVALID				1086434539
+#define DEFAULT_BEHAVIOR								1
+#define DEFAULT_BURNGRIDSIZE							10
+#define DEFAULT_CONNECTEDGROUPIDX						-1
+#define DEFAULT_DECAYPARTICLESENUMVALID					1227225697
+#define DEFAULT_EXPLODEIGNITEPIECESENUMVALID			1086434539
+#define DEFAULT_EXPLODEIGNOREBURNTRIGGERENUMVALID		1086434539
+#define DEFAULT_IGNITEPARTICLESENUMVALID				1227225697
+#define DEFAULT_INSTASHONCOLLIDEENUMVALID				1086434539
+#define DEFAULT_NUMPARTS								1
+#define DEFAULT_NUMRGNCELLS								0
+#define DEFAULT_POSTEXPLODEASHBREAKMINACCELENUMVALID	1227225697
+#define DEFAULT_POSTEXPLODESPLITTIMEBASEENUMVALID		1227225697
+#define DEFAULT_POSTEXPLODESPLITTIMEVARENUMVALID		1227225697
+#define DEFAULT_SHATTEREXPDOCAMSHAKEENUMVALID			4108830781u
+#define DEFAULT_SHATTEREXPEFFECTENUMVALID				1227225697
+#define DEFAULT_SHATTEREXPFIREAMOUNTENUMVALID			1227225697
+#define DEFAULT_SHATTEREXPFIRESPEEDENUMVALID			1227225697
+#define DEFAULT_SHATTEREXPFORCEENUMVALID				1227225697
+#define DEFAULT_SHATTEREXPRADIUSENUMVALID				1227225697
+#define DEFAULT_SHATTEREXPSOUNDENUMVALID				1227225697
+#define DEFAULT_SHATTEREXPTIMEFACTORENUMVALID			1227225697
+#define DEFAULT_SHATTEREXPTIMEHOLDDOWNENUMVALID			1227225697
+#define DEFAULT_SHATTEREXPTIMERAMPDOWNENUMVALID			1227225697
+#define DEFAULT_SHATTEREXPTIMERAMPUPENUMVALID			1227225697
+#define DEFAULT_SMEARAMOUNTENUMVALID					1227225697
+#define DEFAULT_SPLATPARTICLESENUMVALID					1227225697
+#define DEFAULT_SPLITBRITTLEENUMVALID					1227225697
+#define DEFAULT_SPLITDESPAWNEFFECTENUMVALID				1227225697
+#define DEFAULT_SPLITEFFECTENUMVALID					1227225697
+#define DEFAULT_SPLITSFXLARGEENUMVALID					1227225697
+#define DEFAULT_SPLITSFXMEDIUMENUMVALID					1227225697
+#define DEFAULT_SPLITSFXSMALLENUMVALID					1227225697
+#define DEFAULT_SPLITTHRESHOLDENUMVALID					1227225697
+
 
 wstring getNameFromAnim(wstring sAnimName)
 {
-	sAnimName.erase(sAnimName.rfind(TEXT(".anim.xml")));	//Erase the ending off the wstring
+	sAnimName.erase(sAnimName.rfind(TEXT(".anim.xml")));	//Erase the ending off the string
 	size_t start = sAnimName.find_last_of('/') + 1;	//Find last forward slash
 	sAnimName.erase(0,start);						//Erase everything up to and including this last slash
 	return sAnimName;								//Done
 }
 
-//DEBUG Convert wstring to uppercase
-/*wstring stoupper( const wstring s )
+void makeFolder(wstring sFilename)
 {
-  wstring result = s;
+	size_t pos = sFilename.find_last_of(L'/');
+	if(pos != wstring::npos)
+		sFilename = sFilename.substr(0,pos);
+	sFilename = TEXT("./") + sFilename;
+	ttvfs::CreateDirRec(ws2s(sFilename).c_str());	//I'm pretty sure this is threadsafe
+}
+
+//DEBUG Convert a string to uppercase
+/*string stoupper( const string s )
+{
+  string result = s;
   for(unsigned int i = 0; i < s.size(); i++)
   {
-	wchar_t c = s[i];
+	char c = s[i];
 	if( (c >= 'a') && (c <= 'z') )
 	{
 		c -= 'a' - 'A';
@@ -183,7 +233,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	vector<itemDataHeader> vItemDataHeaders;
 	vector< list<skelsRecord> > vSkeletonRecords;
 	vector< vector<jointRecord> > vJointRecords;
-	vector< list<boneRecord> > vBoneRecords;
+	vector< vector<boneRecord> > vBoneRecords;
 	vector< vector<boneShapeRecord> > vBoneShapes;
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
@@ -229,7 +279,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vJointRecords.push_back(jrv);
 		
 		//Read in bone records for this item data header
-		list<boneRecord> brl;
+		vector<boneRecord> brv;
 		for(int j = 0; j < idh.bones.count; j++)
 		{
 			boneRecord br;
@@ -239,9 +289,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				fclose(f);
 				return false;
  			}
-			brl.push_back(br);
+			brv.push_back(br);
 		}
-		vBoneRecords.push_back(brl);
+		vBoneRecords.push_back(brv);
 		
 		//Read in bone shape records for this item data header
 		vector<boneShapeRecord> bsrv;
@@ -264,18 +314,37 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	fclose(f);
 	
 	//Now, open up the XML file and put all the data into it
+	#ifndef SPLIT_XML_FILES
 	wstring sFilename = cFilename;
 	sFilename += TEXT(".xml");
 	XMLDocument* doc = new XMLDocument;
 	XMLElement* root = doc->NewElement("itemmanifest");	//Create the root element
+	#else
+	wstring sFilename = cFilename;
+	sFilename += TEXT(".xml");
+	XMLDocument* itemmanifest = new XMLDocument;
+	XMLElement* itemroot = itemmanifest->NewElement("items");
+	#endif
 	int iCurItemData = 0;
 	
 	//DEBUG: See how often each value occurs and see if there's a resonable default
-	//map<wstring, list<wstring> > mOccurrences;
+	//map<string, list<string> > mOccurrences;
 	//
 	//ofstream oHash("hash2.txt");
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
+		#ifdef SPLIT_XML_FILES
+		XMLDocument* doc = new XMLDocument;
+		//XMLElement* root = doc->NewElement("itemmanifest");	//Create the root element
+		wstring sXMLFilename = TEXT("data/items/");
+		sXMLFilename += mItemNames[i->itemId];
+		sXMLFilename += TEXT("/");
+		sXMLFilename += mItemNames[i->itemId];
+		sXMLFilename += TEXT(".xml");
+		XMLElement* file = itemmanifest->NewElement("item");
+		file->SetAttribute("path", ws2s(sXMLFilename).c_str());
+		itemroot->InsertEndChild(file);
+		#endif
 		XMLElement* elem = doc->NewElement("itemrecord");
 		elem->SetAttribute("id", ws2s(mItemNames[i->itemId]).c_str());
 		//oHash << "id: " << i->itemId << ", filename: " << mItemNames[i->itemId].c_str() 
@@ -459,17 +528,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem3->SetAttribute("animBoundsMiny", j->animBoundsMin.y);
 			elem3->SetAttribute("animBoundsMaxx", j->animBoundsMax.x);
 			elem3->SetAttribute("animBoundsMaxy", j->animBoundsMax.y);
-			/*i32 firstJointIdx;
-			i32 numJoints;
-			i32 firstBoneIdx;
-			i32 numBones;
-			u32 burnExport;
-			f32 selectWeight;
-			i32 hasAnimThresh;
-			f32 animThresh;
-			i32 animExportStrId;
-			vec2 animBoundsMin;
-			vec2 animBoundsMax;*/
 			
 			//Add joints for this skeleton
 			XMLElement* elem4;
@@ -492,185 +550,216 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				elem3->InsertEndChild(elem4);
 			}
 			
-			elem2->InsertEndChild(elem3);
-		}
-		
-		//Create bones for this item
-		for(list<boneRecord>::iterator j = vBoneRecords[iCurItemData].begin(); j != vBoneRecords[iCurItemData].end(); j++)
-		{
-			elem3 = doc->NewElement("bone");
-			elem3->SetAttribute("id", j->id);
-			elem3->SetAttribute("animBlockIdx", j->animBlockIdx);
-			//elem3->SetAttribute("animBlockTransform", j->animBlockTransform);
-			elem3->SetAttribute("itemSpacePositionx", j->itemSpacePosition.x);
-			elem3->SetAttribute("itemSpacePositiony", j->itemSpacePosition.y);
-			//elem3->SetAttribute("firstBoneMainShapeIdx", j->firstBoneMainShapeIdx);
-			//elem3->SetAttribute("numBoneMainShapes", j->numBoneMainShapes);
-			elem3->SetAttribute("burnBoundsMinx", j->burnBoundsMin.x);
-			elem3->SetAttribute("burnBoundsMiny", j->burnBoundsMin.y);
-			elem3->SetAttribute("burnBoundsMaxx", j->burnBoundsMax.x);
-			elem3->SetAttribute("burnBoundsMaxy", j->burnBoundsMax.y);
-			elem3->SetAttribute("burnGridSize", j->burnGridSize);
-			elem3->SetAttribute("burnGridWidth", j->burnGridWidth);
-			elem3->SetAttribute("burnGridHeight", j->burnGridHeight);
-			elem3->SetAttribute("firstBurnUsedIdx", j->firstBurnUsedIdx);
-			elem3->SetAttribute("firstPartsIdx", j->firstPartsIdx);
-			elem3->SetAttribute("numParts", j->numParts);
-			elem3->SetAttribute("firstPartTreeValIdx", j->firstPartTreeValIdx);
-			elem3->SetAttribute("numPartTreeVals", j->numPartTreeVals);
-			elem3->SetAttribute("connectedGroupIdx", j->connectedGroupIdx);
-			elem3->SetAttribute("firstRgnCellIdx", j->firstRgnCellIdx);
-			elem3->SetAttribute("numRgnCells", j->numRgnCells);
-			elem3->SetAttribute("igniteTimeEnumValId", j->igniteTimeEnumValId);
-			elem3->SetAttribute("burnTimeEnumValId", j->burnTimeEnumValId);
-			elem3->SetAttribute("attackSpeedEnumValId", j->attackSpeedEnumValId);
-			elem3->SetAttribute("attackAmountEnumValId", j->attackAmountEnumValId);
-			elem3->SetAttribute("decaySpeedEnumValId", j->decaySpeedEnumValId);
-			elem3->SetAttribute("burnAmountEnumValId", j->burnAmountEnumValId);
-			elem3->SetAttribute("boneDensityEnumValId", j->boneDensityEnumValId);
-			elem3->SetAttribute("collideSoundEnumValId", j->collideSoundEnumValId);
-			elem3->SetAttribute("igniteSoundEnumValId", j->igniteSoundEnumValId);
-			elem3->SetAttribute("decayParticlesEnumValId", j->decayParticlesEnumValId);
-			elem3->SetAttribute("igniteParticlesEnumValId", j->igniteParticlesEnumValId);
-			elem3->SetAttribute("frictionEnumValId", j->frictionEnumValId);
-			elem3->SetAttribute("restitutionEnumValId", j->restitutionEnumValId);
-			elem3->SetAttribute("linearDampEnumValId", j->linearDampEnumValId);
-			elem3->SetAttribute("angularDampEnumValId", j->angularDampEnumValId);
-			elem3->SetAttribute("behavior", j->behavior);
-			elem3->SetAttribute("shatterExpRadiusEnumValId", j->shatterExpRadiusEnumValId);
-			elem3->SetAttribute("shatterExpFireAmountEnumValId", j->shatterExpFireAmountEnumValId);
-			elem3->SetAttribute("shatterExpFireSpeedEnumValId", j->shatterExpFireSpeedEnumValId);
-			elem3->SetAttribute("shatterExpForceEnumValId", j->shatterExpForceEnumValId);
-			elem3->SetAttribute("shatterExpSoundEnumValId", j->shatterExpSoundEnumValId);
-			elem3->SetAttribute("shatterExpEffectEnumValId", j->shatterExpEffectEnumValId);
-			elem3->SetAttribute("shatterExpTimeRampDownEnumValId", j->shatterExpTimeRampDownEnumValId);
-			elem3->SetAttribute("shatterExpTimeHoldDownEnumValId", j->shatterExpTimeHoldDownEnumValId);
-			elem3->SetAttribute("shatterExpTimeRampUpEnumValId", j->shatterExpTimeRampUpEnumValId);
-			elem3->SetAttribute("shatterExpTimeFactorEnumValId", j->shatterExpTimeFactorEnumValId);
-			elem3->SetAttribute("shatterExpDoCamShakeEnumValId", j->shatterExpDoCamShakeEnumValId);
-			elem3->SetAttribute("ashBreakMinAccelEnumValId", j->ashBreakMinAccelEnumValId);
-			elem3->SetAttribute("ashBreakMaxAccelEnumValId", j->ashBreakMaxAccelEnumValId);
-			elem3->SetAttribute("splitSFXSmallEnumValId", j->splitSFXSmallEnumValId);
-			elem3->SetAttribute("splitSFXMediumEnumValId", j->splitSFXMediumEnumValId);
-			elem3->SetAttribute("splitSFXLargeEnumValId", j->splitSFXLargeEnumValId);
-			elem3->SetAttribute("splitBrittleEnumValId", j->splitBrittleEnumValId);
-			elem3->SetAttribute("splitThresholdEnumValId", j->splitThresholdEnumValId);
-			elem3->SetAttribute("splitEffectEnumValId", j->splitEffectEnumValId);
-			elem3->SetAttribute("ashSplitTimeBaseEnumValId", j->ashSplitTimeBaseEnumValId);
-			elem3->SetAttribute("ashSplitTimeVarEnumValId", j->ashSplitTimeVarEnumValId);
-			elem3->SetAttribute("splitDespawnEffectEnumValId", j->splitDespawnEffectEnumValId);
-			elem3->SetAttribute("stampBlackWhitePctEnumValId", j->stampBlackWhitePctEnumValId);
-			elem3->SetAttribute("smearAmountEnumValId", j->smearAmountEnumValId);
-			elem3->SetAttribute("collideParticlesEnumValId", j->collideParticlesEnumValId);
-			elem3->SetAttribute("explodeIgnoreBurnTriggerEnumValId", j->explodeIgnoreBurnTriggerEnumValId);
-			elem3->SetAttribute("postExplodeSplitTimeBaseEnumValId", j->postExplodeSplitTimeBaseEnumValId);
-			elem3->SetAttribute("postExplodeSplitTimeVarEnumValId", j->postExplodeSplitTimeVarEnumValId);
-			elem3->SetAttribute("explodeIgnitePiecesEnumValId", j->explodeIgnitePiecesEnumValId);
-			elem3->SetAttribute("postExplodeAshBreakMinAccelEnumValId", j->postExplodeAshBreakMinAccelEnumValId);
-			elem3->SetAttribute("autoRotateUprightEnumValId", j->autoRotateUprightEnumValId);
-			elem3->SetAttribute("mouseGrabSoundEnumValId", j->mouseGrabSoundEnumValId);
-			elem3->SetAttribute("instAshOnCollideEnumValId", j->instAshOnCollideEnumValId);
-			elem3->SetAttribute("applyGravityEnumValId", j->applyGravityEnumValId);
-			elem3->SetAttribute("splatParticlesEnumValId", j->splatParticlesEnumValId);
-			
-			//Add shapes for this bone
-			XMLElement* elem4;
-			for(int k = j->firstBoneMainShapeIdx; k < j->firstBoneMainShapeIdx + j->numBoneMainShapes; k++)
+			//Add bones for this skeleton
+			for(int k = j->firstBoneIdx; k < j->firstBoneIdx + j->numBones; k++)
 			{
-				elem4 = doc->NewElement("shape");
+				elem4 = doc->NewElement("bone");
+				//Use defaults as we have them
+				elem4->SetAttribute("angularDampEnumValId", vBoneRecords[iCurItemData][k].angularDampEnumValId);
+				elem4->SetAttribute("animBlockIdx", vBoneRecords[iCurItemData][k].animBlockIdx);
+				elem4->SetAttribute("animBlockTransform_11", vBoneRecords[iCurItemData][k].animBlockTransform._11);
+				elem4->SetAttribute("animBlockTransform_12", vBoneRecords[iCurItemData][k].animBlockTransform._12);
+				elem4->SetAttribute("animBlockTransform_13", vBoneRecords[iCurItemData][k].animBlockTransform._13);
+				elem4->SetAttribute("animBlockTransform_21", vBoneRecords[iCurItemData][k].animBlockTransform._21);
+				elem4->SetAttribute("animBlockTransform_22", vBoneRecords[iCurItemData][k].animBlockTransform._22);
+				elem4->SetAttribute("animBlockTransform_23", vBoneRecords[iCurItemData][k].animBlockTransform._23);
+				if(vBoneRecords[iCurItemData][k].applyGravityEnumValId != DEFAULT_APPLYGRAVITYENUMVALID)
+					elem4->SetAttribute("applyGravityEnumValId", vBoneRecords[iCurItemData][k].applyGravityEnumValId);
+				elem4->SetAttribute("ashBreakMaxAccelEnumValId", vBoneRecords[iCurItemData][k].ashBreakMaxAccelEnumValId);
+				elem4->SetAttribute("ashBreakMinAccelEnumValId", vBoneRecords[iCurItemData][k].ashBreakMinAccelEnumValId);
+				if(vBoneRecords[iCurItemData][k].ashSplitTimeBaseEnumValId != DEFAULT_ASHSPLITTIMEBASEENUMVALID)
+					elem4->SetAttribute("ashSplitTimeBaseEnumValId", vBoneRecords[iCurItemData][k].ashSplitTimeBaseEnumValId);
+				if(vBoneRecords[iCurItemData][k].ashSplitTimeVarEnumValId != DEFAULT_ASHSPLITTIMEVARENUMVALID)
+					elem4->SetAttribute("ashSplitTimeVarEnumValId", vBoneRecords[iCurItemData][k].ashSplitTimeVarEnumValId);
+				elem4->SetAttribute("attackAmountEnumValId", vBoneRecords[iCurItemData][k].attackAmountEnumValId);
+				elem4->SetAttribute("attackSpeedEnumValId", vBoneRecords[iCurItemData][k].attackSpeedEnumValId);
+				if(vBoneRecords[iCurItemData][k].autoRotateUprightEnumValId != DEFAULT_AUTOROTATEUPRIGHTENUMVALID)
+					elem4->SetAttribute("autoRotateUprightEnumValId", vBoneRecords[iCurItemData][k].autoRotateUprightEnumValId);
+				if(vBoneRecords[iCurItemData][k].behavior != DEFAULT_BEHAVIOR)
+					elem4->SetAttribute("behavior", vBoneRecords[iCurItemData][k].behavior);
+				elem4->SetAttribute("boneDensityEnumValId", vBoneRecords[iCurItemData][k].boneDensityEnumValId);
+				elem4->SetAttribute("burnAmountEnumValId", vBoneRecords[iCurItemData][k].burnAmountEnumValId);
+				elem4->SetAttribute("burnBoundsMaxx", vBoneRecords[iCurItemData][k].burnBoundsMax.x);
+				elem4->SetAttribute("burnBoundsMaxy", vBoneRecords[iCurItemData][k].burnBoundsMax.y);
+				elem4->SetAttribute("burnBoundsMinx", vBoneRecords[iCurItemData][k].burnBoundsMin.x);
+				elem4->SetAttribute("burnBoundsMiny", vBoneRecords[iCurItemData][k].burnBoundsMin.y);
+				elem4->SetAttribute("burnGridHeight", vBoneRecords[iCurItemData][k].burnGridHeight);
+				if(vBoneRecords[iCurItemData][k].burnGridSize != DEFAULT_BURNGRIDSIZE)
+					elem4->SetAttribute("burnGridSize", vBoneRecords[iCurItemData][k].burnGridSize);
+				elem4->SetAttribute("burnGridWidth", vBoneRecords[iCurItemData][k].burnGridWidth);
+				elem4->SetAttribute("burnTimeEnumValId", vBoneRecords[iCurItemData][k].burnTimeEnumValId);
+				elem4->SetAttribute("collideParticlesEnumValId", vBoneRecords[iCurItemData][k].collideParticlesEnumValId);
+				elem4->SetAttribute("collideSoundEnumValId", vBoneRecords[iCurItemData][k].collideSoundEnumValId);
+				if(vBoneRecords[iCurItemData][k].connectedGroupIdx != DEFAULT_CONNECTEDGROUPIDX)
+					elem4->SetAttribute("connectedGroupIdx", vBoneRecords[iCurItemData][k].connectedGroupIdx);
+				if(vBoneRecords[iCurItemData][k].decayParticlesEnumValId != DEFAULT_DECAYPARTICLESENUMVALID)
+					elem4->SetAttribute("decayParticlesEnumValId", vBoneRecords[iCurItemData][k].decayParticlesEnumValId);
+				elem4->SetAttribute("decaySpeedEnumValId", vBoneRecords[iCurItemData][k].decaySpeedEnumValId);
+				if(vBoneRecords[iCurItemData][k].explodeIgnitePiecesEnumValId != DEFAULT_EXPLODEIGNITEPIECESENUMVALID)
+					elem4->SetAttribute("explodeIgnitePiecesEnumValId", vBoneRecords[iCurItemData][k].explodeIgnitePiecesEnumValId);
+				if(vBoneRecords[iCurItemData][k].explodeIgnoreBurnTriggerEnumValId != DEFAULT_EXPLODEIGNOREBURNTRIGGERENUMVALID)
+					elem4->SetAttribute("explodeIgnoreBurnTriggerEnumValId", vBoneRecords[iCurItemData][k].explodeIgnoreBurnTriggerEnumValId);
+				elem4->SetAttribute("firstBurnUsedIdx", vBoneRecords[iCurItemData][k].firstBurnUsedIdx);
+				elem4->SetAttribute("firstPartTreeValIdx", vBoneRecords[iCurItemData][k].firstPartTreeValIdx);
+				elem4->SetAttribute("firstPartsIdx", vBoneRecords[iCurItemData][k].firstPartsIdx);
+				elem4->SetAttribute("firstRgnCellIdx", vBoneRecords[iCurItemData][k].firstRgnCellIdx);
+				elem4->SetAttribute("frictionEnumValId", vBoneRecords[iCurItemData][k].frictionEnumValId);
+				elem4->SetAttribute("id", vBoneRecords[iCurItemData][k].id);
+				if(vBoneRecords[iCurItemData][k].igniteParticlesEnumValId != DEFAULT_IGNITEPARTICLESENUMVALID)
+					elem4->SetAttribute("igniteParticlesEnumValId", vBoneRecords[iCurItemData][k].igniteParticlesEnumValId);
+				elem4->SetAttribute("igniteSoundEnumValId", vBoneRecords[iCurItemData][k].igniteSoundEnumValId);
+				elem4->SetAttribute("igniteTimeEnumValId", vBoneRecords[iCurItemData][k].igniteTimeEnumValId);
+				if(vBoneRecords[iCurItemData][k].instAshOnCollideEnumValId != DEFAULT_INSTASHONCOLLIDEENUMVALID)
+					elem4->SetAttribute("instAshOnCollideEnumValId", vBoneRecords[iCurItemData][k].instAshOnCollideEnumValId);
+				elem4->SetAttribute("itemSpacePositionx", vBoneRecords[iCurItemData][k].itemSpacePosition.x);
+				elem4->SetAttribute("itemSpacePositiony", vBoneRecords[iCurItemData][k].itemSpacePosition.y);
+				elem4->SetAttribute("linearDampEnumValId", vBoneRecords[iCurItemData][k].linearDampEnumValId);
+				elem4->SetAttribute("mouseGrabSoundEnumValId", vBoneRecords[iCurItemData][k].mouseGrabSoundEnumValId);
+				elem4->SetAttribute("numPartTreeVals", vBoneRecords[iCurItemData][k].numPartTreeVals);
+				if(vBoneRecords[iCurItemData][k].numParts != DEFAULT_NUMPARTS)
+					elem4->SetAttribute("numParts", vBoneRecords[iCurItemData][k].numParts);
+				if(vBoneRecords[iCurItemData][k].numRgnCells != DEFAULT_NUMRGNCELLS)
+					elem4->SetAttribute("numRgnCells", vBoneRecords[iCurItemData][k].numRgnCells);
+				if(vBoneRecords[iCurItemData][k].postExplodeAshBreakMinAccelEnumValId != DEFAULT_POSTEXPLODEASHBREAKMINACCELENUMVALID)
+					elem4->SetAttribute("postExplodeAshBreakMinAccelEnumValId", vBoneRecords[iCurItemData][k].postExplodeAshBreakMinAccelEnumValId);
+				if(vBoneRecords[iCurItemData][k].postExplodeSplitTimeBaseEnumValId != DEFAULT_POSTEXPLODESPLITTIMEBASEENUMVALID)
+					elem4->SetAttribute("postExplodeSplitTimeBaseEnumValId", vBoneRecords[iCurItemData][k].postExplodeSplitTimeBaseEnumValId);
+				if(vBoneRecords[iCurItemData][k].postExplodeSplitTimeVarEnumValId != DEFAULT_POSTEXPLODESPLITTIMEVARENUMVALID)
+					elem4->SetAttribute("postExplodeSplitTimeVarEnumValId", vBoneRecords[iCurItemData][k].postExplodeSplitTimeVarEnumValId);
+				elem4->SetAttribute("restitutionEnumValId", vBoneRecords[iCurItemData][k].restitutionEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpDoCamShakeEnumValId != DEFAULT_SHATTEREXPDOCAMSHAKEENUMVALID)
+					elem4->SetAttribute("shatterExpDoCamShakeEnumValId", vBoneRecords[iCurItemData][k].shatterExpDoCamShakeEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpEffectEnumValId != DEFAULT_SHATTEREXPEFFECTENUMVALID)
+					elem4->SetAttribute("shatterExpEffectEnumValId", vBoneRecords[iCurItemData][k].shatterExpEffectEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpFireAmountEnumValId != DEFAULT_SHATTEREXPFIREAMOUNTENUMVALID)
+					elem4->SetAttribute("shatterExpFireAmountEnumValId", vBoneRecords[iCurItemData][k].shatterExpFireAmountEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpFireSpeedEnumValId != DEFAULT_SHATTEREXPFIRESPEEDENUMVALID)
+					elem4->SetAttribute("shatterExpFireSpeedEnumValId", vBoneRecords[iCurItemData][k].shatterExpFireSpeedEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpForceEnumValId != DEFAULT_SHATTEREXPFORCEENUMVALID)
+					elem4->SetAttribute("shatterExpForceEnumValId", vBoneRecords[iCurItemData][k].shatterExpForceEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpRadiusEnumValId != DEFAULT_SHATTEREXPRADIUSENUMVALID)
+					elem4->SetAttribute("shatterExpRadiusEnumValId", vBoneRecords[iCurItemData][k].shatterExpRadiusEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpSoundEnumValId != DEFAULT_SHATTEREXPSOUNDENUMVALID)
+					elem4->SetAttribute("shatterExpSoundEnumValId", vBoneRecords[iCurItemData][k].shatterExpSoundEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpTimeFactorEnumValId != DEFAULT_SHATTEREXPTIMEFACTORENUMVALID)
+					elem4->SetAttribute("shatterExpTimeFactorEnumValId", vBoneRecords[iCurItemData][k].shatterExpTimeFactorEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpTimeHoldDownEnumValId != DEFAULT_SHATTEREXPTIMEHOLDDOWNENUMVALID)
+					elem4->SetAttribute("shatterExpTimeHoldDownEnumValId", vBoneRecords[iCurItemData][k].shatterExpTimeHoldDownEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpTimeRampDownEnumValId != DEFAULT_SHATTEREXPTIMERAMPDOWNENUMVALID)
+					elem4->SetAttribute("shatterExpTimeRampDownEnumValId", vBoneRecords[iCurItemData][k].shatterExpTimeRampDownEnumValId);
+				if(vBoneRecords[iCurItemData][k].shatterExpTimeRampUpEnumValId != DEFAULT_SHATTEREXPTIMERAMPUPENUMVALID)
+					elem4->SetAttribute("shatterExpTimeRampUpEnumValId", vBoneRecords[iCurItemData][k].shatterExpTimeRampUpEnumValId);
+				if(vBoneRecords[iCurItemData][k].smearAmountEnumValId != DEFAULT_SMEARAMOUNTENUMVALID)
+					elem4->SetAttribute("smearAmountEnumValId", vBoneRecords[iCurItemData][k].smearAmountEnumValId);
+				if(vBoneRecords[iCurItemData][k].splatParticlesEnumValId != DEFAULT_SPLATPARTICLESENUMVALID)
+					elem4->SetAttribute("splatParticlesEnumValId", vBoneRecords[iCurItemData][k].splatParticlesEnumValId);
+				if(vBoneRecords[iCurItemData][k].splitBrittleEnumValId != DEFAULT_SPLITBRITTLEENUMVALID)
+					elem4->SetAttribute("splitBrittleEnumValId", vBoneRecords[iCurItemData][k].splitBrittleEnumValId);
+				if(vBoneRecords[iCurItemData][k].splitDespawnEffectEnumValId != DEFAULT_SPLITDESPAWNEFFECTENUMVALID)
+					elem4->SetAttribute("splitDespawnEffectEnumValId", vBoneRecords[iCurItemData][k].splitDespawnEffectEnumValId);
+				if(vBoneRecords[iCurItemData][k].splitEffectEnumValId != DEFAULT_SPLITEFFECTENUMVALID)
+					elem4->SetAttribute("splitEffectEnumValId", vBoneRecords[iCurItemData][k].splitEffectEnumValId);
+				if(vBoneRecords[iCurItemData][k].splitSFXLargeEnumValId != DEFAULT_SPLITSFXLARGEENUMVALID)
+					elem4->SetAttribute("splitSFXLargeEnumValId", vBoneRecords[iCurItemData][k].splitSFXLargeEnumValId);
+				if(vBoneRecords[iCurItemData][k].splitSFXMediumEnumValId != DEFAULT_SPLITSFXMEDIUMENUMVALID)
+					elem4->SetAttribute("splitSFXMediumEnumValId", vBoneRecords[iCurItemData][k].splitSFXMediumEnumValId);
+				if(vBoneRecords[iCurItemData][k].splitSFXSmallEnumValId != DEFAULT_SPLITSFXSMALLENUMVALID)
+					elem4->SetAttribute("splitSFXSmallEnumValId", vBoneRecords[iCurItemData][k].splitSFXSmallEnumValId);
+				if(vBoneRecords[iCurItemData][k].splitThresholdEnumValId != DEFAULT_SPLITTHRESHOLDENUMVALID)
+					elem4->SetAttribute("splitThresholdEnumValId", vBoneRecords[iCurItemData][k].splitThresholdEnumValId);
+				elem4->SetAttribute("stampBlackWhitePctEnumValId", vBoneRecords[iCurItemData][k].stampBlackWhitePctEnumValId);
 				
-				if(vBoneShapes[iCurItemData][k].flags == TYPE_POLYGON)	//Polygon shape
+				//Add shapes for this bone
+				XMLElement* elem5;
+				for(int l = vBoneRecords[iCurItemData][k].firstBoneMainShapeIdx; l < vBoneRecords[iCurItemData][k].firstBoneMainShapeIdx + vBoneRecords[iCurItemData][k].numBoneMainShapes; l++)
 				{
-					elem4->SetAttribute("type", "polygon");
-					//Write vertices for this shape
-					XMLElement* elem5;
-					for(int l = 0; l < vBoneShapes[iCurItemData][k].numVerts; l++)
+					elem5 = doc->NewElement("shape");
+					
+					if(vBoneShapes[iCurItemData][l].flags == TYPE_POLYGON)	//Polygon shape
 					{
-						elem5 = doc->NewElement("vert");
-						
-						elem5->SetAttribute("x", vBoneShapes[iCurItemData][k].verts[l].x);
-						elem5->SetAttribute("y", vBoneShapes[iCurItemData][k].verts[l].y);
-						
-						elem4->InsertEndChild(elem5);
+						elem5->SetAttribute("type", "polygon");
+						//Write vertices for this shape
+						XMLElement* elem6;
+						for(int m = 0; m < vBoneShapes[iCurItemData][m].numVerts; m++)
+						{
+							elem6 = doc->NewElement("vert");
+							
+							elem6->SetAttribute("x", vBoneShapes[iCurItemData][m].verts[m].x);
+							elem6->SetAttribute("y", vBoneShapes[iCurItemData][m].verts[m].y);
+							
+							elem5->InsertEndChild(elem6);
+						}
 					}
-				}
-				else if(vBoneShapes[iCurItemData][k].flags == TYPE_CIRCLE)	//Circle shape
-				{
-					elem4->SetAttribute("type", "circle");
-					//Write vertices for this shape
-					XMLElement* elem5;
-					elem5 = doc->NewElement("center");
-					elem5->SetAttribute("x", vBoneShapes[iCurItemData][k].verts[0].x);
-					elem5->SetAttribute("y", vBoneShapes[iCurItemData][k].verts[0].y);
+					else if(vBoneShapes[iCurItemData][l].flags == TYPE_CIRCLE)	//Circle shape
+					{
+						elem5->SetAttribute("type", "circle");
+						//Write vertices for this shape
+						XMLElement* elem6;
+						elem6 = doc->NewElement("center");
+						elem6->SetAttribute("x", vBoneShapes[iCurItemData][l].verts[0].x);
+						elem6->SetAttribute("y", vBoneShapes[iCurItemData][l].verts[0].y);
+						elem5->InsertEndChild(elem6);
+						elem6 = doc->NewElement("radius");
+						elem6->SetAttribute("value", vBoneShapes[iCurItemData][l].verts[1].x);
+						elem5->InsertEndChild(elem6);
+					}
+					
 					elem4->InsertEndChild(elem5);
-					elem5 = doc->NewElement("radius");
-					elem5->SetAttribute("value", vBoneShapes[iCurItemData][k].verts[1].x);
-					elem4->InsertEndChild(elem5);
 				}
-				
-				/*elem4->SetAttribute("numVerts", vBoneShapes[iCurItemData][k].numVerts);
-				elem4->SetAttribute("vert1x", vBoneShapes[iCurItemData][k].verts[0].x);
-				elem4->SetAttribute("vert1y", vBoneShapes[iCurItemData][k].verts[0].y);
-				elem4->SetAttribute("vert2x", vBoneShapes[iCurItemData][k].verts[1].x);
-				elem4->SetAttribute("vert2y", vBoneShapes[iCurItemData][k].verts[1].y);
-				elem4->SetAttribute("vert3x", vBoneShapes[iCurItemData][k].verts[2].x);
-				elem4->SetAttribute("vert3y", vBoneShapes[iCurItemData][k].verts[2].y);
-				elem4->SetAttribute("vert4x", vBoneShapes[iCurItemData][k].verts[3].x);
-				elem4->SetAttribute("vert4y", vBoneShapes[iCurItemData][k].verts[3].y);
-				elem4->SetAttribute("vert5x", vBoneShapes[iCurItemData][k].verts[4].x);
-				elem4->SetAttribute("vert5y", vBoneShapes[iCurItemData][k].verts[4].y);
-				elem4->SetAttribute("vert6x", vBoneShapes[iCurItemData][k].verts[5].x);
-				elem4->SetAttribute("vert6y", vBoneShapes[iCurItemData][k].verts[5].y);
-				elem4->SetAttribute("vert7x", vBoneShapes[iCurItemData][k].verts[6].x);
-				elem4->SetAttribute("vert7y", vBoneShapes[iCurItemData][k].verts[6].y);
-				elem4->SetAttribute("vert8x", vBoneShapes[iCurItemData][k].verts[7].x);
-				elem4->SetAttribute("vert8y", vBoneShapes[iCurItemData][k].verts[7].y);
-				u32 flags;
-				i32 numVerts;
-				vec2 verts[ 8 ];*/
-				
 				
 				elem3->InsertEndChild(elem4);
+				
+				//DEBUG Now loop back through here and pull data from it all
+				//for(const XMLAttribute* att = elem4->FirstAttribute(); att != NULL; att = att->Next())
+				//	mOccurrences[att->Name()].push_back(att->Value());
 			}
 			
 			elem2->InsertEndChild(elem3);
 		}
 		
-		//DEBUG Now loop back through here and pull data from it all
-		//for(const XMLAttribute* att = elem2->FirstAttribute(); att != NULL; att = att->Next())
-		//	mOccurrences[att->Name()].push_back(att->Value());
-		
 		iCurItemData++;
 		//TODO: Write rest of XML stuff for rest of item data
 		elem->InsertEndChild(elem2);
+		#ifndef SPLIT_XML_FILES
 		root->InsertEndChild(elem);
+		#else
+		doc->InsertFirstChild(elem);
+		makeFolder(sXMLFilename);	//Create folders if they're not there, or next line will silently fail
+		doc->SaveFile(ws2s(sXMLFilename).c_str());
+		delete doc;
+		#endif
 	}
 	//oHash.close();
+	#ifndef SPLIT_XML_FILES
 	doc->InsertFirstChild(root);
 	doc->SaveFile(ws2s(sFilename).c_str());
-	
 	delete doc;
+	#else
+	itemmanifest->InsertEndChild(itemroot);
+	itemmanifest->SaveFile(ws2s(sFilename).c_str());
+	delete itemmanifest;
+	#endif
 	
 	//DEBUG: Save out all the data that we got in our map
 	/*ofstream ofile("map2.txt");
 	ofstream ofMap("map.txt");
 	ofstream ofCode("mapcode.txt");
-	for(map<wstring, list<wstring> >::iterator i = mOccurrences.begin(); i != mOccurrences.end(); i++)
+	for(map<string, list<string> >::iterator i = mOccurrences.begin(); i != mOccurrences.end(); i++)
 	{
 		//ofile << i->first << " ";
-		map<wstring, unsigned int> mPer;
+		map<string, unsigned int> mPer;
 		
 		//i->second.sort();
-		for(list<wstring>::iterator j = i->second.begin(); j != i->second.end(); j++)
+		for(list<string>::iterator j = i->second.begin(); j != i->second.end(); j++)
 		{
 			if(mPer.count(*j))
 				mPer[*j]++;
 			else
 				mPer[*j] = 1;
 		}
-		wstring sHighest = "";
+		string sHighest = "";
 		unsigned int iHighest = 0;
-		for(map<wstring, unsigned int>::iterator j = mPer.begin(); j != mPer.end(); j++)
+		for(map<string, unsigned int>::iterator j = mPer.begin(); j != mPer.end(); j++)
 		{
 			if(j->second > iHighest)
 			{
@@ -682,12 +771,12 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		{
 			ofile << i->first << " had the default value " << sHighest << ", which occurred " << iHighest << " times." << endl;
 			ofMap << "#define DEFAULT_" << stoupper(i->first) << "\t" << sHighest << endl;
-			ofCode << "\tif(vItemDataHeaders[iCurItemData]." << i->first << " != DEFAULT_" << stoupper(i->first) << ")" << endl
-				   << "\t\telem2->SetAttribute(\"" << i->first << "\", vItemDataHeaders[iCurItemData]." << i->first << ");" << endl;
+			ofCode << "\tif(j->" << i->first << " != DEFAULT_" << stoupper(i->first) << ")" << endl
+				   << "\t\telem3->SetAttribute(\"" << i->first << "\", j->" << i->first << ");" << endl;
 		}
 		else
 		{
-			ofCode << "\telem2->SetAttribute(\"" << i->first << "\", vItemDataHeaders[iCurItemData]." << i->first << ");" << endl;
+			ofCode << "\telem3->SetAttribute(\"" << i->first << "\", j->" << i->first << ");" << endl;
 		}
 		//ofile << *j << " ";
 		//ofile << endl << endl;

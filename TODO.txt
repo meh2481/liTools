@@ -1,10 +1,9 @@
 Support for new IDs and filenames in pakfiles:
 	-- small sndmanifest.dat in each mod where there are new sound files?
 	-- modManage support for these new files - spec for what files go in what pakfiles?
-Split itemmanifest.dat.xml stuff into separate files -- think of good way to merge new stuff in
+Think of good way to merge new stuff into XML files
 Add security features to prevent any old executable or potential virus from being inside a .pak file
 Add security (and bug-prevention) features to prevent any file outside of vdata/ or data/ from being compressed/decompressed
-myPicturesImage.dat, smokeImage.dat, & fluidPalettes.dat compression/decompression
 
 Support for .flac.ogg in filelists instead of .flac and stuff? (See README line 102)
 XML specification instead of .filelist.txt for mod creation?
@@ -22,3 +21,5 @@ Done
 * 1/19/13 * Small residmap.dat in each mod where there are new files
 * 1/25/13 * fontmanifest decompression/compression
 * 1/25/13 * .font.xml decompression/compression
+* 1/31/13 * myPicturesImage.dat, smokeImage.dat, & fluidPalettes.dat compression/decompression
+* 2/16/13 * Split itemmanifest.dat.xml stuff into separate files
