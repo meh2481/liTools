@@ -1,7 +1,7 @@
 //What we were given from Allan
 
-#ifndef LIDECOMPRESS_H
-#define LIDECOMPRESS_H
+#ifndef PAKDATATYPES_H
+#define PAKDATATYPES_H
 
 #include <cstdio>
 #include <tinyxml2.h>
@@ -18,8 +18,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <zlib.h>
-#define UNICODE
-#include <windows.h>
+#ifdef _WIN32
+	#define UNICODE
+	#include <windows.h>
+#endif
 using namespace tinyxml2;
 using namespace std;
 #define i32 int32_t
