@@ -584,7 +584,9 @@ takeRecord getOggData( const wchar_t* cFile );				//Grab the data from an OGG fi
 //loctex.cpp functions
 bool LoctexManifestToXML(wstring sFilename);				//Convert loctexmanifest.bin to XML
 bool XMLToLoctexManifest(wstring sFilename);				//Convert loctexmanifest.bin.xml back to binary form
-
+//parse.cpp functions
+void writeVec2(XMLElement* elem, string sAttributeName, vec2 vec);	//Write out a vec2 as one XML attribute
+void readVec2(XMLElement* elem, string sAttributeName, vec2* vec);	//Read a vec2 from one XML attribute
 
 
 
