@@ -577,6 +577,7 @@ wstring getSoundName(u32 soundResId);						//Get a sound filename from the sound
 //itemmanifest.cpp functions
 bool itemManifestToXML(const wchar_t* cFilename);			//Convert itemmanifest.dat to XML
 bool XMLToItemManifest(const wchar_t* cFilename);			//Convert itemmanifest.dat.xml back to binary .dat form
+wstring toLangString(u32 languageId);						//Convert a language ID to a string (for example, 0x656E becomes "en")
 //residmap.cpp functions
 void initResMap();											//Read in residmap.dat so that we can have the correct filenames for all resource files
 bool residMapToXML(const wchar_t* cFilename);				//Convert residmap.dat to XML

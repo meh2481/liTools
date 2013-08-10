@@ -98,6 +98,13 @@
 #define DEFAULT_SPLITSFXSMALLENUMVALID					1227225697
 #define DEFAULT_SPLITTHRESHOLDENUMVALID					1227225697
 
+wstring toLangString(u32 languageId)	//Convert a language ID to a string (for example, 0x656E becomes "en")
+{
+	wstring s;
+	s.push_back(languageId >> 8);
+	s.push_back(languageId & 0xFF);
+	return s;
+}
 
 wstring getNameFromAnim(wstring sAnimName)
 {
@@ -390,7 +397,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				return false;
 			}
 			//Store
-			vStringTableList[j] = ste;
+			vStringTableList.push_back(ste);
 		}
 		vStringTableEntries.push_back(vStringTableList);
 		iStringSize += sizeof(StringTableEntry) * sth.numStrings;
@@ -406,15 +413,16 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				return false;
 			}
 			//Store
-			vStringPointerList[j] = spe;
+			vStringPointerList.push_back(spe);
 		}
 		vStringPointerEntries.push_back(vStringPointerList);
 		iStringSize += sizeof(StringPointerEntry) * sth.numPointers;
+		//cout << "String size: " << iStringSize << ", StringTableBytes count: " << idh.stringTableBytes.count << endl;
 	
 		//Now read in the strings until we hit the end of where we're supposed to be
-		int c;
-		while((c = fgetc(f)))
+		while(true)
 		{
+			int c = fgetc(f);
 			if(c == '\\')	//Change all backslashes to forward slashes. Tsk, tsk, Allan.
 				c = '/';
 			vStringList.push_back(c);
@@ -422,18 +430,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				break;	//Done here
 		}
 		vStrings.push_back(vStringList);
-		
-		//DEBUG: Write it out
-		wchar_t* cData = vStringList.data();
-		for(int j = 0; j < sth.numStrings; j++)
-		{
-			for(int k = vStringTableList[j].pointerIndex; k < vStringTableList[j].pointerIndex + vStringTableList[j].pointerCount; k++)
-			{
-				wstring s = &cData[vStringPointerList[k].offset];
-				cout << "string lang id: " << vStringPointerList[k].languageId << ", offset: "
-				     << vStringPointerList[k].offset << ": " << ws2s(s) << endl;
-			}
-		}
 		//-----------------------------------------------------
 		
 		//Read in burn grid
@@ -857,10 +853,10 @@ bool itemManifestToXML(const wchar_t* cFilename)
 					for(int l = vBoneRecords[iCurItemData][k].firstPartsIdx; l < vBoneRecords[iCurItemData][k].firstPartsIdx + vBoneRecords[iCurItemData][k].numParts; l++)
 					{
 						XMLElement* elem6 = doc->NewElement("part");
-						elem6->SetAttribute("flags", vBoneParts[iCurItemData][k].flags);
-						elem6->SetAttribute("texId", vBoneParts[iCurItemData][k].texResId);
-						elem6->SetAttribute("normId", vBoneParts[iCurItemData][k].normalMapResId);
-						elem6->SetAttribute("pupilRange", vBoneParts[iCurItemData][k].pupilMoveRange);
+						elem6->SetAttribute("flags", vBoneParts[iCurItemData][l].flags);
+						elem6->SetAttribute("texId", vBoneParts[iCurItemData][l].texResId);
+						elem6->SetAttribute("normId", vBoneParts[iCurItemData][l].normalMapResId);
+						elem6->SetAttribute("pupilRange", vBoneParts[iCurItemData][l].pupilMoveRange);
 						elem5->InsertEndChild(elem6);
 					}
 					elem4->InsertEndChild(elem5);
@@ -873,7 +869,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 					for(int l = vBoneRecords[iCurItemData][k].firstPartTreeValIdx; l < vBoneRecords[iCurItemData][k].firstPartTreeValIdx + vBoneRecords[iCurItemData][k].numPartTreeVals; l++)
 					{
 						XMLElement* elem6 = doc->NewElement("value");
-						elem6->SetAttribute("val", vBonePartTreeValues[iCurItemData][k]);
+						elem6->SetAttribute("val", vBonePartTreeValues[iCurItemData][l]);
 						elem5->InsertEndChild(elem6);
 					}
 					elem4->InsertEndChild(elem5);
@@ -887,14 +883,12 @@ bool itemManifestToXML(const wchar_t* cFilename)
 					for(int l = vBoneRecords[iCurItemData][k].firstRgnCellIdx; l < vBoneRecords[iCurItemData][k].firstRgnCellIdx + vBoneRecords[iCurItemData][k].numRgnCells; l++)
 					{
 						XMLElement* elem6 = doc->NewElement("regionmapping");
-						elem6->SetAttribute("uid", vGridCellMappings[iCurItemData][k].regionUID);
-						elem6->SetAttribute("index", vGridCellMappings[iCurItemData][k].burnGridCellIdx);						
+						elem6->SetAttribute("uid", vGridCellMappings[iCurItemData][l].regionUID);
+						elem6->SetAttribute("index", vGridCellMappings[iCurItemData][l].burnGridCellIdx);						
 						elem5->InsertEndChild(elem6);
 					}
 					elem4->InsertEndChild(elem5);
 				}
-				
-				//TODO Add string table
 				
 				//Add burn grid
 				if(vBoneRecords[iCurItemData][k].burnGridWidth && vBoneRecords[iCurItemData][k].burnGridHeight)
@@ -922,8 +916,19 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem2->InsertEndChild(elem3);
 		}
 		
-		//TODO: Insert bone parts
-//		for(int j = 
+		//Add string table
+		for(int l = 0; l < vStringTableEntries[iCurItemData].size(); l++)
+		{
+			elem3 = doc->NewElement("text");
+			for(int m = vStringTableEntries[iCurItemData][l].pointerIndex; m < vStringTableEntries[iCurItemData][l].pointerIndex + vStringTableEntries[iCurItemData][l].pointerCount; m++)
+			{
+				XMLElement* elem6 = doc->NewElement("string");
+				elem6->SetAttribute("lang", ws2s(toLangString(vStringPointerEntries[iCurItemData][m].languageId)).c_str());	//TODO to actual language code (like "en" or such, as it is in dat file)
+				elem6->SetAttribute("data", ws2s(&(vStrings[iCurItemData].data()[vStringPointerEntries[iCurItemData][m].offset])).c_str());
+				elem3->InsertEndChild(elem6);
+			}
+			elem2->InsertEndChild(elem3);
+		}
 		
 		iCurItemData++;
 		//TODO: Write rest of XML stuff for rest of item data
