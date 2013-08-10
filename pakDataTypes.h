@@ -29,6 +29,7 @@ using namespace std;
 #define i16 int16_t
 #define u16 uint32_t
 #define f32	float
+#define byte uint8_t
 #define MAX_NUM_THREADS 128
 #define RESIDMAP_ID		0xB7E44207
 #define RESIDMAP_NAME	"vdata/residmap.dat"
@@ -94,7 +95,7 @@ typedef struct
 	i32 offset;
 } StringPointerEntry;
 
-#define LANGID_ENGLISH  0x656E
+#define LANGID_ENGLISH  0x656E	//"en"
 #define GREYSCALE_PNG	0x08
 #define STANDARD_PNG	0x01
 
@@ -399,6 +400,20 @@ typedef struct
 	i32 numVerts;
 	vec2 verts[ 8 ];
 } boneShapeRecord;
+
+typedef struct
+{
+	u32 flags;
+	u32 texResId;
+	u32 normalMapResId;
+	f32 pupilMoveRange;
+} bonePartRecord;
+
+typedef struct
+{
+	i32 regionUID;
+	i32 burnGridCellIdx;
+} boneGridCellMappingRegion;
 
 //Mark VI Structures - reverse-engineered .dat files (Thanks to Mygod)
 typedef struct

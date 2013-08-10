@@ -72,8 +72,8 @@
 #define DEFAULT_EXPLODEIGNOREBURNTRIGGERENUMVALID		1086434539
 #define DEFAULT_IGNITEPARTICLESENUMVALID				1227225697
 #define DEFAULT_INSTASHONCOLLIDEENUMVALID				1086434539
-#define DEFAULT_NUMPARTS								1
-#define DEFAULT_NUMRGNCELLS								0
+//#define DEFAULT_NUMPARTS								1
+//#define DEFAULT_NUMRGNCELLS								0
 #define DEFAULT_POSTEXPLODEASHBREAKMINACCELENUMVALID	1227225697
 #define DEFAULT_POSTEXPLODESPLITTIMEBASEENUMVALID		1227225697
 #define DEFAULT_POSTEXPLODESPLITTIMEVARENUMVALID		1227225697
@@ -235,6 +235,13 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	vector< vector<jointRecord> > vJointRecords;
 	vector< vector<boneRecord> > vBoneRecords;
 	vector< vector<boneShapeRecord> > vBoneShapes;
+	vector< vector<bonePartRecord> > vBoneParts;
+	vector< vector<i32> > vBonePartTreeValues;
+	vector< vector<boneGridCellMappingRegion> > vGridCellMappings;
+	vector< vector<StringTableEntry> > vStringTableEntries;
+	vector< vector<StringPointerEntry> > vStringPointerEntries;
+	vector< vector<wchar_t> > vStrings;
+	vector< vector<byte> > vBurnGrid;
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
 		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes, SEEK_SET);	//Seek to this position to read
@@ -307,9 +314,143 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			bsrv.push_back(bsr);
 		}
 		vBoneShapes.push_back(bsrv);
-	}
+		
+		//Read in bone part records
+		vector<bonePartRecord> vbpr;
+		for(int j = 0; j < idh.boneParts.count; j++)
+		{
+			bonePartRecord bpr;
+			if(fread(&bpr, 1, sizeof(bonePartRecord), f) != sizeof(bonePartRecord))
+			{
+				cout << "Error: Unable to read bonePartRecord from file " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+ 			}
+			vbpr.push_back(bpr);
+		}
+		vBoneParts.push_back(vbpr);
+		
+		//Read in bone tree values
+		vector<i32> vbtv;
+		for(int j = 0; j < idh.bonePartTreeVals.count; j++)
+		{
+			i32 boneTreeVal;
+			if(fread(&boneTreeVal, 1, sizeof(i32), f) != sizeof(i32))
+			{
+				cout << "Error: Unable to read boneTreeVal from file " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+ 			}
+			vbtv.push_back(boneTreeVal);
+		}
+		vBonePartTreeValues.push_back(vbtv);
+		
+		//Read in bone grid cell mapping regions
+		vector<boneGridCellMappingRegion> vbgcmr;
+		for(int j = 0; j < idh.rgnCells.count; j++)
+		{
+			boneGridCellMappingRegion bgcmr;
+			if(fread(&bgcmr, 1, sizeof(boneGridCellMappingRegion), f) != sizeof(boneGridCellMappingRegion))
+			{
+				cout << "Error: Unable to read boneGridCellMappingRegion from file " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+ 			}
+			vbgcmr.push_back(bgcmr);
+		}
+		vGridCellMappings.push_back(vbgcmr);
+		
+		//Read in string table-----------------------------------------------------------
+		int iStringSize = 0;
+		//Read in string table header
+		StringTableHeader sth;
+		if(fread((void*)&sth, 1, sizeof(StringTableHeader), f) != sizeof(StringTableHeader))
+		{
+			cout << "Error: Unable to read StringTableHeader from file " << ws2s(cFilename) << endl;
+			fclose(f);
+			return false;
+		}
+		iStringSize += sizeof(StringTableHeader);
 	
-	//TODO Read rest of item data
+		//Allocate memory for this many string table & pointer entries
+		vector<StringTableEntry> vStringTableList;
+		vector<StringPointerEntry> vStringPointerList;
+		vector<wchar_t> vStringList;
+		vStringTableList.reserve(sth.numStrings);
+		vStringPointerList.reserve(sth.numPointers);
+	
+		//Read in string table entries
+		for(int j = 0; j < sth.numStrings; j++)
+		{
+			StringTableEntry ste;
+			if(fread((void*)&ste, 1, sizeof(StringTableEntry), f) != sizeof(StringTableEntry))
+			{
+				cout << "Error: Unable to read StringTableEntry " << j << " out of " << sth.numStrings << " in " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+			}
+			//Store
+			vStringTableList[j] = ste;
+		}
+		vStringTableEntries.push_back(vStringTableList);
+		iStringSize += sizeof(StringTableEntry) * sth.numStrings;
+	
+		//and string table pointers
+		for(int j = 0; j < sth.numPointers; j++)
+		{
+			StringPointerEntry spe;
+			if(fread((void*)&spe, 1, sizeof(StringPointerEntry), f) != sizeof(StringPointerEntry))
+			{
+				cout << "Error: Unable to read StringPointerEntry " << j << " out of " << sth.numPointers << " in " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+			}
+			//Store
+			vStringPointerList[j] = spe;
+		}
+		vStringPointerEntries.push_back(vStringPointerList);
+		iStringSize += sizeof(StringPointerEntry) * sth.numPointers;
+	
+		//Now read in the strings until we hit the end of where we're supposed to be
+		int c;
+		while((c = fgetc(f)))
+		{
+			if(c == '\\')	//Change all backslashes to forward slashes. Tsk, tsk, Allan.
+				c = '/';
+			vStringList.push_back(c);
+			if(++iStringSize == idh.stringTableBytes.count)
+				break;	//Done here
+		}
+		vStrings.push_back(vStringList);
+		
+		//DEBUG: Write it out
+		wchar_t* cData = vStringList.data();
+		for(int j = 0; j < sth.numStrings; j++)
+		{
+			for(int k = vStringTableList[j].pointerIndex; k < vStringTableList[j].pointerIndex + vStringTableList[j].pointerCount; k++)
+			{
+				wstring s = &cData[vStringPointerList[k].offset];
+				cout << "string lang id: " << vStringPointerList[k].languageId << ", offset: "
+				     << vStringPointerList[k].offset << ": " << ws2s(s) << endl;
+			}
+		}
+		//-----------------------------------------------------
+		
+		//Read in burn grid
+		vector<byte> vbg;
+		for(int j = 0; j < idh.burnGridUsedDataBytes.count; j++)
+		{
+			byte cell;
+			if(fread(&cell, 1, 1, f) != 1)
+			{
+				cout << "Error: Unable to read grid cell from file " << ws2s(cFilename) << endl;
+				fclose(f);
+				return false;
+ 			}
+			vbg.push_back(cell);
+		}
+		vBurnGrid.push_back(vbg);
+	}
 	
 	fclose(f);
 	
@@ -583,10 +724,10 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				elem4->SetAttribute("burnBoundsMaxy", vBoneRecords[iCurItemData][k].burnBoundsMax.y);
 				elem4->SetAttribute("burnBoundsMinx", vBoneRecords[iCurItemData][k].burnBoundsMin.x);
 				elem4->SetAttribute("burnBoundsMiny", vBoneRecords[iCurItemData][k].burnBoundsMin.y);
-				elem4->SetAttribute("burnGridHeight", vBoneRecords[iCurItemData][k].burnGridHeight);
+				//elem4->SetAttribute("burnGridHeight", vBoneRecords[iCurItemData][k].burnGridHeight);
 				if(vBoneRecords[iCurItemData][k].burnGridSize != DEFAULT_BURNGRIDSIZE)
 					elem4->SetAttribute("burnGridSize", vBoneRecords[iCurItemData][k].burnGridSize);
-				elem4->SetAttribute("burnGridWidth", vBoneRecords[iCurItemData][k].burnGridWidth);
+				//elem4->SetAttribute("burnGridWidth", vBoneRecords[iCurItemData][k].burnGridWidth);
 				elem4->SetAttribute("burnTimeEnumValId", vBoneRecords[iCurItemData][k].burnTimeEnumValId);
 				elem4->SetAttribute("collideParticlesEnumValId", vBoneRecords[iCurItemData][k].collideParticlesEnumValId);
 				elem4->SetAttribute("collideSoundEnumValId", vBoneRecords[iCurItemData][k].collideSoundEnumValId);
@@ -600,9 +741,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				if(vBoneRecords[iCurItemData][k].explodeIgnoreBurnTriggerEnumValId != DEFAULT_EXPLODEIGNOREBURNTRIGGERENUMVALID)
 					elem4->SetAttribute("explodeIgnoreBurnTriggerEnumValId", vBoneRecords[iCurItemData][k].explodeIgnoreBurnTriggerEnumValId);
 				elem4->SetAttribute("firstBurnUsedIdx", vBoneRecords[iCurItemData][k].firstBurnUsedIdx);
-				elem4->SetAttribute("firstPartTreeValIdx", vBoneRecords[iCurItemData][k].firstPartTreeValIdx);
-				elem4->SetAttribute("firstPartsIdx", vBoneRecords[iCurItemData][k].firstPartsIdx);
-				elem4->SetAttribute("firstRgnCellIdx", vBoneRecords[iCurItemData][k].firstRgnCellIdx);
+				//elem4->SetAttribute("firstPartTreeValIdx", vBoneRecords[iCurItemData][k].firstPartTreeValIdx);
+				//elem4->SetAttribute("firstPartsIdx", vBoneRecords[iCurItemData][k].firstPartsIdx);
+				//elem4->SetAttribute("firstRgnCellIdx", vBoneRecords[iCurItemData][k].firstRgnCellIdx);
 				elem4->SetAttribute("frictionEnumValId", vBoneRecords[iCurItemData][k].frictionEnumValId);
 				elem4->SetAttribute("id", vBoneRecords[iCurItemData][k].id);
 				if(vBoneRecords[iCurItemData][k].igniteParticlesEnumValId != DEFAULT_IGNITEPARTICLESENUMVALID)
@@ -615,11 +756,11 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				elem4->SetAttribute("itemSpacePositiony", vBoneRecords[iCurItemData][k].itemSpacePosition.y);
 				elem4->SetAttribute("linearDampEnumValId", vBoneRecords[iCurItemData][k].linearDampEnumValId);
 				elem4->SetAttribute("mouseGrabSoundEnumValId", vBoneRecords[iCurItemData][k].mouseGrabSoundEnumValId);
-				elem4->SetAttribute("numPartTreeVals", vBoneRecords[iCurItemData][k].numPartTreeVals);
-				if(vBoneRecords[iCurItemData][k].numParts != DEFAULT_NUMPARTS)
-					elem4->SetAttribute("numParts", vBoneRecords[iCurItemData][k].numParts);
-				if(vBoneRecords[iCurItemData][k].numRgnCells != DEFAULT_NUMRGNCELLS)
-					elem4->SetAttribute("numRgnCells", vBoneRecords[iCurItemData][k].numRgnCells);
+				//elem4->SetAttribute("numPartTreeVals", vBoneRecords[iCurItemData][k].numPartTreeVals);
+				//if(vBoneRecords[iCurItemData][k].numParts != DEFAULT_NUMPARTS)
+				//	elem4->SetAttribute("numParts", vBoneRecords[iCurItemData][k].numParts);
+				//if(vBoneRecords[iCurItemData][k].numRgnCells != DEFAULT_NUMRGNCELLS)
+				//	elem4->SetAttribute("numRgnCells", vBoneRecords[iCurItemData][k].numRgnCells);
 				if(vBoneRecords[iCurItemData][k].postExplodeAshBreakMinAccelEnumValId != DEFAULT_POSTEXPLODEASHBREAKMINACCELENUMVALID)
 					elem4->SetAttribute("postExplodeAshBreakMinAccelEnumValId", vBoneRecords[iCurItemData][k].postExplodeAshBreakMinAccelEnumValId);
 				if(vBoneRecords[iCurItemData][k].postExplodeSplitTimeBaseEnumValId != DEFAULT_POSTEXPLODESPLITTIMEBASEENUMVALID)
@@ -709,6 +850,70 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				
 				elem3->InsertEndChild(elem4);
 				
+				//Add bone parts
+				if(vBoneRecords[iCurItemData][k].numParts)	//if there are any
+				{
+					elem5 = doc->NewElement("parts");
+					for(int l = vBoneRecords[iCurItemData][k].firstPartsIdx; l < vBoneRecords[iCurItemData][k].firstPartsIdx + vBoneRecords[iCurItemData][k].numParts; l++)
+					{
+						XMLElement* elem6 = doc->NewElement("part");
+						elem6->SetAttribute("flags", vBoneParts[iCurItemData][k].flags);
+						elem6->SetAttribute("texId", vBoneParts[iCurItemData][k].texResId);
+						elem6->SetAttribute("normId", vBoneParts[iCurItemData][k].normalMapResId);
+						elem6->SetAttribute("pupilRange", vBoneParts[iCurItemData][k].pupilMoveRange);
+						elem5->InsertEndChild(elem6);
+					}
+					elem4->InsertEndChild(elem5);
+				}
+				
+				//Add bone part tree
+				if(vBoneRecords[iCurItemData][k].numPartTreeVals)	//if there are any
+				{
+					elem5 = doc->NewElement("parttree");	//AND A PARTRIDGE IN A PART TREE
+					for(int l = vBoneRecords[iCurItemData][k].firstPartTreeValIdx; l < vBoneRecords[iCurItemData][k].firstPartTreeValIdx + vBoneRecords[iCurItemData][k].numPartTreeVals; l++)
+					{
+						XMLElement* elem6 = doc->NewElement("value");
+						elem6->SetAttribute("val", vBonePartTreeValues[iCurItemData][k]);
+						elem5->InsertEndChild(elem6);
+					}
+					elem4->InsertEndChild(elem5);
+				}
+				//TODO when reading back in, else firstPartTreeValIdx is -1
+				
+				//Add mapping regions
+				if(vBoneRecords[iCurItemData][k].numRgnCells)
+				{
+					elem5 = doc->NewElement("regions");
+					for(int l = vBoneRecords[iCurItemData][k].firstRgnCellIdx; l < vBoneRecords[iCurItemData][k].firstRgnCellIdx + vBoneRecords[iCurItemData][k].numRgnCells; l++)
+					{
+						XMLElement* elem6 = doc->NewElement("regionmapping");
+						elem6->SetAttribute("uid", vGridCellMappings[iCurItemData][k].regionUID);
+						elem6->SetAttribute("index", vGridCellMappings[iCurItemData][k].burnGridCellIdx);						
+						elem5->InsertEndChild(elem6);
+					}
+					elem4->InsertEndChild(elem5);
+				}
+				
+				//TODO Add string table
+				
+				//Add burn grid
+				if(vBoneRecords[iCurItemData][k].burnGridWidth && vBoneRecords[iCurItemData][k].burnGridHeight)
+				{
+					elem5 = doc->NewElement("burngrid");
+					elem5->SetAttribute("width", vBoneRecords[iCurItemData][k].burnGridWidth);
+					elem5->SetAttribute("height", vBoneRecords[iCurItemData][k].burnGridHeight);
+					wstring s;
+					for(int l = 0; l < vBoneRecords[iCurItemData][k].burnGridWidth * vBoneRecords[iCurItemData][k].burnGridHeight; l++)
+					{
+						if(vBurnGrid[iCurItemData][l])
+							s.push_back(L'1');
+						else
+							s.push_back(L'0');
+					}
+					elem5->SetAttribute("grid", ws2s(s).c_str());
+					elem4->InsertEndChild(elem5);
+				}
+				
 				//DEBUG Now loop back through here and pull data from it all
 				//for(const XMLAttribute* att = elem4->FirstAttribute(); att != NULL; att = att->Next())
 				//	mOccurrences[att->Name()].push_back(att->Value());
@@ -716,6 +921,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			
 			elem2->InsertEndChild(elem3);
 		}
+		
+		//TODO: Insert bone parts
+//		for(int j = 
 		
 		iCurItemData++;
 		//TODO: Write rest of XML stuff for rest of item data
