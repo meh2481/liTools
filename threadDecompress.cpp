@@ -147,6 +147,13 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 			//TODO unlink(ws2s(sFilename).c_str());
 		}
 		
+		//Convert combodb.dat to XML
+		else if(sFilename.find(TEXT("combodb.dat")) != wstring::npos)
+		{
+			comboDBToXML(sFilename.c_str());
+			//TODO unlink(ws2s(sFilename).c_str());
+		}
+		
 		//Convert residmap.dat to XML
 		else if(sFilename.find(TEXT("residmap.dat")) != wstring::npos)
 		{

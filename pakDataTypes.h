@@ -520,6 +520,34 @@ typedef struct
 	f32 kernAmount;
 } fontKerningRecord;
 
+//Mark VIII Structures - combo database structures
+typedef struct
+{
+	BinHdrPtr combos;
+	BinHdrPtr items;
+	BinHdrPtr stringTableBytes;
+} comboHeader;
+
+typedef struct
+{
+	u32 id;
+	i32 idStrTblIdx;
+	BinLocStrKey title;
+	i32 value;
+	i32 stampValue;
+	i32 firstItemIdx;
+	i32 numItems;
+} comboRecord;
+
+typedef struct
+{
+	u32 itemId;
+	i32 picTexX;
+	i32 picTexY;
+	i32 picTexW;
+	i32 picTexH;
+} comboItemRecord;
+
 //Structures for my use
 typedef struct
 {
@@ -578,6 +606,9 @@ wstring getSoundName(u32 soundResId);						//Get a sound filename from the sound
 bool itemManifestToXML(const wchar_t* cFilename);			//Convert itemmanifest.dat to XML
 bool XMLToItemManifest(const wchar_t* cFilename);			//Convert itemmanifest.dat.xml back to binary .dat form
 wstring toLangString(u32 languageId);						//Convert a language ID to a string (for example, 0x656E becomes "en")
+//combodb.cpp functions
+bool comboDBToXML(const wchar_t* cFilename);
+bool XMLToComboDB(const wchar_t* cFilename);
 //residmap.cpp functions
 void initResMap();											//Read in residmap.dat so that we can have the correct filenames for all resource files
 bool residMapToXML(const wchar_t* cFilename);				//Convert residmap.dat to XML

@@ -1005,7 +1005,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 //TODO Fix problems and stuff for next release
 bool XMLToItemManifest(const wchar_t* cFilename)
 {
-	/*//Open this XML file for parsing
+	//Open this XML file for parsing
 	wstring sXMLFile = cFilename;
 	sXMLFile += TEXT(".xml");
 	XMLDocument* doc = new XMLDocument;
@@ -1026,6 +1026,42 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		return false;
 	}
 	
+	//Get list of filenames to read in
+	list<wstring> lItemManifestFilenames;
+	for(XMLElement* elem = root->FirstChildElement(); elem != NULL; elem = elem->NextSiblingElement())
+	{
+		const char* filename = elem->Attribute("path");
+		if(filename != NULL)
+			lItemManifestFilenames.push_back(s2ws(filename));
+	}
+	
+	delete doc;	//Done with this file
+	
+	//Now loop through our files, reading in the data from each
+	for(list<wstring>::iterator i = lItemManifestFilenames.begin(); i != lItemManifestFilenames.end(); i++)
+	{
+		doc = new XMLDocument;
+		int iErr = doc->LoadFile(ws2s(*i).c_str());
+		if(iErr != XML_NO_ERROR)
+		{
+			cout << "Error parsing XML file " << ws2s(*i) << ": Error " << iErr << endl;
+			delete doc;
+			return false;
+		}
+		
+		//TODO Read stuff
+		
+		
+		
+		
+		
+		
+		
+		
+		delete doc;
+	}
+	
+	/*
 	//Read in all child elements
 	list<itemManifestRecord> lItemManifests;
 	list<normalDependency> lNormalDeps;
