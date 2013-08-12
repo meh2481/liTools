@@ -139,7 +139,7 @@ void makeFolder(wstring sFilename)
   
   return result;
 }*/
-
+#include <iomanip>
 bool itemManifestToXML(const wchar_t* cFilename)
 {
 	//Open the file
@@ -900,9 +900,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 					for(int l = 0; l < vBoneRecords[iCurItemData][k].burnGridWidth * vBoneRecords[iCurItemData][k].burnGridHeight; l++)
 					{
 						if(vBurnGrid[iCurItemData][l])
-							s.push_back(L'1');
+							s.push_back(TEXT('1'));
 						else
-							s.push_back(L'0');
+							s.push_back(TEXT('0'));
 					}
 					elem5->SetAttribute("grid", ws2s(s).c_str());
 					elem4->InsertEndChild(elem5);
@@ -923,7 +923,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			for(int m = vStringTableEntries[iCurItemData][l].pointerIndex; m < vStringTableEntries[iCurItemData][l].pointerIndex + vStringTableEntries[iCurItemData][l].pointerCount; m++)
 			{
 				XMLElement* elem6 = doc->NewElement("string");
-				elem6->SetAttribute("lang", ws2s(toLangString(vStringPointerEntries[iCurItemData][m].languageId)).c_str());	//TODO to actual language code (like "en" or such, as it is in dat file)
+				elem6->SetAttribute("lang", ws2s(toLangString(vStringPointerEntries[iCurItemData][m].languageId)).c_str());
 				elem6->SetAttribute("data", ws2s(&(vStrings[iCurItemData].data()[vStringPointerEntries[iCurItemData][m].offset])).c_str());
 				elem3->InsertEndChild(elem6);
 			}

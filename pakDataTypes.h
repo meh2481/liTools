@@ -531,7 +531,7 @@ typedef struct
 typedef struct
 {
 	u32 id;
-	i32 idStrTblIdx;
+	//i32 idStrTblIdx; //WHOA NELLIE This isn't here any more or something
 	BinLocStrKey title;
 	i32 value;
 	i32 stampValue;
