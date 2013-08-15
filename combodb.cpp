@@ -2,10 +2,13 @@
 #include "itemnames.h"
 
 bool comboDBToXML(const wchar_t* cFilename)
-{
+{	
+	map<u32, string> m_itemNames;
+	
 	//Set up map to get item names from IDs easily
 	//TODO: Support new items here
-	
+	for(int i = 0; i < NUM_ITEMNAMES; i++)
+		m_itemNames[g_itemNames[i].id] = g_itemNames[i].name;
 
 	//Open the file
 	FILE* f = _wfopen(cFilename, TEXT("rb"));
@@ -131,7 +134,7 @@ bool comboDBToXML(const wchar_t* cFilename)
 		{
 			XMLElement* elem3 = doc->NewElement("string");
 			elem3->SetAttribute("lang", ws2s(toLangString(vStringPointerList[j].languageId)).c_str());
-			elem3->SetAttribute("data", &(vStringList.data()[vStringPointerList[j].offset]));	//TODO: Why ASCII here?
+			elem3->SetAttribute("data", &(vStringList.data()[vStringPointerList[j].offset]));
 			elem2->InsertEndChild(elem3);
 		}
 		elem->InsertEndChild(elem2);
@@ -143,7 +146,8 @@ bool comboDBToXML(const wchar_t* cFilename)
 			for(int j = vCombos[i].firstItemIdx; j < vCombos[i].firstItemIdx + vCombos[i].numItems; j++)
 			{
 				XMLElement* elem4 = doc->NewElement("item");
-				elem4->SetAttribute("id", vComboItems[j].itemId);	//TODO: Item name
+				//elem4->SetAttribute("id", vComboItems[j].itemId);
+				elem4->SetAttribute("name", m_itemNames[vComboItems[j].itemId].c_str());
 				elem4->SetAttribute("texx", vComboItems[j].picTexX);
 				elem4->SetAttribute("texy", vComboItems[j].picTexY);
 				elem4->SetAttribute("texw", vComboItems[j].picTexW);
