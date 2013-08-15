@@ -106,6 +106,16 @@ wstring toLangString(u32 languageId)	//Convert a language ID to a string (for ex
 	return s;
 }
 
+u32 toLangID(wstring languageString)	//Convert a language string to an ID number (for example, "en" becomes 0x656E)
+{
+	string s = ws2s(languageString);
+	if(s.size() < 2) return 0;
+	u32 result;
+	result = s[1];
+	result += ((u32)(s[0])) << 8;
+	return result;
+}
+
 wstring getNameFromAnim(wstring sAnimName)
 {
 	sAnimName.erase(sAnimName.rfind(TEXT(".anim.xml")));	//Erase the ending off the string

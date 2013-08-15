@@ -606,6 +606,7 @@ wstring getSoundName(u32 soundResId);						//Get a sound filename from the sound
 bool itemManifestToXML(const wchar_t* cFilename);			//Convert itemmanifest.dat to XML
 bool XMLToItemManifest(const wchar_t* cFilename);			//Convert itemmanifest.dat.xml back to binary .dat form
 wstring toLangString(u32 languageId);						//Convert a language ID to a string (for example, 0x656E becomes "en")
+u32 toLangID(wstring languageString);						//Vice versa
 //combodb.cpp functions
 bool comboDBToXML(const wchar_t* cFilename);
 bool XMLToComboDB(const wchar_t* cFilename);

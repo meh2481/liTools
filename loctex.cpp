@@ -65,7 +65,8 @@ bool LoctexManifestToXML(wstring sFilename)
 		for(int j = i->index; j < i->index + i->count; j++)
 		{
 			XMLElement* elem2 = doc->NewElement("record");
-			elem2->SetAttribute("langid", vRecords[j].languageId);
+			//elem2->SetAttribute("langid", vRecords[j].languageId);
+			elem2->SetAttribute("lang", ws2s(toLangString(vRecords[j].languageId)).c_str());
 			elem2->SetAttribute("langfilename", ws2s(getName(vRecords[j].localizedResId)).c_str());
 			elem->InsertEndChild(elem2);
 		}
@@ -118,8 +119,11 @@ bool XMLToLoctexManifest(wstring sFilename)
 			const char* resid = elem2->Attribute("langfilename");
 			if(resid == NULL) continue;
 			loctexRecord lr;
-			lr.languageId = 0;
-			if(elem2->QueryUnsignedAttribute("langid", &lr.languageId) != XML_NO_ERROR) continue;
+			lr.languageId = LANGID_ENGLISH;
+			const char* lang = elem2->Attribute("lang");
+			if(lang == NULL) continue;
+			lr.languageId = toLangID(s2ws(lang));
+			//if(elem2->QueryUnsignedAttribute("langid", &lr.languageId) != XML_NO_ERROR) continue;
 			lr.localizedResId = getResID(s2ws(resid));
 			lRecords.push_back(lr);
 			lf.count++;
