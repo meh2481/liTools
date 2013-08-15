@@ -247,7 +247,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	vector< vector<boneGridCellMappingRegion> > vGridCellMappings;
 	vector< vector<StringTableEntry> > vStringTableEntries;
 	vector< vector<StringPointerEntry> > vStringPointerEntries;
-	vector< vector<wchar_t> > vStrings;
+	vector< vector<char> > vStrings;
 	vector< vector<byte> > vBurnGrid;
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
@@ -382,7 +382,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		//Allocate memory for this many string table & pointer entries
 		vector<StringTableEntry> vStringTableList;
 		vector<StringPointerEntry> vStringPointerList;
-		vector<wchar_t> vStringList;
+		vector<char> vStringList;
 		vStringTableList.reserve(sth.numStrings);
 		vStringPointerList.reserve(sth.numPointers);
 	
@@ -468,6 +468,16 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	//map<string, list<string> > mOccurrences;
 	//
 	//ofstream oHash("hash2.txt");
+	
+	//DEBUG: Write out item name and ID, for easy conversion back-and-forth
+	/*ofstream onames("itemnames.h");
+	onames << "//Itemmanifest item names" << endl << endl
+		   << "#ifndef ITEMNAMES_H" << endl << "#define ITEMNAMES_H" << endl << endl
+		   << "#define NUM_ITEMNAMES " << lManifestRecords.size() << endl << endl
+		   << "typedef struct" << endl << "{" << endl << "    u32 id;" << endl << "    const char* name;" << endl
+		   << "} itemName;" << endl << endl
+		   << "const itemName g_itemNames[NUM_ITEMNAMES] = {" << endl;*/
+	
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
 		#ifdef SPLIT_XML_FILES
@@ -694,12 +704,12 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				//Use defaults as we have them
 				elem4->SetAttribute("angularDampEnumValId", vBoneRecords[iCurItemData][k].angularDampEnumValId);
 				elem4->SetAttribute("animBlockIdx", vBoneRecords[iCurItemData][k].animBlockIdx);
-				elem4->SetAttribute("animBlockTransform_11", vBoneRecords[iCurItemData][k].animBlockTransform._11);
+				/*elem4->SetAttribute("animBlockTransform_11", vBoneRecords[iCurItemData][k].animBlockTransform._11);
 				elem4->SetAttribute("animBlockTransform_12", vBoneRecords[iCurItemData][k].animBlockTransform._12);
 				elem4->SetAttribute("animBlockTransform_13", vBoneRecords[iCurItemData][k].animBlockTransform._13);
 				elem4->SetAttribute("animBlockTransform_21", vBoneRecords[iCurItemData][k].animBlockTransform._21);
 				elem4->SetAttribute("animBlockTransform_22", vBoneRecords[iCurItemData][k].animBlockTransform._22);
-				elem4->SetAttribute("animBlockTransform_23", vBoneRecords[iCurItemData][k].animBlockTransform._23);
+				elem4->SetAttribute("animBlockTransform_23", vBoneRecords[iCurItemData][k].animBlockTransform._23);*/
 				if(vBoneRecords[iCurItemData][k].applyGravityEnumValId != DEFAULT_APPLYGRAVITYENUMVALID)
 					elem4->SetAttribute("applyGravityEnumValId", vBoneRecords[iCurItemData][k].applyGravityEnumValId);
 				elem4->SetAttribute("ashBreakMaxAccelEnumValId", vBoneRecords[iCurItemData][k].ashBreakMaxAccelEnumValId);
@@ -721,8 +731,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				elem4->SetAttribute("burnBoundsMinx", vBoneRecords[iCurItemData][k].burnBoundsMin.x);
 				elem4->SetAttribute("burnBoundsMiny", vBoneRecords[iCurItemData][k].burnBoundsMin.y);
 				//elem4->SetAttribute("burnGridHeight", vBoneRecords[iCurItemData][k].burnGridHeight);
-				if(vBoneRecords[iCurItemData][k].burnGridSize != DEFAULT_BURNGRIDSIZE)
-					elem4->SetAttribute("burnGridSize", vBoneRecords[iCurItemData][k].burnGridSize);
 				//elem4->SetAttribute("burnGridWidth", vBoneRecords[iCurItemData][k].burnGridWidth);
 				elem4->SetAttribute("burnTimeEnumValId", vBoneRecords[iCurItemData][k].burnTimeEnumValId);
 				elem4->SetAttribute("collideParticlesEnumValId", vBoneRecords[iCurItemData][k].collideParticlesEnumValId);
@@ -736,7 +744,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 					elem4->SetAttribute("explodeIgnitePiecesEnumValId", vBoneRecords[iCurItemData][k].explodeIgnitePiecesEnumValId);
 				if(vBoneRecords[iCurItemData][k].explodeIgnoreBurnTriggerEnumValId != DEFAULT_EXPLODEIGNOREBURNTRIGGERENUMVALID)
 					elem4->SetAttribute("explodeIgnoreBurnTriggerEnumValId", vBoneRecords[iCurItemData][k].explodeIgnoreBurnTriggerEnumValId);
-				elem4->SetAttribute("firstBurnUsedIdx", vBoneRecords[iCurItemData][k].firstBurnUsedIdx);
+				//elem4->SetAttribute("firstBurnUsedIdx", vBoneRecords[iCurItemData][k].firstBurnUsedIdx);
 				//elem4->SetAttribute("firstPartTreeValIdx", vBoneRecords[iCurItemData][k].firstPartTreeValIdx);
 				//elem4->SetAttribute("firstPartsIdx", vBoneRecords[iCurItemData][k].firstPartsIdx);
 				//elem4->SetAttribute("firstRgnCellIdx", vBoneRecords[iCurItemData][k].firstRgnCellIdx);
@@ -894,6 +902,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				if(vBoneRecords[iCurItemData][k].burnGridWidth && vBoneRecords[iCurItemData][k].burnGridHeight)
 				{
 					elem5 = doc->NewElement("burngrid");
+					elem5->SetAttribute("firstpos", vBoneRecords[iCurItemData][k].firstBurnUsedIdx);
+					if(vBoneRecords[iCurItemData][k].burnGridSize != DEFAULT_BURNGRIDSIZE)
+						elem5->SetAttribute("size", vBoneRecords[iCurItemData][k].burnGridSize);
 					elem5->SetAttribute("width", vBoneRecords[iCurItemData][k].burnGridWidth);
 					elem5->SetAttribute("height", vBoneRecords[iCurItemData][k].burnGridHeight);
 					wstring s;
@@ -911,6 +922,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				//DEBUG Now loop back through here and pull data from it all
 				//for(const XMLAttribute* att = elem4->FirstAttribute(); att != NULL; att = att->Next())
 				//	mOccurrences[att->Name()].push_back(att->Value());
+				
+				//Write matrix stuff
+				WriteTransforms(elem4, doc, vBoneRecords[iCurItemData][k].animBlockTransform);
 			}
 			
 			elem2->InsertEndChild(elem3);
@@ -924,11 +938,28 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			{
 				XMLElement* elem6 = doc->NewElement("string");
 				elem6->SetAttribute("lang", ws2s(toLangString(vStringPointerEntries[iCurItemData][m].languageId)).c_str());
-				elem6->SetAttribute("data", ws2s(&(vStrings[iCurItemData].data()[vStringPointerEntries[iCurItemData][m].offset])).c_str());
+				elem6->SetAttribute("data", &(vStrings[iCurItemData].data()[vStringPointerEntries[iCurItemData][m].offset]));
 				elem3->InsertEndChild(elem6);
 			}
 			elem2->InsertEndChild(elem3);
 		}
+		
+		//DEBUG: Write item ID and name
+		//onames << "{967411u,\"data/items/SpiderEggSpider/colorbgicon\"},"
+		//onames << "{" << i->itemId << "u,\"" << ws2s(mItemNames[i->itemId]) << "\"}," << endl;// 967411u,\"data/items/SpiderEggSpider/colorbgicon\"},"
+
+/*#ifndef RESIDMAP_H
+#define RESIDMAP_H
+
+#define NUM_MAPPINGS	3910
+
+typedef struct
+{
+	u32 id;
+	const char* name;
+} residMap;
+
+const residMap g_residMap[NUM_MAPPINGS] = {"*/
 		
 		iCurItemData++;
 		//TODO: Write rest of XML stuff for rest of item data
@@ -942,6 +973,10 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		delete doc;
 		#endif
 	}
+	
+	//DEBUG
+	//onames << "};" << endl << endl << endl << "#endif" << endl;
+	//onames.close();
 	//oHash.close();
 	#ifndef SPLIT_XML_FILES
 	doc->InsertFirstChild(root);

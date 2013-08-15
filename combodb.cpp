@@ -1,7 +1,12 @@
 #include "pakDataTypes.h"
+#include "itemnames.h"
 
 bool comboDBToXML(const wchar_t* cFilename)
 {
+	//Set up map to get item names from IDs easily
+	//TODO: Support new items here
+	
+
 	//Open the file
 	FILE* f = _wfopen(cFilename, TEXT("rb"));
 	if(f == NULL)
@@ -60,7 +65,7 @@ bool comboDBToXML(const wchar_t* cFilename)
 	//Allocate memory for this many string table & pointer entries
 	vector<StringTableEntry> vStringTableList;
 	vector<StringPointerEntry> vStringPointerList;
-	vector<wchar_t> vStringList;
+	vector<char> vStringList;
 	vStringTableList.reserve(sth.numStrings);
 	vStringPointerList.reserve(sth.numPointers);
 
@@ -98,7 +103,7 @@ bool comboDBToXML(const wchar_t* cFilename)
 	{
 		if(c == '\\')	//Change all backslashes to forward slashes.
 			c = '/';
-		vStringList.push_back(c);
+		vStringList.push_back(wchar_t(c));
 	}
 	//-----------------------------------------------------
 	
@@ -126,7 +131,7 @@ bool comboDBToXML(const wchar_t* cFilename)
 		{
 			XMLElement* elem3 = doc->NewElement("string");
 			elem3->SetAttribute("lang", ws2s(toLangString(vStringPointerList[j].languageId)).c_str());
-			elem3->SetAttribute("data", ws2s(&(vStringList.data()[vStringPointerList[j].offset])).c_str());	//TODO: Why ASCII here?
+			elem3->SetAttribute("data", &(vStringList.data()[vStringPointerList[j].offset]));	//TODO: Why ASCII here?
 			elem2->InsertEndChild(elem3);
 		}
 		elem->InsertEndChild(elem2);

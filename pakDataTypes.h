@@ -636,6 +636,8 @@ bool XMLToLoctexManifest(wstring sFilename);				//Convert loctexmanifest.bin.xml
 //parse.cpp functions
 void writeVec2(XMLElement* elem, string sAttributeName, vec2 vec);	//Write out a vec2 as one XML attribute
 void readVec2(XMLElement* elem, string sAttributeName, vec2* vec);	//Read a vec2 from one XML attribute
+//matrix.cpp functions
+void WriteTransforms(XMLElement* elemParent, XMLDocument* doc, mtx23 mat);	//Write a matrix to XML in most readable format
 
 
 
