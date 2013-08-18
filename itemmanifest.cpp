@@ -15,7 +15,7 @@
 #define DEFAULT_COLLIDEENVIRONMENT		1
 #define DEFAULT_COLLIDEITEMS			1
 #define DEFAULT_COSTSTAMPS				0
-#define DEFAULT_DESCKEY					2
+//#define DEFAULT_DESCKEY					2
 #define DEFAULT_ENABLEFREEZEPOSTANIM	1
 #define DEFAULT_ENABLEHFLIP				1
 #define DEFAULT_FLOORWALLSHADOW			1
@@ -47,7 +47,7 @@
 #define DEFAULT_MOTORTHRESHOLD			-1
 #define DEFAULT_MOUSEGRABSOUNDRESID		0
 #define DEFAULT_MOUSEGRABBABLE			1
-#define DEFAULT_NAMEKEY					1
+//#define DEFAULT_NAMEKEY					1
 #define DEFAULT_ORBITALGRAVITY			0
 #define DEFAULT_PLAGUEONCOLLIDE			0
 #define DEFAULT_POPSCOINS				1
@@ -575,9 +575,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		elem2->SetAttribute("costCoins", vItemDataHeaders[iCurItemData].costCoins);
 		if(vItemDataHeaders[iCurItemData].costStamps != DEFAULT_COSTSTAMPS)
 			elem2->SetAttribute("costStamps", vItemDataHeaders[iCurItemData].costStamps);
-		elem2->SetAttribute("descid", vItemDataHeaders[iCurItemData].desc.id);
-		if(vItemDataHeaders[iCurItemData].desc.key != DEFAULT_DESCKEY)
-			elem2->SetAttribute("desckey", vItemDataHeaders[iCurItemData].desc.key);
+		elem2->SetAttribute("descid", vItemDataHeaders[iCurItemData].desc.id);	//TODO: What for?
+		//if(vItemDataHeaders[iCurItemData].desc.key != DEFAULT_DESCKEY)
+		//	elem2->SetAttribute("desckey", vItemDataHeaders[iCurItemData].desc.key);
 		if(vItemDataHeaders[iCurItemData].enableFreezePostAnim != DEFAULT_ENABLEFREEZEPOSTANIM)
 			elem2->SetAttribute("enableFreezePostAnim", vItemDataHeaders[iCurItemData].enableFreezePostAnim);
 		if(vItemDataHeaders[iCurItemData].enableHFlip != DEFAULT_ENABLEHFLIP)
@@ -602,8 +602,8 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem2->SetAttribute("instAshSoundResId", vItemDataHeaders[iCurItemData].instAshSoundResId);
 		if(vItemDataHeaders[iCurItemData].instantEffects != DEFAULT_INSTANTEFFECTS)
 			elem2->SetAttribute("instantEffects", vItemDataHeaders[iCurItemData].instantEffects);
-		if(vItemDataHeaders[iCurItemData].itemIdStrId != DEFAULT_ITEMIDSTRID)
-			elem2->SetAttribute("itemIdStrId", vItemDataHeaders[iCurItemData].itemIdStrId);
+		//if(vItemDataHeaders[iCurItemData].itemIdStrId != DEFAULT_ITEMIDSTRID)
+		//	elem2->SetAttribute("itemIdStrId", vItemDataHeaders[iCurItemData].itemIdStrId);
 		if(vItemDataHeaders[iCurItemData].modXAmpMax != DEFAULT_MODXAMPMAX)
 			elem2->SetAttribute("modXAmpMax", vItemDataHeaders[iCurItemData].modXAmpMax);
 		if(vItemDataHeaders[iCurItemData].modXAmpMin != DEFAULT_MODXAMPMIN)
@@ -644,9 +644,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem2->SetAttribute("mouseGrabSoundResId", vItemDataHeaders[iCurItemData].mouseGrabSoundResId);
 		if(vItemDataHeaders[iCurItemData].mouseGrabbable != DEFAULT_MOUSEGRABBABLE)
 			elem2->SetAttribute("mouseGrabbable", vItemDataHeaders[iCurItemData].mouseGrabbable);
-		elem2->SetAttribute("nameid", vItemDataHeaders[iCurItemData].name.id);
-		if(vItemDataHeaders[iCurItemData].name.key != DEFAULT_NAMEKEY)
-			elem2->SetAttribute("namekey", vItemDataHeaders[iCurItemData].name.key);
+		elem2->SetAttribute("nameid", vItemDataHeaders[iCurItemData].name.id);	//TODO: What for?
+		//if(vItemDataHeaders[iCurItemData].name.key != DEFAULT_NAMEKEY)
+		//	elem2->SetAttribute("namekey", vItemDataHeaders[iCurItemData].name.key);
 		if(vItemDataHeaders[iCurItemData].orbitalGravity != DEFAULT_ORBITALGRAVITY)
 			elem2->SetAttribute("orbitalGravity", vItemDataHeaders[iCurItemData].orbitalGravity);
 		if(vItemDataHeaders[iCurItemData].plagueOnCollide != DEFAULT_PLAGUEONCOLLIDE)
@@ -943,7 +943,14 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		//Add string table
 		for(int l = 0; l < vStringTableEntries[iCurItemData].size(); l++)
 		{
-			elem3 = doc->NewElement("text");
+			if(l == vItemDataHeaders[iCurItemData].itemIdStrId)
+				elem3 = doc->NewElement("id");
+			else if(l == vItemDataHeaders[iCurItemData].name.key)
+				elem3 = doc->NewElement("name");
+			else if(l == vItemDataHeaders[iCurItemData].desc.key)
+				elem3 = doc->NewElement("description");
+			else
+				elem3 = doc->NewElement("text");
 			for(int m = vStringTableEntries[iCurItemData][l].pointerIndex; m < vStringTableEntries[iCurItemData][l].pointerIndex + vStringTableEntries[iCurItemData][l].pointerCount; m++)
 			{
 				XMLElement* elem6 = doc->NewElement("string");
