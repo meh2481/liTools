@@ -5,7 +5,7 @@ comressobjects = $(objects) liCompress.o threadCompress.o
 HEADER = -I./include
 LIB = -L./libs -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
 
-all : liDecompress.exe liCompress.exe recalcSoundManifest.exe strip.exe modManage.exe util/pullpakfiles.exe util/removeresc.exe util/repack.exe util/test.exe util/WinResource.exe
+all : liDecompress.exe liCompress.exe recalcSoundManifest.exe strip.exe modManage.exe util/pullpakfiles.exe util/removeresc.exe util/repack.exe util/hash.exe util/WinResource.exe
  
 liDecompress.exe : $(decompressobjects)
 	g++ -Wall -O2 -o $@ $(decompressobjects) $(LIB)
@@ -23,10 +23,10 @@ util/removeresc.exe : util/removeresc.o
 	g++ -Wall -O2 -o $@ $<
 util/repack.exe : util/repack.o
 	g++ -Wall -O2 -o $@ $< $(LIB)
-util/test.exe : util/test.o
-	g++ -Wall -O2 -o $@ $< $(LIB)
 util/WinResource.exe : util/WinResource.o
 	g++ -Wall -O2 -o $@ $<
+util/hash.exe : util/hash.o
+	g++ -Wall -O2 -o $@ $< residmap.o $(LIB)
 	
 %.o: %.cpp
 	g++ -O2 -c -MMD -o $@ $< $(HEADER)
