@@ -7,6 +7,7 @@
 #include <cfloat>
 
 #define PI 3.1415926535
+#define EPSILON	0.001
 
 float DegreeToRadian(float fAngle)
 {
@@ -80,7 +81,7 @@ int Sign(float f)
 bool FloatEquals(float a, float b)
 {
 	float diff = abs(a-b);
-	if(diff < FLT_MIN * 10.0)	//Very small #
+	if(diff < EPSILON)	//Very small #
 		return true;
 	return false;
 }
@@ -89,8 +90,8 @@ void WriteTransforms(XMLElement* elemParent, XMLDocument* doc, mtx23 mat)
 {
 	XMLElement* elem = doc->NewElement("transforms");
 	//var result = new StringBuilder("<transforms>\r\n");
-	if ((abs(mat._11) < FLT_MIN || abs(mat._22) < FLT_MIN)    // the only kind of matrices that cannot be processed so far
-		&& (abs(mat._11) > FLT_MIN || abs(mat._22) > FLT_MIN || Sign(mat._12) != -Sign(mat._21)))
+	if ((abs(mat._11) < EPSILON || abs(mat._22) < EPSILON)    // the only kind of matrices that cannot be processed so far
+		&& (abs(mat._11) > EPSILON || abs(mat._22) > EPSILON || Sign(mat._12) != -Sign(mat._21)))
 	{
 		// if this condition (after &&) is false, the transform is rotating ±90° which is able to be processed
 		//result.AppendLine(string.Format("  <matrix matrix='{0},{1},{2},{3},{4},{5}' />", _11, _12, _13, _21, _22, _23));
@@ -106,9 +107,9 @@ void WriteTransforms(XMLElement* elemParent, XMLDocument* doc, mtx23 mat)
 		if (FloatEquals(ratio_a, ratio_b)) // SCALE*ROTATE
 		{
 			float theta = atan(ratio_a), cosine = cos(theta), sine = sin(theta), 
-				   scale_x = (abs(mat._11) > FLT_MIN) ? (mat._11 / cosine) : (mat._21 / sine),
-				   scale_y = (abs(mat._22) > FLT_MIN) ? (mat._22 / cosine) : (-mat._12 / sine);
-			if (abs(scale_x - 1.0) > FLT_MIN || abs(scale_y - 1.0) > FLT_MIN)
+				   scale_x = (abs(mat._11) > EPSILON) ? (mat._11 / cosine) : (mat._21 / sine),
+				   scale_y = (abs(mat._22) > EPSILON) ? (mat._22 / cosine) : (-mat._12 / sine);
+			if (abs(scale_x - 1.0) > EPSILON || abs(scale_y - 1.0) > EPSILON)
 			{
 				//result.AppendLine(string.Format("  <scale factor='{0},{1}' />", scale_x, scale_y));
 				XMLElement* elem2 = doc->NewElement("scale");
@@ -117,7 +118,7 @@ void WriteTransforms(XMLElement* elemParent, XMLDocument* doc, mtx23 mat)
 				elem2->SetAttribute("factor", oss.str().c_str());
 				elem->InsertEndChild(elem2);
 			}
-			if (abs(theta) > FLT_MIN) 
+			if (abs(theta) > EPSILON) 
 			{
 				//result.AppendLine(string.Format("  <rotate angle='{0}' />", RadianToDegree(theta)));
 				XMLElement* elem2 = doc->NewElement("rotate");
@@ -128,7 +129,7 @@ void WriteTransforms(XMLElement* elemParent, XMLDocument* doc, mtx23 mat)
 		else                                                                // SCALE*SKEW
 		{
 			float scale_x = mat._11, scale_y = mat._22, skew_x = mat._12 / scale_y, skew_y = mat._21 / scale_x;
-			if (abs(scale_x - 1.0) > FLT_MIN || abs(scale_y - 1.0) > FLT_MIN)
+			if (abs(scale_x - 1.0) > EPSILON || abs(scale_y - 1.0) > EPSILON)
 			{
 				//result.AppendLine(string.Format("  <scale factor='{0},{1}' />", scale_x, scale_y));
 				XMLElement* elem2 = doc->NewElement("scale");
@@ -137,7 +138,7 @@ void WriteTransforms(XMLElement* elemParent, XMLDocument* doc, mtx23 mat)
 				elem2->SetAttribute("factor", oss.str().c_str());
 				elem->InsertEndChild(elem2);
 			}
-			if (abs(skew_x) > FLT_MIN || abs(skew_y) > FLT_MIN) 
+			if (abs(skew_x) > EPSILON || abs(skew_y) > EPSILON) 
 			{
 				//result.AppendLine(string.Format("  <skew angle='{0},{1}' />", RadianToDegree(Math.Atan(skew_x)), RadianToDegree(Math.Atan(skew_y))));
 				XMLElement* elem2 = doc->NewElement("skew");
@@ -147,7 +148,7 @@ void WriteTransforms(XMLElement* elemParent, XMLDocument* doc, mtx23 mat)
 				elem->InsertEndChild(elem2);
 			}
 		}
-		if (abs(mat._13) > FLT_MIN || abs(mat._23) > FLT_MIN)
+		if (abs(mat._13) > EPSILON || abs(mat._23) > EPSILON)
 		{
 			//result.AppendLine(string.Format("  <translate offset='{0},{1}' />", _13, _23));    // *TRANSLATE
 			XMLElement* elem2 = doc->NewElement("translate");
