@@ -2,14 +2,42 @@
 #include "itemnames.h"
 #include <sstream>
 
-bool comboDBToXML(const wchar_t* cFilename)
-{	
-	map<u32, string> m_itemNames;
+static bool bInitNames = false;
+static map<u32, string> g_mItemIDName;
+static map<string, u32> g_mItemNameID;
+
+//TODO: Support new items here
+void initItemNames()
+{
+	if(bInitNames) return;
+	bInitNames = true;
 	
-	//Set up map to get item names from IDs easily
-	//TODO: Support new items here
 	for(int i = 0; i < NUM_ITEMNAMES; i++)
-		m_itemNames[g_itemNames[i].id] = g_itemNames[i].name;
+	{
+		g_mItemIDName[g_itemNames[i].id] = g_itemNames[i].name;
+		g_mItemNameID[g_itemNames[i].name] = g_itemNames[i].id;
+	}
+	
+}
+
+u32 itemNameToID(string name)
+{
+	if(!bInitNames)
+		initItemNames();
+		
+	return g_mItemNameID[name];
+}
+
+string itemIDToName(u32 id)
+{
+	if(!bInitNames)
+		initItemNames();
+		
+	return g_mItemIDName[id];
+}
+
+bool comboDBToXML(const wchar_t* cFilename)
+{
 
 	//Open the file
 	FILE* f = _wfopen(cFilename, TEXT("rb"));
@@ -151,7 +179,7 @@ bool comboDBToXML(const wchar_t* cFilename)
 			{
 				XMLElement* elem4 = doc->NewElement("item");
 				//elem4->SetAttribute("id", vComboItems[j].itemId);
-				elem4->SetAttribute("name", m_itemNames[vComboItems[j].itemId].c_str());
+				elem4->SetAttribute("name", itemIDToName(vComboItems[j].itemId).c_str());
 				ostringstream oss;
 				oss << vComboItems[j].picTexX << ", " << vComboItems[j].picTexY;
 				elem4->SetAttribute("texpos", oss.str().c_str());
@@ -177,13 +205,6 @@ bool comboDBToXML(const wchar_t* cFilename)
 
 bool XMLToComboDB(const wchar_t* cFilename)
 {
-	map<string, u32> m_itemNames;
-	
-	//Set up map to get item IDs from names easily
-	//TODO: Support new items here
-	for(int i = 0; i < NUM_ITEMNAMES; i++)
-		m_itemNames[g_itemNames[i].name] = g_itemNames[i].id;
-
 	//Open file
 	wstring sXMLFile = cFilename;
 	sXMLFile += TEXT(".xml");
@@ -303,7 +324,7 @@ bool XMLToComboDB(const wchar_t* cFilename)
 				delete doc;
 				return false;
 			}
-			cir.itemId = m_itemNames[cName];
+			cir.itemId = itemNameToID(cName);
 			
 			//Get texture coordinates
 			const char* cPos = elem3->Attribute("texpos");

@@ -610,6 +610,8 @@ u32 toLangID(wstring languageString);						//Vice versa
 //combodb.cpp functions
 bool comboDBToXML(const wchar_t* cFilename);
 bool XMLToComboDB(const wchar_t* cFilename);
+u32 itemNameToID(string name);
+string itemIDToName(u32 id);
 //residmap.cpp functions
 void initResMap();											//Read in residmap.dat so that we can have the correct filenames for all resource files
 bool residMapToXML(const wchar_t* cFilename);				//Convert residmap.dat to XML

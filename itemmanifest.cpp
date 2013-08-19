@@ -116,13 +116,13 @@ u32 toLangID(wstring languageString)	//Convert a language string to an ID number
 	return result;
 }
 
-wstring getNameFromAnim(wstring sAnimName)
+/*wstring getNameFromAnim(wstring sAnimName)
 {
 	sAnimName.erase(sAnimName.rfind(TEXT(".anim.xml")));	//Erase the ending off the string
 	size_t start = sAnimName.find_last_of('/') + 1;	//Find last forward slash
 	sAnimName.erase(0,start);						//Erase everything up to and including this last slash
 	return sAnimName;								//Done
-}
+}*/
 
 void makeFolder(wstring sFilename)
 {
@@ -183,7 +183,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			return false;
 		}
 		lManifestRecords.push_back(imr);
-		mItemNames[imr.itemId] = getNameFromAnim(getName(imr.animResId));
+		mItemNames[imr.itemId] = s2ws(itemIDToName(imr.itemId));//getNameFromAnim(getName(imr.animResId));
 	}
 	
 	//Read in the normalDependencies
@@ -427,7 +427,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		}
 		vStringPointerEntries.push_back(vStringPointerList);
 		iStringSize += sizeof(StringPointerEntry) * sth.numPointers;
-		//cout << "String size: " << iStringSize << ", StringTableBytes count: " << idh.stringTableBytes.count << endl;
 	
 		//Now read in the strings until we hit the end of where we're supposed to be
 		while(true)
@@ -492,7 +491,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	{
 		#ifdef SPLIT_XML_FILES
 		XMLDocument* doc = new XMLDocument;
-		//XMLElement* root = doc->NewElement("itemmanifest");	//Create the root element
 		wstring sXMLFilename = TEXT("data/items/");
 		sXMLFilename += mItemNames[i->itemId];
 		sXMLFilename += TEXT("/");
@@ -503,7 +501,9 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		itemroot->InsertEndChild(file);
 		#endif
 		XMLElement* elem = doc->NewElement("itemrecord");
-		elem->SetAttribute("id", ws2s(mItemNames[i->itemId]).c_str());
+		//elem->SetAttribute("name", ws2s(mItemNames[i->itemId]).c_str());
+		elem->SetAttribute("id", i->itemId);
+		//DEBUG
 		//oHash << "id: " << i->itemId << ", filename: " << mItemNames[i->itemId].c_str() 
 		//	  << ", hashed filename: " << hash(mItemNames[i->itemId]) << endl;
 		//if(i->itemId == hash(mItemNames[i->itemId]))
@@ -525,7 +525,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		elem2 = doc->NewElement("greybgicon");
 		elem2->SetAttribute("filename", ws2s(getName(i->catalogIconGreyBGTexResId)).c_str());
 		elem->InsertEndChild(elem2);
-		//TODO: binDataOffsetBytes stuff
 		//Now insert dependencies for this item
 		elem2 = doc->NewElement("depends");
 		for(int j = i->firstNormalDepends; j < i->firstNormalDepends + i->numNormalDepends; j++)
@@ -537,13 +536,13 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		for(int j = i->firstSoundDepends; j < i->firstSoundDepends + i->numSoundDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("sound");
-			elem3->SetAttribute("id", ws2s(getSoundName(vSoundDependencies[j].soundResId)).c_str());
+			elem3->SetAttribute("filename", ws2s(getSoundName(vSoundDependencies[j].soundResId)).c_str());
 			elem2->InsertEndChild(elem3);
 		}
 		for(int j = i->firstEffectDepends; j < i->firstEffectDepends + i->numEffectDepends; j++)
 		{
 			XMLElement* elem3 = doc->NewElement("effect");
-			elem3->SetAttribute("id", ws2s(getName(vEffectDependencies[j].effectResId)).c_str());
+			elem3->SetAttribute("filename", ws2s(getName(vEffectDependencies[j].effectResId)).c_str());
 			elem2->InsertEndChild(elem3);
 		}
 		for(int j = i->firstItemDepends; j < i->firstItemDepends + i->numItemDepends; j++)
@@ -575,7 +574,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		elem2->SetAttribute("costCoins", vItemDataHeaders[iCurItemData].costCoins);
 		if(vItemDataHeaders[iCurItemData].costStamps != DEFAULT_COSTSTAMPS)
 			elem2->SetAttribute("costStamps", vItemDataHeaders[iCurItemData].costStamps);
-		elem2->SetAttribute("descid", vItemDataHeaders[iCurItemData].desc.id);	//TODO: What for?
+		//elem2->SetAttribute("descid", vItemDataHeaders[iCurItemData].desc.id);
 		//if(vItemDataHeaders[iCurItemData].desc.key != DEFAULT_DESCKEY)
 		//	elem2->SetAttribute("desckey", vItemDataHeaders[iCurItemData].desc.key);
 		if(vItemDataHeaders[iCurItemData].enableFreezePostAnim != DEFAULT_ENABLEFREEZEPOSTANIM)
@@ -644,7 +643,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem2->SetAttribute("mouseGrabSoundResId", vItemDataHeaders[iCurItemData].mouseGrabSoundResId);
 		if(vItemDataHeaders[iCurItemData].mouseGrabbable != DEFAULT_MOUSEGRABBABLE)
 			elem2->SetAttribute("mouseGrabbable", vItemDataHeaders[iCurItemData].mouseGrabbable);
-		elem2->SetAttribute("nameid", vItemDataHeaders[iCurItemData].name.id);	//TODO: What for?
+		//elem2->SetAttribute("nameid", vItemDataHeaders[iCurItemData].name.id);
 		//if(vItemDataHeaders[iCurItemData].name.key != DEFAULT_NAMEKEY)
 		//	elem2->SetAttribute("namekey", vItemDataHeaders[iCurItemData].name.key);
 		if(vItemDataHeaders[iCurItemData].orbitalGravity != DEFAULT_ORBITALGRAVITY)
@@ -946,9 +945,15 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			if(l == vItemDataHeaders[iCurItemData].itemIdStrId)
 				elem3 = doc->NewElement("id");
 			else if(l == vItemDataHeaders[iCurItemData].name.key)
+			{
 				elem3 = doc->NewElement("name");
+				elem3->SetAttribute("strid", vItemDataHeaders[iCurItemData].name.id);
+			}
 			else if(l == vItemDataHeaders[iCurItemData].desc.key)
+			{
 				elem3 = doc->NewElement("description");
+				elem3->SetAttribute("strid", vItemDataHeaders[iCurItemData].desc.id);
+			}
 			else
 				elem3 = doc->NewElement("text");
 			for(int m = vStringTableEntries[iCurItemData][l].pointerIndex; m < vStringTableEntries[iCurItemData][l].pointerIndex + vStringTableEntries[iCurItemData][l].pointerCount; m++)
@@ -964,19 +969,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		//DEBUG: Write item ID and name
 		//onames << "{967411u,\"data/items/SpiderEggSpider/colorbgicon\"},"
 		//onames << "{" << i->itemId << "u,\"" << ws2s(mItemNames[i->itemId]) << "\"}," << endl;// 967411u,\"data/items/SpiderEggSpider/colorbgicon\"},"
-
-/*#ifndef RESIDMAP_H
-#define RESIDMAP_H
-
-#define NUM_MAPPINGS	3910
-
-typedef struct
-{
-	u32 id;
-	const char* name;
-} residMap;
-
-const residMap g_residMap[NUM_MAPPINGS] = {"*/
 		
 		iCurItemData++;
 		//TODO: Write rest of XML stuff for rest of item data
@@ -1090,6 +1082,12 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	delete doc;	//Done with this file
 	
 	//Now loop through our files, reading in the data from each
+	list<itemManifestRecord> lItemManifests;
+	list<normalDependency> lNormalDeps;
+	list<soundDependency> lSoundDeps;
+	list<effectDependency> lEffectDeps;
+	list<itemDependency> lItemDeps;
+	u32 binDataRunningTally = 0;	//Offset into the binary data for each item
 	for(list<wstring>::iterator i = lItemManifestFilenames.begin(); i != lItemManifestFilenames.end(); i++)
 	{
 		doc = new XMLDocument;
@@ -1101,7 +1099,170 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			return false;
 		}
 		
-		//TODO Read stuff
+		root = doc->RootElement();
+		
+		//Read in itemManifestRecord
+		itemManifestRecord imr;
+		if(root->QueryUnsignedAttribute("id", &imr.itemId) != XML_NO_ERROR)
+		{
+			cout << "Unable to read item ID from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		
+		//animresid
+		XMLElement* elem = root->FirstChildElement("animresid");
+		if(elem == NULL)
+		{
+			cout << "Unable to read item animresid from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		const char* cFilename = elem->GetAttribute("filename");
+		if(cFilename == NULL)
+		{
+			cout << "Unable to read item animresid filename from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		imr.animResId = getResId(s2ws(cFilename));
+		
+		//recentlymodifiedrank
+		imr.recentlyModifiedRank = 0;	//For debug purposes, anyway; we don't care if it isn't here
+		elem = root->FirstChildElement("recentlymodifiedrank");
+		if(elem != NULL)
+			elem->QueryUnsignedAttribute("value", &imr.recentlyModifiedRank)
+		
+		//coloritemicon
+		elem = root->FirstChildElement("coloritemicon");
+		if(elem == NULL)
+		{
+			cout << "Unable to read item coloritemicon from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		cFilename = elem->GetAttribute("filename");
+		if(cFilename == NULL)
+		{
+			cout << "Unable to read item coloritemicon filename from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		imr.catalogIconColorItemTexResId = getResId(s2ws(cFilename));
+		
+		//colorbgicon
+		elem = root->FirstChildElement("colorbgicon");
+		if(elem == NULL)
+		{
+			cout << "Unable to read item colorbgicon from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		cFilename = elem->GetAttribute("filename");
+		if(cFilename == NULL)
+		{
+			cout << "Unable to read item colorbgicon filename from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		imr.catalogIconColorBGTexResId = getResId(s2ws(cFilename));
+		
+		//greybgicon
+		elem = root->FirstChildElement("greybgicon");
+		if(elem == NULL)
+		{
+			cout << "Unable to read item greybgicon from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		cFilename = elem->GetAttribute("filename");
+		if(cFilename == NULL)
+		{
+			cout << "Unable to read item greybgicon filename from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		imr.catalogIconGreyBGTexResId = getResId(s2ws(cFilename));
+		
+		//Dependencies
+		imr.firstNormalDepends = lNormalDeps.size();
+		imr.firstSoundDepends = lSoundDeps.size();
+		imr.firstEffectDepends = lEffectDeps.size();
+		imr.firstItemDepends = lItemDeps.size();
+		imr.numNormalDepends = imr.numSoundDepends = imr.numEffectDepends = imr.numItemDepends = 0;
+		elem = root->FirstChildElement("depends");
+		if(elem != NULL)
+		{
+			//Add normal dependencies
+			for(XMLElement* elem2 = elem->FirstChildElement("normal"); elem2 != NULL; elem2 = elem2->NextSiblingElement("normal"))
+			{
+				normalDependency nd;
+				imr.numNormalDepends++;
+				const char* cIDFilename = elem->GetAttribute("filename");
+				if(cIDFilename == NULL)
+				{
+					cout << "Unable to read normal dependency filename from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				nd.normalTexResId = getResId(s2ws(cIDFilename));
+				lNormalDeps.push_back(nd);
+			}
+			
+			//Add sound dependencies
+			for(XMLElement* elem2 = elem->FirstChildElement("sound"); elem2 != NULL; elem2 = elem2->NextSiblingElement("sound"))
+			{
+				soundDependency sd;
+				imr.numSoundDepends++;
+				const char* cIDFilename = elem->GetAttribute("filename");
+				if(cIDFilename == NULL)
+				{
+					cout << "Unable to read sound dependency filename from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				sd.soundResId = getResId(s2ws(cIDFilename));
+				lSoundDeps.push_back(sd);
+			}
+			
+			//Add effect dependencies
+			for(XMLElement* elem2 = elem->FirstChildElement("effect"); elem2 != NULL; elem2 = elem2->NextSiblingElement("effect"))
+			{
+				effectDependency ed;
+				imr.numEffectDepends++;
+				const char* cIDFilename = elem->GetAttribute("filename");
+				if(cIDFilename == NULL)
+				{
+					cout << "Unable to read effect dependency filename from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				ed.effectResId = getResId(s2ws(cIDFilename));
+				lEffectDeps.push_back(ed);
+			}
+			
+			//Add item dependencies
+			for(XMLElement* elem2 = elem->FirstChildElement("item"); elem2 != NULL; elem2 = elem2->NextSiblingElement("item"))
+			{
+				itemDependency itd;
+				imr.numItemDepends++;
+				const char* cID = elem->GetAttribute("id");
+				if(cID == NULL)
+				{
+					cout << "Unable to read item dependency id from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				ed.itemResId = itemNameToID(cID);
+				lItemDeps.push_back(itd);
+			}
+		}
+		
+		//Binary data offset
+		imr.binDataOffsetBytes = binDataRunningTally;
+		
+		
+		//TODO binary data stuff
 		
 		
 		
@@ -1111,6 +1272,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		
 		
 		delete doc;
+		lItemManifests.push_back(imr);
 	}
 	
 	/*
