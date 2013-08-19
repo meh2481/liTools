@@ -2,17 +2,18 @@ SHELL=C:/Windows/System32/cmd.exe
 objects = wordPackDict.o sndmanifest.o itemmanifest.o combodb.o residmap.o zpipe.o ogg.o image.o font.o loctex.o parse.o matrix.o
 decompressobjects = $(objects) liDecompress.o threadDecompress.o
 comressobjects = $(objects) liCompress.o threadCompress.o
-HEADER = -I./include
-LIB = -L./libs -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
+HEADERPATH = -I./include
+LIBPATH = -L./libs
+LIB = -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
 
 all : liDecompress.exe liCompress.exe recalcSoundManifest.exe strip.exe modManage.exe util/pullpakfiles.exe util/removeresc.exe util/repack.exe util/hash.exe util/WinResource.exe
  
 liDecompress.exe : $(decompressobjects)
-	g++ -Wall -O2 -o $@ $(decompressobjects) $(LIB)
+	g++ -Wall -O2 -o $@ $(decompressobjects) $(LIBPATH) $(LIB)
 liCompress.exe : $(comressobjects)
-	g++ -Wall -O2 -o $@ $(comressobjects) $(LIB)
+	g++ -Wall -O2 -o $@ $(comressobjects) $(LIBPATH) $(LIB)
 recalcSoundManifest.exe : recalcSoundManifest.o
-	g++ -Wall -O2 -o $@ $< ogg.o $(LIB)
+	g++ -Wall -O2 -o $@ $< ogg.o $(LIBPATH) $(LIB)
 strip.exe : strip.o
 	g++ -Wall -O2 -o $@ $<
 modManage.exe : modManage.o
@@ -22,14 +23,14 @@ util/pullpakfiles.exe : util/pullpakfiles.o
 util/removeresc.exe : util/removeresc.o
 	g++ -Wall -O2 -o $@ $<
 util/repack.exe : util/repack.o
-	g++ -Wall -O2 -o $@ $< $(LIB)
+	g++ -Wall -O2 -o $@ $< $(LIBPATH) $(LIB)
 util/WinResource.exe : util/WinResource.o
 	g++ -Wall -O2 -o $@ $<
 util/hash.exe : util/hash.o
-	g++ -Wall -O2 -o $@ $< residmap.o $(LIB)
+	g++ -Wall -O2 -o $@ $< residmap.o $(LIBPATH) -ltinyxml2
 	
 %.o: %.cpp
-	g++ -O2 -c -MMD -o $@ $< $(HEADER)
+	g++ -O2 -c -MMD -o $@ $< $(HEADERPATH)
 
 -include $(objects:.o=.d)
 -include $(decompressobjects:.o=.d)

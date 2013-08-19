@@ -151,7 +151,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		else if(sFilename.find(TEXT("combodb.dat")) != wstring::npos)
 		{
 			comboDBToXML(sFilename.c_str());
-			//TODO unlink(ws2s(sFilename).c_str());
+			unlink(ws2s(sFilename).c_str());
 		}
 		
 		//Convert residmap.dat to XML

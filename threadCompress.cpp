@@ -111,7 +111,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		else if(tch.find(TEXT("combodb.dat")) != wstring::npos)
 		{
 			XMLToComboDB(tch.c_str());
-			//TODO sDeleteWhenDone = tch;
+			sDeleteWhenDone = tch;
 		}
 		else if(tch.find(TEXT("residmap.dat")) != wstring::npos)
 		{
