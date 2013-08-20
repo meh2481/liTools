@@ -198,3 +198,15 @@ void ParseTransforms(/*TODO*/)
 	}
 	return transform;*/
 }
+
+/* TODO
+
+public static Matrix operator *(Matrix a, Matrix b)
+        {
+            // the simplest O(n^3) naive matrix multiplication, the _3y items has been replaced by the constants
+            // more details here: http://en.wikipedia.org/wiki/Matrix_multiplication#Algorithms_for_efficient_matrix_multiplication
+            return new Matrix(a._11 * b._11 + a._12 * b._21, a._11 * b._12 + a._12 * b._22, a._11 * b._13 + a._12 * b._23 + a._13,
+                              a._21 * b._11 + a._22 * b._21, a._21 * b._12 + a._22 * b._22, a._21 * b._13 + a._22 * b._23 + a._23);
+        }
+		
+*/

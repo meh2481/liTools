@@ -1,4 +1,5 @@
 #include "pakDataTypes.h"
+#include <sstream>
 
 #define TYPE_POLYGON	0x04
 #define TYPE_CIRCLE		0x02
@@ -26,7 +27,7 @@
 #define DEFAULT_INSTASHDOESSPLAT		0
 #define DEFAULT_INSTASHSOUNDRESID		0
 #define DEFAULT_INSTANTEFFECTS			0
-#define DEFAULT_ITEMIDSTRID				0
+//#define DEFAULT_ITEMIDSTRID				0
 #define DEFAULT_MODXAMPMAX				0
 #define DEFAULT_MODXAMPMIN				0
 #define DEFAULT_MODXFREQMAX				1
@@ -97,6 +98,22 @@
 #define DEFAULT_SPLITSFXMEDIUMENUMVALID					1227225697
 #define DEFAULT_SPLITSFXSMALLENUMVALID					1227225697
 #define DEFAULT_SPLITTHRESHOLDENUMVALID					1227225697
+
+string vec2ToString(vec2 v)
+{
+	ostringstream oss;
+	oss << v.x << ", " << v.y;
+	return oss.str();
+}
+
+vec2 stringToVec2(string s)
+{
+	vec2 v;
+	istringstream iss(s);
+	char cDiscard;
+	iss >> v.x >> cDiscard >> v.y;
+	return v;
+}
 
 wstring toLangString(u32 languageId)	//Convert a language ID to a string (for example, 0x656E becomes "en")
 {
@@ -585,10 +602,8 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem2->SetAttribute("floorWallShadow", vItemDataHeaders[iCurItemData].floorWallShadow);
 		if(vItemDataHeaders[iCurItemData].freezeOnCollide != DEFAULT_FREEZEONCOLLIDE)
 			elem2->SetAttribute("freezeOnCollide", vItemDataHeaders[iCurItemData].freezeOnCollide);
-		elem2->SetAttribute("iconAnimBoundsMaxx", vItemDataHeaders[iCurItemData].iconAnimBoundsMax.x);
-		elem2->SetAttribute("iconAnimBoundsMaxy", vItemDataHeaders[iCurItemData].iconAnimBoundsMax.y);
-		elem2->SetAttribute("iconAnimBoundsMinx", vItemDataHeaders[iCurItemData].iconAnimBoundsMin.x);
-		elem2->SetAttribute("iconAnimBoundsMiny", vItemDataHeaders[iCurItemData].iconAnimBoundsMin.y);
+		elem2->SetAttribute("iconAnimBoundsMax", vec2ToString(vItemDataHeaders[iCurItemData].iconAnimBoundsMax).c_str());
+		elem2->SetAttribute("iconAnimBoundsMin", vec2ToString(vItemDataHeaders[iCurItemData].iconAnimBoundsMin).c_str());
 		if(vItemDataHeaders[iCurItemData].illuminate != DEFAULT_ILLUMINATE)
 			elem2->SetAttribute("illuminate", vItemDataHeaders[iCurItemData].illuminate);
 		if(vItemDataHeaders[iCurItemData].initialBurnExportId != DEFAULT_INITIALBURNEXPORTID)
@@ -680,10 +695,8 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem3->SetAttribute("hasAnimThresh", j->hasAnimThresh);
 			elem3->SetAttribute("animThresh", j->animThresh);
 			elem3->SetAttribute("animExportStrId", j->animExportStrId);
-			elem3->SetAttribute("animBoundsMinx", j->animBoundsMin.x);
-			elem3->SetAttribute("animBoundsMiny", j->animBoundsMin.y);
-			elem3->SetAttribute("animBoundsMaxx", j->animBoundsMax.x);
-			elem3->SetAttribute("animBoundsMaxy", j->animBoundsMax.y);
+			elem3->SetAttribute("animBoundsMin", vec2ToString(j->animBoundsMin).c_str());
+			elem3->SetAttribute("animBoundsMax", vec2ToString(j->animBoundsMax).c_str());
 			
 			//Add joints for this skeleton
 			XMLElement* elem4;
@@ -696,8 +709,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				elem4->SetAttribute("boneBurnGridCellIdx2", vJointRecords[iCurItemData][k].boneBurnGridCellIdx[1]);
 				elem4->SetAttribute("burnable", vJointRecords[iCurItemData][k].burnable);
 				elem4->SetAttribute("allowExtDamage", vJointRecords[iCurItemData][k].allowExtDamage);
-				elem4->SetAttribute("modelSpacePosx", vJointRecords[iCurItemData][k].modelSpacePos.x);
-				elem4->SetAttribute("modelSpacePosy", vJointRecords[iCurItemData][k].modelSpacePos.y);
+				elem4->SetAttribute("modelSpacePos", vec2ToString(vJointRecords[iCurItemData][k].modelSpacePos).c_str());
 				elem4->SetAttribute("strength", vJointRecords[iCurItemData][k].strength.value);
 				elem4->SetAttribute("angleLimit", vJointRecords[iCurItemData][k].angleLimit.value);
 				elem4->SetAttribute("speed", vJointRecords[iCurItemData][k].speed.value);
@@ -735,10 +747,8 @@ bool itemManifestToXML(const wchar_t* cFilename)
 					elem4->SetAttribute("behavior", vBoneRecords[iCurItemData][k].behavior);
 				elem4->SetAttribute("boneDensityEnumValId", vBoneRecords[iCurItemData][k].boneDensityEnumValId);
 				elem4->SetAttribute("burnAmountEnumValId", vBoneRecords[iCurItemData][k].burnAmountEnumValId);
-				elem4->SetAttribute("burnBoundsMaxx", vBoneRecords[iCurItemData][k].burnBoundsMax.x);
-				elem4->SetAttribute("burnBoundsMaxy", vBoneRecords[iCurItemData][k].burnBoundsMax.y);
-				elem4->SetAttribute("burnBoundsMinx", vBoneRecords[iCurItemData][k].burnBoundsMin.x);
-				elem4->SetAttribute("burnBoundsMiny", vBoneRecords[iCurItemData][k].burnBoundsMin.y);
+				elem4->SetAttribute("burnBoundsMax", vec2ToString(vBoneRecords[iCurItemData][k].burnBoundsMax).c_str());
+				elem4->SetAttribute("burnBoundsMin", vec2ToString(vBoneRecords[iCurItemData][k].burnBoundsMin).c_str());
 				//elem4->SetAttribute("burnGridHeight", vBoneRecords[iCurItemData][k].burnGridHeight);
 				//elem4->SetAttribute("burnGridWidth", vBoneRecords[iCurItemData][k].burnGridWidth);
 				elem4->SetAttribute("burnTimeEnumValId", vBoneRecords[iCurItemData][k].burnTimeEnumValId);
@@ -765,8 +775,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 				elem4->SetAttribute("igniteTimeEnumValId", vBoneRecords[iCurItemData][k].igniteTimeEnumValId);
 				if(vBoneRecords[iCurItemData][k].instAshOnCollideEnumValId != DEFAULT_INSTASHONCOLLIDEENUMVALID)
 					elem4->SetAttribute("instAshOnCollideEnumValId", vBoneRecords[iCurItemData][k].instAshOnCollideEnumValId);
-				elem4->SetAttribute("itemSpacePositionx", vBoneRecords[iCurItemData][k].itemSpacePosition.x);
-				elem4->SetAttribute("itemSpacePositiony", vBoneRecords[iCurItemData][k].itemSpacePosition.y);
+				elem4->SetAttribute("itemSpacePosition", vec2ToString(vBoneRecords[iCurItemData][k].itemSpacePosition).c_str());
 				elem4->SetAttribute("linearDampEnumValId", vBoneRecords[iCurItemData][k].linearDampEnumValId);
 				elem4->SetAttribute("mouseGrabSoundEnumValId", vBoneRecords[iCurItemData][k].mouseGrabSoundEnumValId);
 				//elem4->SetAttribute("numPartTreeVals", vBoneRecords[iCurItemData][k].numPartTreeVals);
@@ -838,8 +847,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 						{
 							elem6 = doc->NewElement("vert");
 							
-							elem6->SetAttribute("x", vBoneShapes[iCurItemData][m].verts[m].x);
-							elem6->SetAttribute("y", vBoneShapes[iCurItemData][m].verts[m].y);
+							elem6->SetAttribute("pos", vec2ToString(vBoneShapes[iCurItemData][m].verts[m]).c_str());
 							
 							elem5->InsertEndChild(elem6);
 						}
@@ -850,8 +858,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 						//Write vertices for this shape
 						XMLElement* elem6;
 						elem6 = doc->NewElement("center");
-						elem6->SetAttribute("x", vBoneShapes[iCurItemData][l].verts[0].x);
-						elem6->SetAttribute("y", vBoneShapes[iCurItemData][l].verts[0].y);
+						elem6->SetAttribute("pos", vec2ToString(vBoneShapes[iCurItemData][l].verts[0]).c_str());
 						elem5->InsertEndChild(elem6);
 						elem6 = doc->NewElement("radius");
 						elem6->SetAttribute("value", vBoneShapes[iCurItemData][l].verts[1].x);
@@ -1088,6 +1095,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	list<effectDependency> lEffectDeps;
 	list<itemDependency> lItemDeps;
 	u32 binDataRunningTally = 0;	//Offset into the binary data for each item
+	list<itemDataHeader> lItemData;
 	for(list<wstring>::iterator i = lItemManifestFilenames.begin(); i != lItemManifestFilenames.end(); i++)
 	{
 		doc = new XMLDocument;
@@ -1118,20 +1126,20 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			delete doc;
 			return false;
 		}
-		const char* cFilename = elem->GetAttribute("filename");
+		const char* cFilename = elem->Attribute("filename");
 		if(cFilename == NULL)
 		{
 			cout << "Unable to read item animresid filename from XML file " << ws2s(*i) << endl;
 			delete doc;
 			return false;
 		}
-		imr.animResId = getResId(s2ws(cFilename));
+		imr.animResId = getResID(s2ws(cFilename));
 		
 		//recentlymodifiedrank
 		imr.recentlyModifiedRank = 0;	//For debug purposes, anyway; we don't care if it isn't here
 		elem = root->FirstChildElement("recentlymodifiedrank");
 		if(elem != NULL)
-			elem->QueryUnsignedAttribute("value", &imr.recentlyModifiedRank)
+			elem->QueryIntAttribute("value", &imr.recentlyModifiedRank);
 		
 		//coloritemicon
 		elem = root->FirstChildElement("coloritemicon");
@@ -1141,14 +1149,14 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			delete doc;
 			return false;
 		}
-		cFilename = elem->GetAttribute("filename");
+		cFilename = elem->Attribute("filename");
 		if(cFilename == NULL)
 		{
 			cout << "Unable to read item coloritemicon filename from XML file " << ws2s(*i) << endl;
 			delete doc;
 			return false;
 		}
-		imr.catalogIconColorItemTexResId = getResId(s2ws(cFilename));
+		imr.catalogIconColorItemTexResId = getResID(s2ws(cFilename));
 		
 		//colorbgicon
 		elem = root->FirstChildElement("colorbgicon");
@@ -1158,14 +1166,14 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			delete doc;
 			return false;
 		}
-		cFilename = elem->GetAttribute("filename");
+		cFilename = elem->Attribute("filename");
 		if(cFilename == NULL)
 		{
 			cout << "Unable to read item colorbgicon filename from XML file " << ws2s(*i) << endl;
 			delete doc;
 			return false;
 		}
-		imr.catalogIconColorBGTexResId = getResId(s2ws(cFilename));
+		imr.catalogIconColorBGTexResId = getResID(s2ws(cFilename));
 		
 		//greybgicon
 		elem = root->FirstChildElement("greybgicon");
@@ -1175,14 +1183,14 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			delete doc;
 			return false;
 		}
-		cFilename = elem->GetAttribute("filename");
+		cFilename = elem->Attribute("filename");
 		if(cFilename == NULL)
 		{
 			cout << "Unable to read item greybgicon filename from XML file " << ws2s(*i) << endl;
 			delete doc;
 			return false;
 		}
-		imr.catalogIconGreyBGTexResId = getResId(s2ws(cFilename));
+		imr.catalogIconGreyBGTexResId = getResID(s2ws(cFilename));
 		
 		//Dependencies
 		imr.firstNormalDepends = lNormalDeps.size();
@@ -1198,14 +1206,14 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			{
 				normalDependency nd;
 				imr.numNormalDepends++;
-				const char* cIDFilename = elem->GetAttribute("filename");
+				const char* cIDFilename = elem->Attribute("filename");
 				if(cIDFilename == NULL)
 				{
 					cout << "Unable to read normal dependency filename from XML file " << ws2s(*i) << endl;
 					delete doc;
 					return false;
 				}
-				nd.normalTexResId = getResId(s2ws(cIDFilename));
+				nd.normalTexResId = getResID(s2ws(cIDFilename));
 				lNormalDeps.push_back(nd);
 			}
 			
@@ -1214,14 +1222,14 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			{
 				soundDependency sd;
 				imr.numSoundDepends++;
-				const char* cIDFilename = elem->GetAttribute("filename");
+				const char* cIDFilename = elem->Attribute("filename");
 				if(cIDFilename == NULL)
 				{
 					cout << "Unable to read sound dependency filename from XML file " << ws2s(*i) << endl;
 					delete doc;
 					return false;
 				}
-				sd.soundResId = getResId(s2ws(cIDFilename));
+				sd.soundResId = getResID(s2ws(cIDFilename));
 				lSoundDeps.push_back(sd);
 			}
 			
@@ -1230,14 +1238,14 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			{
 				effectDependency ed;
 				imr.numEffectDepends++;
-				const char* cIDFilename = elem->GetAttribute("filename");
+				const char* cIDFilename = elem->Attribute("filename");
 				if(cIDFilename == NULL)
 				{
 					cout << "Unable to read effect dependency filename from XML file " << ws2s(*i) << endl;
 					delete doc;
 					return false;
 				}
-				ed.effectResId = getResId(s2ws(cIDFilename));
+				ed.effectResId = getResID(s2ws(cIDFilename));
 				lEffectDeps.push_back(ed);
 			}
 			
@@ -1246,14 +1254,14 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			{
 				itemDependency itd;
 				imr.numItemDepends++;
-				const char* cID = elem->GetAttribute("id");
+				const char* cID = elem->Attribute("id");
 				if(cID == NULL)
 				{
 					cout << "Unable to read item dependency id from XML file " << ws2s(*i) << endl;
 					delete doc;
 					return false;
 				}
-				ed.itemResId = itemNameToID(cID);
+				itd.itemResId = itemNameToID(cID);
 				lItemDeps.push_back(itd);
 			}
 		}
@@ -1261,15 +1269,187 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		//Binary data offset
 		imr.binDataOffsetBytes = binDataRunningTally;
 		
+		//Binary data header
+		itemDataHeader idh;
 		
-		//TODO binary data stuff
+		elem = root->FirstChildElement("itemdata");
+		if(elem == NULL)
+		{
+			cout << "Unable to read itemdata from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		
+		//fields with fairly common defaults
+		idh.absPosition = DEFAULT_ABSPOSITION;
+		idh.allowDirectionalLight = DEFAULT_ALLOWDIRECTIONALLIGHT;
+		idh.allowExplodeStreaks = DEFAULT_ALLOWEXPLODESTREAKS;
+		idh.animThreshold = DEFAULT_ANIMTHRESHOLD;
+		idh.burnSlowsAnim = DEFAULT_BURNSLOWSANIM;
+		idh.canGetPlague = DEFAULT_CANGETPLAGUE;
+		idh.collideEnvironment = DEFAULT_COLLIDEENVIRONMENT;
+		idh.collideItems = DEFAULT_COLLIDEITEMS;
+		idh.costStamps = DEFAULT_COSTSTAMPS;
+		idh.enableFreezePostAnim = DEFAULT_ENABLEFREEZEPOSTANIM;
+		idh.enableHFlip = DEFAULT_ENABLEHFLIP;
+		idh.floorWallShadow = DEFAULT_FLOORWALLSHADOW;
+		idh.freezeOnCollide = DEFAULT_FREEZEONCOLLIDE;
+		idh.illuminate = DEFAULT_ILLUMINATE;
+		idh.initialBurnExportId = DEFAULT_INITIALBURNEXPORTID;
+		idh.initialBurnPerGroup = DEFAULT_INITIALBURNPERGROUP;
+		idh.instAshDoesSplat = DEFAULT_INSTASHDOESSPLAT;
+		idh.instAshSoundResId = DEFAULT_INSTASHSOUNDRESID;
+		idh.instantEffects = DEFAULT_INSTANTEFFECTS;
+		idh.modXAmpMax = DEFAULT_MODXAMPMAX;
+		idh.modXAmpMin = DEFAULT_MODXAMPMIN;
+		idh.modXFreqMax = DEFAULT_MODXFREQMAX;
+		idh.modXFreqMin = DEFAULT_MODXFREQMIN;
+		idh.modXPhaseMax = DEFAULT_MODXPHASEMAX;
+		idh.modXPhaseMin = DEFAULT_MODXPHASEMIN;
+		idh.modXSpeedMax = DEFAULT_MODXSPEEDMAX;
+		idh.modXSpeedMin = DEFAULT_MODXSPEEDMIN;
+		idh.modYAmpMax = DEFAULT_MODYAMPMAX;
+		idh.modYAmpMin = DEFAULT_MODYAMPMIN;
+		idh.modYFreqMax = DEFAULT_MODYFREQMAX;
+		idh.modYFreqMin = DEFAULT_MODYFREQMIN;
+		idh.modYPhaseMax = DEFAULT_MODYPHASEMAX;
+		idh.modYPhaseMin = DEFAULT_MODYPHASEMIN;
+		idh.modYSpeedMax = DEFAULT_MODYSPEEDMAX;
+		idh.modYSpeedMin = DEFAULT_MODYSPEEDMIN;
+		idh.moneyItem = DEFAULT_MONEYITEM;
+		idh.motorThreshold = DEFAULT_MOTORTHRESHOLD;
+		idh.mouseGrabSoundResId = DEFAULT_MOUSEGRABSOUNDRESID;
+		idh.mouseGrabbable = DEFAULT_MOUSEGRABBABLE;
+		idh.orbitalGravity = DEFAULT_ORBITALGRAVITY;
+		idh.plagueOnCollide = DEFAULT_PLAGUEONCOLLIDE;
+		idh.popsCoins = DEFAULT_POPSCOINS;
+		idh.quantity = DEFAULT_QUANTITY;
+		idh.scaleVariance = DEFAULT_SCALEVARIANCE;
+		idh.spawnLimitBurnExportId = DEFAULT_SPAWNLIMITBURNEXPORTID;
+		idh.splitJumpLastFrame = DEFAULT_SPLITJUMPLASTFRAME;
+		idh.uniqueIgniteSoundResId = DEFAULT_UNIQUEIGNITESOUNDRESID;
+		idh.unlisted = DEFAULT_UNLISTED;
+		idh.valueStamps = DEFAULT_VALUESTAMPS;
+		
+		//Fields found in other XML elements
+		idh.name.id = 0;
+		idh.name.key = 0;
+		idh.desc.id = 0;
+		idh.desc.key = 0;
+		idh.itemIdStrId = 0;
+		
+		//Redundant fields
+		idh.itemId = imr.itemId;
+		idh.animResId = imr.animResId;
+		
+		//Will fail if these fields don't exist in the XML
+		idh.costCoins = 0;
+		idh.purchaseCooldown = 0;
+		idh.shipTimeSec = 0;
+		idh.valueCoins = 0;
+		idh.iconAnimBoundsMax.x = 0;	//TODO x/y in same attribute
+		idh.iconAnimBoundsMax.y = 0;
+		idh.iconAnimBoundsMin.x = 0;
+		idh.iconAnimBoundsMin.y = 0;
+		
+		//Read mandatory fields; error out on fail
+		if(elem->QueryIntAttribute("costCoins", &idh.costCoins) != XML_NO_ERROR)
+		{
+			cout << "Unable to read coin cost from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		if(elem->QueryFloatAttribute("purchaseCooldown", &idh.purchaseCooldown) != XML_NO_ERROR)
+		{
+			cout << "Unable to read purchase cooldown from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		if(elem->QueryIntAttribute("shipTimeSec", &idh.shipTimeSec) != XML_NO_ERROR)
+		{
+			cout << "Unable to read shipping time from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		if(elem->QueryIntAttribute("valueCoins", &idh.valueCoins) != XML_NO_ERROR)
+		{
+			cout << "Unable to read coin value from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		
+		//TODO iconanimboundsmax/min.x/y
+		
+		//Read optional fields; ignore errors
+		elem->QueryIntAttribute("costStamps", &idh.costStamps);
+		elem->QueryIntAttribute("valueStamps", &idh.valueStamps);
+		elem->QueryIntAttribute("unlisted", &idh.unlisted);
+		elem->QueryIntAttribute("popsCoins", &idh.popsCoins);
+		elem->QueryIntAttribute("moneyItem", &idh.moneyItem);
+		elem->QueryIntAttribute("absPosition", &idh.absPosition);
+		elem->QueryIntAttribute("quantity", &idh.quantity);
+		elem->QueryIntAttribute("initialBurnPerGroup", &idh.initialBurnPerGroup);
+		elem->QueryIntAttribute("mouseGrabbable", &idh.mouseGrabbable);
+		elem->QueryIntAttribute("enableHFlip", &idh.enableHFlip);
+		elem->QueryIntAttribute("floorWallShadow", &idh.floorWallShadow);
+		elem->QueryIntAttribute("splitJumpLastFrame", &idh.splitJumpLastFrame);
+		elem->QueryIntAttribute("allowDirectionalLight", &idh.allowDirectionalLight);
+		elem->QueryIntAttribute("instantEffects", &idh.instantEffects);
+		elem->QueryIntAttribute("freezeOnCollide", &idh.freezeOnCollide);
+		elem->QueryIntAttribute("enableFreezePostAnim", &idh.enableFreezePostAnim);
+		elem->QueryIntAttribute("collideItems", &idh.collideItems);
+		elem->QueryIntAttribute("collideEnvironment", &idh.collideEnvironment);
+		elem->QueryIntAttribute("orbitalGravity", &idh.orbitalGravity);
+		elem->QueryIntAttribute("allowExplodeStreaks", &idh.allowExplodeStreaks);
+		elem->QueryIntAttribute("burnSlowsAnim", &idh.burnSlowsAnim);
+		elem->QueryIntAttribute("plagueOnCollide", &idh.plagueOnCollide);
+		elem->QueryIntAttribute("canGetPlague", &idh.canGetPlague);
+		elem->QueryIntAttribute("instAshDoesSplat", &idh.instAshDoesSplat);
+		elem->QueryUnsignedAttribute("initialBurnExportId", &idh.initialBurnExportId);
+		elem->QueryUnsignedAttribute("mouseGrabSoundResId", &idh.mouseGrabSoundResId);
+		elem->QueryUnsignedAttribute("uniqueIgniteSoundResId", &idh.uniqueIgniteSoundResId);
+		elem->QueryUnsignedAttribute("spawnLimitBurnExportId", &idh.spawnLimitBurnExportId);
+		elem->QueryUnsignedAttribute("instAshSoundResId", &idh.instAshSoundResId);
+		elem->QueryFloatAttribute("animThreshold", &idh.animThreshold);
+		elem->QueryFloatAttribute("motorThreshold", &idh.motorThreshold);
+		elem->QueryFloatAttribute("scaleVariance", &idh.scaleVariance);
+		elem->QueryFloatAttribute("illuminate", &idh.illuminate);
+		elem->QueryFloatAttribute("modXAmpMin", &idh.modXAmpMin);
+		elem->QueryFloatAttribute("modXAmpMax", &idh.modXAmpMax);
+		elem->QueryFloatAttribute("modXFreqMin", &idh.modXFreqMin);
+		elem->QueryFloatAttribute("modXFreqMax", &idh.modXFreqMax);
+		elem->QueryFloatAttribute("modXPhaseMin", &idh.modXPhaseMin);
+		elem->QueryFloatAttribute("modXPhaseMax", &idh.modXPhaseMax);
+		elem->QueryFloatAttribute("modXSpeedMin", &idh.modXSpeedMin);
+		elem->QueryFloatAttribute("modXSpeedMax", &idh.modXSpeedMax);
+		elem->QueryFloatAttribute("modYAmpMin", &idh.modYAmpMin);
+		elem->QueryFloatAttribute("modYAmpMax", &idh.modYAmpMax);
+		elem->QueryFloatAttribute("modYFreqMin", &idh.modYFreqMin);
+		elem->QueryFloatAttribute("modYFreqMax", &idh.modYFreqMax);
+		elem->QueryFloatAttribute("modYPhaseMin", &idh.modYPhaseMin);
+		elem->QueryFloatAttribute("modYPhaseMax", &idh.modYPhaseMax);
+		elem->QueryFloatAttribute("modYSpeedMin", &idh.modYSpeedMin);
+		elem->QueryFloatAttribute("modYSpeedMax", &idh.modYSpeedMax);
+		
+		/* TODO
+	BinHdrPtr skels;
+	BinHdrPtr joints;
+	BinHdrPtr bones;
+	BinHdrPtr boneShapes;
+	BinHdrPtr boneParts;
+	BinHdrPtr bonePartTreeVals;
+	BinHdrPtr rgnCells;
+	BinHdrPtr stringTableBytes;
+	BinHdrPtr burnGridUsedDataBytes;
+	vec2 iconAnimBoundsMin;
+	vec2 iconAnimBoundsMax;*/
+		
+		
+		//...
 		
 		
 		
-		
-		
-		
-		
+		lItemData.push_back(idh);
 		
 		delete doc;
 		lItemManifests.push_back(imr);
