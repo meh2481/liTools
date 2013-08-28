@@ -1,10 +1,10 @@
 SHELL=C:/Windows/System32/cmd.exe
-objects = wordPackDict.o sndmanifest.o itemmanifest.o combodb.o residmap.o zpipe.o ogg.o image.o font.o loctex.o parse.o matrix.o
+objects = wordPackDict.o sndmanifest.o itemmanifest.o combodb.o residmap.o zpipe.o ogg.o image.o font.o loctex.o parse.o matrix.o tinyxml2.o
 decompressobjects = $(objects) liDecompress.o threadDecompress.o
 comressobjects = $(objects) liCompress.o threadCompress.o
 HEADERPATH = -I./include
 LIBPATH = -L./libs
-LIB = -lpng -lzlib -lttvfs -lvorbis -logg -ltinyxml2
+LIB = -lpng -lzlib -lttvfs -lvorbis -logg
 
 all : liDecompress.exe liCompress.exe recalcSoundManifest.exe strip.exe modManage.exe util/pullpakfiles.exe util/removeresc.exe util/repack.exe util/hash.exe util/WinResource.exe
  
@@ -13,7 +13,7 @@ liDecompress.exe : $(decompressobjects)
 liCompress.exe : $(comressobjects)
 	g++ -Wall -O2 -o $@ $(comressobjects) $(LIBPATH) $(LIB)
 recalcSoundManifest.exe : recalcSoundManifest.o
-	g++ -Wall -O2 -o $@ $< ogg.o $(LIBPATH) $(LIB)
+	g++ -Wall -O2 -o $@ $< ogg.o tinyxml2.o $(LIBPATH) $(LIB)
 strip.exe : strip.o
 	g++ -Wall -O2 -o $@ $<
 modManage.exe : modManage.o
@@ -27,7 +27,7 @@ util/repack.exe : util/repack.o
 util/WinResource.exe : util/WinResource.o
 	g++ -Wall -O2 -o $@ $<
 util/hash.exe : util/hash.o
-	g++ -Wall -O2 -o $@ $< residmap.o $(LIBPATH) -ltinyxml2
+	g++ -Wall -O2 -o $@ $< residmap.o tinyxml2.o
 	
 %.o: %.cpp
 	g++ -O2 -c -MMD -o $@ $< $(HEADERPATH)

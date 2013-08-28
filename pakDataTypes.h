@@ -3,6 +3,8 @@
 #ifndef PAKDATATYPES_H
 #define PAKDATATYPES_H
 
+#define VERSION_12
+
 #include <cstdio>
 #include <tinyxml2.h>
 #include <stdint.h>
@@ -531,7 +533,9 @@ typedef struct
 typedef struct
 {
 	u32 id;
-	//i32 idStrTblIdx; //WHOA NELLIE This isn't here any more or something
+#ifdef VERSION_12
+	i32 idStrTblIdx; //This isn't here for version 1.1 or less
+#endif
 	BinLocStrKey title;
 	i32 value;
 	i32 stampValue;

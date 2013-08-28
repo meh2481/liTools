@@ -229,7 +229,11 @@ bool parseResidMap(const wchar_t* cFilename)
 
 //TODO: Severe problem if unknown ID and this isn't read first. Write small residmap.dat files to beginnings of pakfiles
 bool residMapToXML(const wchar_t* cFilename)
-{	
+{
+	//DEBUG: Write it all out to a text file as well
+	//ofstream ofile("residmapout.txt");
+	//int iTotal = 0;
+	
 	//Pull our mappings out of this file
 	if(!parseResidMap(cFilename))
 		return false;
@@ -264,6 +268,8 @@ bool residMapToXML(const wchar_t* cFilename)
 	//Merge with preexisting XML
 	for(map<u32, wstring>::iterator i = g_pakMappings.begin(); i != g_pakMappings.end(); i++)
 	{
+		//ofile << "{" << i->first << "u,\"" << ws2s(i->second).c_str() << "\"}," << endl;
+		//iTotal++;
 		if(mCurXMLMappings.count(i->first))
 		{
 			if(mCurXMLMappings[i->first] != i->second)
@@ -283,6 +289,8 @@ bool residMapToXML(const wchar_t* cFilename)
 	//Done
 	doc->SaveFile(ws2s(sFilename).c_str());
 	delete doc;
+	//ofile << endl << iTotal << endl;
+	//ofile.close();
 	return true;
 }
 

@@ -468,12 +468,14 @@ bool myPicturesToXML(wstring sFilename)
 		memcpy(data, &ih, sizeof(ImageHeader));	//Copy in header
 		memcpy(&data[sizeof(ImageHeader)], &cPictureBytes[i->offset], i->width * i->height * 4);	//Copy in image data
 		
-		wchar_t cName[256];
-		wsprintf(cName, TEXT("%s.%d.png"), sFilename.c_str(), iCurImg++);
-		convertToPNG(cName, data, i->width * i->height * 4);
-		
+		iCurImg++;
+		wstring sName = sFilename;
+		sName += TEXT(".");
+		sName.push_back(iCurImg + L'0');
+		sName += TEXT(".png");
+		convertToPNG(sName.c_str(), data, i->width * 4);
 		XMLElement* elem = doc->NewElement("image");
-		elem->SetAttribute("filename", ws2s(cName).c_str());
+		elem->SetAttribute("filename", ws2s(sName).c_str());
 		root->InsertEndChild(elem);
 	}
 	
@@ -657,12 +659,14 @@ bool smokeImageToXML(wstring sFilename)
 			curPtr++;
 		}
 		
-		wchar_t cName[256];
-		wsprintf(cName, TEXT("%s.%d.png"), sFilename.c_str(), iCurImg++);
-		convertToPNG(cName, data, i->width * i->height * 4);
-		
+		iCurImg++;
+		wstring sName = sFilename;
+		sName += TEXT(".");
+		sName.push_back(iCurImg + L'0');
+		sName += TEXT(".png");
+		convertToPNG(sName.c_str(), data, i->width * 4);
 		XMLElement* elem = doc->NewElement("image");
-		elem->SetAttribute("filename", ws2s(cName).c_str());
+		elem->SetAttribute("filename", ws2s(sName).c_str());
 		elem->SetAttribute("id", i->id);
 		root->InsertEndChild(elem);
 	}
@@ -842,11 +846,14 @@ bool fluidPalettesToXML(wstring sFilename)
 		memcpy(data, &ih, sizeof(ImageHeader));	//Copy in header
 		memcpy(&data[sizeof(ImageHeader)], &cPictureBytes[i->offset*4], i->width*4);	//Copy in image data
 		
-		wchar_t cName[256];
-		wsprintf(cName, TEXT("%s.%d.png"), sFilename.c_str(), iCurImg++);
-		convertToPNG(cName, data, i->width * 4);
+		iCurImg++;
+		wstring sName = sFilename;
+		sName += TEXT(".");
+		sName.push_back(iCurImg + L'0');
+		sName += TEXT(".png");
+		convertToPNG(sName.c_str(), data, i->width * 4);
 		XMLElement* elem = doc->NewElement("image");
-		elem->SetAttribute("filename", ws2s(cName).c_str());
+		elem->SetAttribute("filename", ws2s(sName).c_str());
 		elem->SetAttribute("id", i->id);		
 		root->InsertEndChild(elem);
 	}

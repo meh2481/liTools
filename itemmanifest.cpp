@@ -1095,7 +1095,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	list<effectDependency> lEffectDeps;
 	list<itemDependency> lItemDeps;
 	u32 binDataRunningTally = 0;	//Offset into the binary data for each item
-	list<itemDataHeader> lItemData;
+	vector<itemDataHeader> lItemData;	//Everything here and below should be vectors so I can access as needed
 	for(list<wstring>::iterator i = lItemManifestFilenames.begin(); i != lItemManifestFilenames.end(); i++)
 	{
 		doc = new XMLDocument;
@@ -1377,6 +1377,22 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			delete doc;
 			return false;
 		}
+		const char* cVec = elem->Attribute("iconAnimBoundsMin");
+		if(cVec == NULL)
+		{
+			cout << "Unable to read iconAnimBoundsMin from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		idh.iconAnimBoundsMin = stringToVec2(cVec);
+		cVec = elem->Attribute("iconAnimBoundsMax");
+		if(cVec == NULL)
+		{
+			cout << "Unable to read iconAnimBoundsMax from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		idh.iconAnimBoundsMax = stringToVec2(cVec);
 		
 		//TODO iconanimboundsmax/min.x/y
 		
@@ -1440,9 +1456,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	BinHdrPtr bonePartTreeVals;
 	BinHdrPtr rgnCells;
 	BinHdrPtr stringTableBytes;
-	BinHdrPtr burnGridUsedDataBytes;
-	vec2 iconAnimBoundsMin;
-	vec2 iconAnimBoundsMax;*/
+	BinHdrPtr burnGridUsedDataBytes;*/
 		
 		
 		//...

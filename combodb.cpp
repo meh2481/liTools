@@ -69,7 +69,7 @@ bool comboDBToXML(const wchar_t* cFilename)
 		}
 		vCombos.push_back(cr);
 	}
-	cout << "Done reading combos" << endl;
+	//cout << "Done reading combos" << endl;
 	
 	//Read in combo items
 	vector<comboItemRecord> vComboItems;
@@ -85,7 +85,7 @@ bool comboDBToXML(const wchar_t* cFilename)
 		vComboItems.push_back(cir);
 	}
 	
-	cout << "Done reading items" << endl;
+	//cout << "Done reading items" << endl;
 	
 	//Read in string table-----------------------------------------------------------
 	//Read in string table header
@@ -157,6 +157,9 @@ bool comboDBToXML(const wchar_t* cFilename)
 		elem->SetAttribute("id", vCombos[i].id);	//TODO: What for???
 		elem->SetAttribute("coinvalue", vCombos[i].value);
 		elem->SetAttribute("stampvalue", vCombos[i].stampValue);
+#ifdef VERSION_12
+		elem->SetAttribute("stridx", vCombos[i].idStrTblIdx);
+#endif
 		
 		//Write combo name
 		XMLElement* elem2 = doc->NewElement("name");
@@ -256,6 +259,14 @@ bool XMLToComboDB(const wchar_t* cFilename)
 			delete doc;
 			return false;
 		}
+#ifdef VERSION_12
+		if(elem->QueryIntAttribute("stridx", &cr.idStrTblIdx) != XML_NO_ERROR)
+		{
+			cout << "Unable to get idStrTblIdx from XML file " << ws2s(sXMLFile) << endl;
+			delete doc;
+			return false;
+		}
+#endif
 		
 		cr.id = id;
 		cr.title.key = lStringTable.size();
@@ -263,7 +274,6 @@ bool XMLToComboDB(const wchar_t* cFilename)
 		cr.stampValue = stampval;
 		cr.firstItemIdx = lItemRecords.size();
 		cr.numItems = 0;
-		//TODO cr.idStrTblIdx = from XML when available
 		XMLElement* elem2 = elem->FirstChildElement("name");
 		if(elem2 == NULL) continue;
 		if(elem2->QueryUnsignedAttribute("strid", &cr.title.id) != XML_NO_ERROR)
