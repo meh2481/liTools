@@ -693,7 +693,8 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem3->SetAttribute("burnExport", j->burnExport);
 			elem3->SetAttribute("selectWeight", j->selectWeight);
 			elem3->SetAttribute("hasAnimThresh", j->hasAnimThresh);
-			elem3->SetAttribute("animThresh", j->animThresh);
+			if(j->hasAnimThresh)
+				elem3->SetAttribute("animThresh", j->animThresh);
 			elem3->SetAttribute("animExportStrId", j->animExportStrId);
 			elem3->SetAttribute("animBoundsMin", vec2ToString(j->animBoundsMin).c_str());
 			elem3->SetAttribute("animBoundsMax", vec2ToString(j->animBoundsMax).c_str());
@@ -1096,6 +1097,13 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	list<itemDependency> lItemDeps;
 	u32 binDataRunningTally = 0;	//Offset into the binary data for each item
 	vector<itemDataHeader> lItemData;	//Everything here and below should be vectors so I can access as needed
+	vector<list<skelsRecord> > vSkeletons;
+	vector<list<jointRecord> > vJoints;
+	vector<list<boneRecord> > vBones;
+	vector<list<boneShapeRecord> > vBoneShapes;
+	vector<list<bonePartRecord> > vBoneParts;
+	vector<list<boneGridCellMappingRegion> > vBoneRgnCells;
+	
 	for(list<wstring>::iterator i = lItemManifestFilenames.begin(); i != lItemManifestFilenames.end(); i++)
 	{
 		doc = new XMLDocument;
@@ -1347,7 +1355,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		idh.purchaseCooldown = 0;
 		idh.shipTimeSec = 0;
 		idh.valueCoins = 0;
-		idh.iconAnimBoundsMax.x = 0;	//TODO x/y in same attribute
+		idh.iconAnimBoundsMax.x = 0;
 		idh.iconAnimBoundsMax.y = 0;
 		idh.iconAnimBoundsMin.x = 0;
 		idh.iconAnimBoundsMin.y = 0;
@@ -1393,8 +1401,6 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			return false;
 		}
 		idh.iconAnimBoundsMax = stringToVec2(cVec);
-		
-		//TODO iconanimboundsmax/min.x/y
 		
 		//Read optional fields; ignore errors
 		elem->QueryIntAttribute("costStamps", &idh.costStamps);
@@ -1447,16 +1453,489 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		elem->QueryFloatAttribute("modYSpeedMin", &idh.modYSpeedMin);
 		elem->QueryFloatAttribute("modYSpeedMax", &idh.modYSpeedMax);
 		
+		//Read in skeletons for this itemdata
+		idh.skels.count = 0;
+		idh.joints.count = 0;
+		idh.bones.count = 0;
+		list<skelsRecord> lSkels;
+		list<jointRecord> lJoints;
+		list<boneRecord> lBones;
+		list<boneShapeRecord> lBoneShapes;
+		for(XMLElement* skeletons = elem->FirstChildElement("skeleton"); skeletons != NULL; skeletons = skeletons->NextSiblingElement("skeleton"))
+		{
+			skelsRecord sr;
+			sr.firstJointIdx = lJoints.size();
+			sr.numJoints = 0;
+			sr.firstBoneIdx = lBones.size();
+			sr.numBones = 0;
+			
+			if(skeletons->QueryUnsignedAttribute("burnExport", &sr.burnExport) != XML_NO_ERROR)
+			{
+				cout << "Unable to read skeleton burn export from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			if(skeletons->QueryFloatAttribute("selectWeight", &sr.selectWeight) != XML_NO_ERROR)
+			{
+				cout << "Unable to read skeleton selectWeight from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			if(skeletons->QueryIntAttribute("hasAnimThresh", &sr.hasAnimThresh) != XML_NO_ERROR)
+			{
+				cout << "Unable to read skeleton hasAnimThresh from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			//If has anim threshold set, query that as well
+			if(sr.hasAnimThresh)
+			{
+				if(skeletons->QueryFloatAttribute("animThresh", &sr.animThresh) != XML_NO_ERROR)
+				{
+					cout << "Skeleton's hasAnimThresh set to nonzero, but unable to read animThresh from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+			}
+			else
+				sr.animThresh = 0.0f;
+			if(skeletons->QueryIntAttribute("animExportStrId", &sr.animExportStrId) != XML_NO_ERROR)
+			{
+				cout << "Unable to read skeleton animExportStrId from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			
+			cVec = skeletons->Attribute("animBoundsMin");
+			if(cVec == NULL)
+			{
+				cout << "Unable to read animBoundsMin from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			sr.animBoundsMin = stringToVec2(cVec);
+			cVec = skeletons->Attribute("animBoundsMax");
+			if(cVec == NULL)
+			{
+				cout << "Unable to read animBoundsMax from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			sr.animBoundsMax = stringToVec2(cVec);
+			
+			for(XMLElement* joint = skeletons->FirstChildElement("joint"); joint != NULL; joint = joint->NextSiblingElement("joint"))
+			{
+				jointRecord jr;
+				jr.strength.tuneId = jr.angleLimit.tuneId = jr.speed.tuneId = jr.spin.tuneId = jr.wobble.tuneId = 0;	//Don't care about these
+				
+				if(joint->QueryIntAttribute("boneIdx1", &jr.boneIdx[0]) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint bone index 1 from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryIntAttribute("boneIdx2", &jr.boneIdx[1]) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint bone index 2 from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryIntAttribute("boneBurnGridCellIdx1", &jr.boneBurnGridCellIdx[0]) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint bone burn grid cell index 1 from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryIntAttribute("boneBurnGridCellIdx2", &jr.boneBurnGridCellIdx[1]) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint bone burn grid cell index 2 from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryIntAttribute("burnable", &jr.burnable) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint burnable from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryIntAttribute("allowExtDamage", &jr.allowExtDamage) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint allowExtDamage from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				cVec = joint->Attribute("modelSpacePos");
+				if(cVec == NULL)
+				{
+					cout << "Unable to read modelSpacePos from joint in XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				jr.modelSpacePos = stringToVec2(cVec);
+				if(joint->QueryFloatAttribute("strength", &jr.strength.value) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint strength from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryFloatAttribute("angleLimit", &jr.angleLimit.value) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint angleLimit from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryFloatAttribute("speed", &jr.speed.value) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint speed from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryFloatAttribute("spin", &jr.spin.value) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint spin from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(joint->QueryFloatAttribute("wobble", &jr.wobble.value) != XML_NO_ERROR)
+				{
+					cout << "Unable to read joint wobble from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}				
+				
+				sr.numJoints++;
+				lJoints.push_back(jr);
+			}
+			
+			//TODO read children bones
+			for(XMLElement* bone = skeletons->FirstChildElement("bone"); bone != NULL; bone = bone->NextSiblingElement("bone"))
+			{
+				boneRecord br;
+				
+				//Set to defaults, and ignore errors for these
+				br.applyGravityEnumValId = DEFAULT_APPLYGRAVITYENUMVALID;
+				bone->QueryUnsignedAttribute("applyGravityEnumValId", &br.applyGravityEnumValId);
+				br.ashSplitTimeBaseEnumValId = DEFAULT_ASHSPLITTIMEBASEENUMVALID;
+				bone->QueryUnsignedAttribute("ashSplitTimeBaseEnumValId", &br.ashSplitTimeBaseEnumValId);
+				br.ashSplitTimeVarEnumValId = DEFAULT_ASHSPLITTIMEVARENUMVALID;
+				bone->QueryUnsignedAttribute("ashSplitTimeVarEnumValId", &br.ashSplitTimeVarEnumValId);
+				br.autoRotateUprightEnumValId = DEFAULT_AUTOROTATEUPRIGHTENUMVALID;
+				bone->QueryUnsignedAttribute("autoRotateUprightEnumValId", &br.autoRotateUprightEnumValId);
+				br.behavior = DEFAULT_BEHAVIOR;
+				bone->QueryIntAttribute("behavior", &br.behavior);
+				bone->QueryIntAttribute("behaviour", &br.behavior);	//I'M SO BRITISH
+				br.burnGridSize = DEFAULT_BURNGRIDSIZE;	//Later in XML
+				br.connectedGroupIdx = DEFAULT_CONNECTEDGROUPIDX;
+				bone->QueryIntAttribute("connectedGroupIdx", &br.connectedGroupIdx);
+				br.decayParticlesEnumValId = DEFAULT_DECAYPARTICLESENUMVALID;
+				bone->QueryUnsignedAttribute("decayParticlesEnumValId", &br.decayParticlesEnumValId);
+				br.explodeIgnitePiecesEnumValId = DEFAULT_EXPLODEIGNITEPIECESENUMVALID;
+				bone->QueryUnsignedAttribute("explodeIgnitePiecesEnumValId", &br.explodeIgnitePiecesEnumValId);
+				br.explodeIgnoreBurnTriggerEnumValId = DEFAULT_EXPLODEIGNOREBURNTRIGGERENUMVALID;
+				bone->QueryUnsignedAttribute("explodeIgnoreBurnTriggerEnumValId", &br.explodeIgnoreBurnTriggerEnumValId);
+				br.igniteParticlesEnumValId = DEFAULT_IGNITEPARTICLESENUMVALID;
+				bone->QueryUnsignedAttribute("igniteParticlesEnumValId", &br.igniteParticlesEnumValId);
+				br.instAshOnCollideEnumValId = DEFAULT_INSTASHONCOLLIDEENUMVALID;
+				bone->QueryUnsignedAttribute("instAshOnCollideEnumValId", &br.instAshOnCollideEnumValId);
+				br.postExplodeAshBreakMinAccelEnumValId = DEFAULT_POSTEXPLODEASHBREAKMINACCELENUMVALID;
+				bone->QueryUnsignedAttribute("postExplodeAshBreakMinAccelEnumValId", &br.postExplodeAshBreakMinAccelEnumValId);
+				br.postExplodeSplitTimeBaseEnumValId = DEFAULT_POSTEXPLODESPLITTIMEBASEENUMVALID;
+				bone->QueryUnsignedAttribute("postExplodeSplitTimeBaseEnumValId", &br.postExplodeSplitTimeBaseEnumValId);
+				br.postExplodeSplitTimeVarEnumValId = DEFAULT_POSTEXPLODESPLITTIMEVARENUMVALID;
+				bone->QueryUnsignedAttribute("postExplodeSplitTimeVarEnumValId", &br.postExplodeSplitTimeVarEnumValId);
+				br.shatterExpDoCamShakeEnumValId = DEFAULT_SHATTEREXPDOCAMSHAKEENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpDoCamShakeEnumValId", &br.shatterExpDoCamShakeEnumValId);
+				br.shatterExpEffectEnumValId = DEFAULT_SHATTEREXPEFFECTENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpEffectEnumValId", &br.shatterExpEffectEnumValId);
+				br.shatterExpFireAmountEnumValId = DEFAULT_SHATTEREXPFIREAMOUNTENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpFireAmountEnumValId", &br.shatterExpFireAmountEnumValId);
+				br.shatterExpFireSpeedEnumValId = DEFAULT_SHATTEREXPFIRESPEEDENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpFireSpeedEnumValId", &br.shatterExpFireSpeedEnumValId);
+				br.shatterExpForceEnumValId = DEFAULT_SHATTEREXPFORCEENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpForceEnumValId", &br.shatterExpForceEnumValId);
+				br.shatterExpRadiusEnumValId = DEFAULT_SHATTEREXPRADIUSENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpRadiusEnumValId", &br.shatterExpRadiusEnumValId);
+				br.shatterExpSoundEnumValId = DEFAULT_SHATTEREXPSOUNDENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpSoundEnumValId", &br.shatterExpSoundEnumValId);
+				br.shatterExpTimeFactorEnumValId = DEFAULT_SHATTEREXPTIMEFACTORENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpTimeFactorEnumValId", &br.shatterExpTimeFactorEnumValId);
+				br.shatterExpTimeHoldDownEnumValId = DEFAULT_SHATTEREXPTIMEHOLDDOWNENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpTimeHoldDownEnumValId", &br.shatterExpTimeHoldDownEnumValId);
+				br.shatterExpTimeRampDownEnumValId = DEFAULT_SHATTEREXPTIMERAMPDOWNENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpTimeRampDownEnumValId", &br.shatterExpTimeRampDownEnumValId);
+				br.shatterExpTimeRampUpEnumValId = DEFAULT_SHATTEREXPTIMERAMPUPENUMVALID;
+				bone->QueryUnsignedAttribute("shatterExpTimeRampUpEnumValId", &br.shatterExpTimeRampUpEnumValId);
+				br.smearAmountEnumValId = DEFAULT_SMEARAMOUNTENUMVALID;
+				bone->QueryUnsignedAttribute("smearAmountEnumValId", &br.smearAmountEnumValId);
+				br.splatParticlesEnumValId = DEFAULT_SPLATPARTICLESENUMVALID;
+				bone->QueryUnsignedAttribute("splatParticlesEnumValId", &br.splatParticlesEnumValId);
+				br.splitBrittleEnumValId = DEFAULT_SPLITBRITTLEENUMVALID;
+				bone->QueryUnsignedAttribute("splitBrittleEnumValId", &br.splitBrittleEnumValId);
+				br.splitDespawnEffectEnumValId = DEFAULT_SPLITDESPAWNEFFECTENUMVALID;
+				bone->QueryUnsignedAttribute("splitDespawnEffectEnumValId", &br.splitDespawnEffectEnumValId);
+				br.splitEffectEnumValId = DEFAULT_SPLITEFFECTENUMVALID;
+				bone->QueryUnsignedAttribute("splitEffectEnumValId", &br.splitEffectEnumValId);
+				br.splitSFXLargeEnumValId = DEFAULT_SPLITSFXLARGEENUMVALID;
+				bone->QueryUnsignedAttribute("splitSFXLargeEnumValId", &br.splitSFXLargeEnumValId);
+				br.splitSFXMediumEnumValId = DEFAULT_SPLITSFXMEDIUMENUMVALID;
+				bone->QueryUnsignedAttribute("splitSFXMediumEnumValId", &br.splitSFXMediumEnumValId);
+				br.splitSFXSmallEnumValId = DEFAULT_SPLITSFXSMALLENUMVALID;
+				bone->QueryUnsignedAttribute("splitSFXSmallEnumValId", &br.splitSFXSmallEnumValId);
+				br.splitThresholdEnumValId = DEFAULT_SPLITTHRESHOLDENUMVALID;
+				bone->QueryUnsignedAttribute("splitThresholdEnumValId", &br.splitThresholdEnumValId);
+				
+				
+				//Now read important stuff, erroring out if anything is missing
+				if(bone->QueryIntAttribute("id", &br.id) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone id from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryIntAttribute("animBlockIdx", &br.animBlockIdx) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone animBlockIdx from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				cVec = bone->Attribute("itemSpacePosition");
+				if(cVec == NULL)
+				{
+					cout << "Unable to read bone itemSpacePosition in XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				br.itemSpacePosition = stringToVec2(cVec);
+				cVec = bone->Attribute("burnBoundsMin");
+				if(cVec == NULL)
+				{
+					cout << "Unable to read bone burnBoundsMin in XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				br.burnBoundsMin = stringToVec2(cVec);
+				cVec = bone->Attribute("burnBoundsMax");
+				if(cVec == NULL)
+				{
+					cout << "Unable to read bone burnBoundsMax in XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				br.burnBoundsMax = stringToVec2(cVec);
+				if(bone->QueryUnsignedAttribute("igniteTimeEnumValId", &br.igniteTimeEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone igniteTimeEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("burnTimeEnumValId", &br.burnTimeEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone burnTimeEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("attackSpeedEnumValId", &br.attackSpeedEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone attackSpeedEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("attackAmountEnumValId", &br.attackAmountEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone attackAmountEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("decaySpeedEnumValId", &br.decaySpeedEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone decaySpeedEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("burnAmountEnumValId", &br.burnAmountEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone burnAmountEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("boneDensityEnumValId", &br.boneDensityEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone boneDensityEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("collideSoundEnumValId", &br.collideSoundEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone collideSoundEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("igniteSoundEnumValId", &br.igniteSoundEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone igniteSoundEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("frictionEnumValId", &br.frictionEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone frictionEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("restitutionEnumValId", &br.restitutionEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone restitutionEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("linearDampEnumValId", &br.linearDampEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone linearDampEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("angularDampEnumValId", &br.angularDampEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone angularDampEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("ashBreakMinAccelEnumValId", &br.ashBreakMinAccelEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone ashBreakMinAccelEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("ashBreakMaxAccelEnumValId", &br.ashBreakMaxAccelEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone ashBreakMaxAccelEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("stampBlackWhitePctEnumValId", &br.stampBlackWhitePctEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone stampBlackWhitePctEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("collideParticlesEnumValId", &br.collideParticlesEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone collideParticlesEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				if(bone->QueryUnsignedAttribute("mouseGrabSoundEnumValId", &br.mouseGrabSoundEnumValId) != XML_NO_ERROR)
+				{
+					cout << "Unable to read bone mouseGrabSoundEnumValId from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}				
+				
+	//mtx23 animBlockTransform;
+	//f32 burnGridSize;	//TODO
+	//i32 burnGridWidth;
+	//i32 burnGridHeight;
+	//i32 firstBurnUsedIdx;	//TODO
+	//i32 firstPartsIdx;
+	//i32 numParts;
+	//i32 firstPartTreeValIdx;
+	//i32 numPartTreeVals;
+	//i32 firstRgnCellIdx;
+	//i32 numRgnCells;
+				
+				//TODO Read children shapes
+				br.firstBoneMainShapeIdx = lBoneShapes.size();
+				br.numBoneMainShapes = 0;
+				for(XMLElement* shape = bone->FirstChildElement("shape"), shape != NULL; shape = shape->NextSiblingElement("shape"))
+				{
+					boneShapeRecord bsr;
+					
+					const char* cType = shape->Attribute("type");
+					if(cType == NULL)
+					{
+						cout << "Error: Could not read bone shape type from XML file " << ws2s(*i) << endl;
+						delete doc;
+						return false;
+					}
+					string sType = cType;
+					if(sType == "circle")	//Circle shape
+					{
+						bsr.flags = TYPE_CIRCLE;
+						bsr.numVerts = 2;
+						for(int i = 0; i < 8; i++)
+							bsr.verts[i].x = bsr.verts[i].y = 0.0f;
+						XMLElement* center = shape->FirstChildElement("center");
+						if(center == NULL)
+						{
+							cout << "Error: Could not read circle center from XML file " << ws2s(*i) << endl;
+							delete doc; 
+							return false;
+						}
+						readVec2(center, "pos", &(bsr.verts[0]));
+						XMLElement* radius = shape->FirstChildElement("radius");
+						if(radius == NULL)
+						{
+							cout << "Error: Could not read circle radius from XML file " << ws2s(*i) << endl;
+							delete doc; 
+							return false;
+						}
+						if((radius->QueryFloatAttribute("value", &(bsr.verts[1].x))) != XML_NO_ERROR)
+						{
+							cout << "Error: Could not read circle radius from XML file " << ws2s(*i) << ". Value malformed." << endl;
+							delete doc; 
+							return false;
+						}						
+					}
+					else if(sType == "polygon")	//polygon shape
+					{
+						bsr.flags = TYPE_POLYGON;
+						bsr.numVerts = 0;
+						for(int i = 0; i < 8; i++)	//Set all verts to 0 to start off
+							bsr.verts[i].x = bsr.verts[i].y = 0.0f;
+						for(XMLElement* vert = shape->FirstChildElement("vert"); vert != NULL; vert = vert->NextSiblingElement("vert"))
+						{
+							readVec2(vert, "pos", &(bsr.verts[bsr.numVerts]));
+							bsr.numVerts++;
+						}
+					}
+					else
+					{
+						cout << "Unrecognized bone shape type " << sType << " in XML file " << ws2s(*i) << endl;
+						delete doc;
+						return false;
+					}
+					
+					lBoneShapes.push_back(bsr);
+					br.numBoneMainShapes++;
+				}
+				
+				//TODO Read children parts
+				//TODO Read children parttree values
+				//TODO Read child burngrid
+				//TODO Read transforms
+				
+				sr.numBones++;
+				lBones.push_back(br);
+			}
+			
+			lSkels.push_back(sr);
+			idh.skels.count++;
+		}
+		vSkeletons.push_back(lSkels);
+		vJoints.push_back(lJoints);
+		vBones.push_back(lBones);
+		
 		/* TODO
-	BinHdrPtr skels;
-	BinHdrPtr joints;
-	BinHdrPtr bones;
+	idh.skels.offset = ;
+	idh.joints.offset = ;
+	idh.bones.offset = ;
 	BinHdrPtr boneShapes;
 	BinHdrPtr boneParts;
 	BinHdrPtr bonePartTreeVals;
 	BinHdrPtr rgnCells;
 	BinHdrPtr stringTableBytes;
-	BinHdrPtr burnGridUsedDataBytes;*/
+	BinHdrPtr burnGridUsedDataBytes;
+	binDataRunningTally += */
 		
 		
 		//...
