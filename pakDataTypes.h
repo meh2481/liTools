@@ -552,6 +552,96 @@ typedef struct
 	i32 picTexH;
 } comboItemRecord;
 
+//Mark IX Structures - letterdb.dat stuff
+typedef struct
+{
+	BinHdrPtr letters;
+	BinHdrPtr pages;
+	BinHdrPtr stringTableBytes;
+} letterHeader;
+
+#define BASIC_LETTER			0
+#define REQUEST_LETTER			1
+#define REQUESTFOLLOWUP_LETTER	2
+#define ATTACHITEM_LETTER		3
+#define ATTACHMONEY_LETTER		4
+#define ATTACHCATALOG_LETTER	5
+
+typedef struct
+{
+	i32 type;
+	u32 id;
+	i32 firstPageIdx;
+	i32 numPages;
+	u32 dependsLetterId;
+	u32 borderAnimExportId;
+	i32 sendTimeSec;
+	i32 delayTimeSec;
+	u32 postLetterSpecialExportId;
+	u32 depCatalogId;
+	i32 depCatalogItemCount;
+	i32 depNoItems;
+	i32 addTraySlots;
+	i32 deliverable;
+	i32 removeAfterRead;
+	i32 burnableAfterRead;
+	i32 depAllStars;
+	i32 depAllCombo;
+	i32 depAllItemsUsed;
+	i32 jingleLetter;
+	i32 blockNextCatalog;
+	i32 deliverAfterWin;
+	u32 requestedItemId[3];
+	u32 reqChildWrongLetterId;
+	u32 reqParentLetterId;
+	u32 attachedItemId;
+	i32 attachedMoneyAmount;
+	u32 attachedCatalogId;
+	i32 letterIdStrId;
+} letter;
+
+typedef struct
+{
+	u32 senderPicExportId;
+	u32 specialEventExportId;
+	u32 pagePicTexResId;
+	f32 pagePicScale;
+	u32 musicSoundResId;
+	f32 musicOffset;
+	u32 wordsSoundResId;
+	u32 lastWordSoundResId;
+	i32 allowSkip;
+	f32 speedScale;
+	BinLocStrKey text;
+} letterPage;
+
+//Mark X structures - catalogdb.dat stuff
+typedef struct
+{
+	BinHdrPtr catalogs;
+	BinHdrPtr items;
+	BinHdrPtr stringTableBytes;
+} catalogHeader;
+
+typedef struct
+{
+	u32 id;
+	i32 cost;
+	i32 numCombos;
+	BinTuneDataFloat bgRaysR;
+	BinTuneDataFloat bgRaysG;
+	BinTuneDataFloat bgRaysB;
+	BinTuneDataFloat bgPaperR;
+	BinTuneDataFloat bgPaperG;
+	BinTuneDataFloat bgPaperB;
+	i32 firstItemIdx;
+	i32 numItems;
+	u32 coverTexId;
+	u32 thumbTexId;
+	u32 lockedTexId;
+	i32 nameStrId;
+} catalog;
+
 //Structures for my use
 typedef struct
 {
