@@ -158,6 +158,14 @@ Version 0.3.5:
 * Images now properly converted to/from premultiplied alpha
 * Initial Unicode support
 
+Version 0.3.6: (9/10/13)
+* Now (only) supports Little Inferno 1.2. Be sure to upgrade to the latest version before using!
+* vdata/itemmanifest.dat is now parsed to/from XML correctly. Hooray!
+* vdata/loctexmanifest.dat now parsed to/from XML
+* vdata/combodb.dat now parsed to/from XML
+* Matrix transformations thanks to MyGod
+* Some Unicode tweaks and such
+
 
 Building
 ========
