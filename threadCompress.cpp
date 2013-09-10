@@ -105,8 +105,8 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		}
 		else if(tch.find(TEXT("itemmanifest.dat")) != wstring::npos)
 		{
-			//TODO XMLToItemManifest(tch.c_str());
-			//TODO sDeleteWhenDone = tch;
+			XMLToItemManifest(tch.c_str());
+			sDeleteWhenDone = tch;
 		}
 		else if(tch.find(TEXT("combodb.dat")) != wstring::npos)
 		{
