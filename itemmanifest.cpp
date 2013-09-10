@@ -686,7 +686,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 			elem2->SetAttribute("valueStamps", vItemDataHeaders[iCurItemData].valueStamps);
 		
 		//Create skeletons for this item
-		XMLElement* elem3;// = doc->NewElement("skeleton");
+		XMLElement* elem3;
 		for(list<skelsRecord>::iterator j = vSkeletonRecords[iCurItemData].begin(); j != vSkeletonRecords[iCurItemData].end(); j++)
 		{
 			elem3 = doc->NewElement("skeleton");
@@ -1102,6 +1102,12 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	vector<list<boneRecord> > vBones;
 	vector<list<boneShapeRecord> > vBoneShapes;
 	vector<list<bonePartRecord> > vBoneParts;
+	vector<list<i32> > vBonePartTreeValues;
+	vector<list<byte> > vBurnGrid;
+	vector<StringTableHeader> vStringTableHeaders;
+	vector<list<StringTableEntry> > vlStringTables;
+	vector<list<StringPointerEntry> > vlStringPointers;
+	vector<list<char> > vlStrings;
 	vector<list<boneGridCellMappingRegion> > vBoneRgnCells;
 	
 	for(list<wstring>::iterator i = lItemManifestFilenames.begin(); i != lItemManifestFilenames.end(); i++)
@@ -1214,7 +1220,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			{
 				normalDependency nd;
 				imr.numNormalDepends++;
-				const char* cIDFilename = elem->Attribute("filename");
+				const char* cIDFilename = elem2->Attribute("filename");
 				if(cIDFilename == NULL)
 				{
 					cout << "Unable to read normal dependency filename from XML file " << ws2s(*i) << endl;
@@ -1230,7 +1236,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			{
 				soundDependency sd;
 				imr.numSoundDepends++;
-				const char* cIDFilename = elem->Attribute("filename");
+				const char* cIDFilename = elem2->Attribute("filename");
 				if(cIDFilename == NULL)
 				{
 					cout << "Unable to read sound dependency filename from XML file " << ws2s(*i) << endl;
@@ -1246,7 +1252,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			{
 				effectDependency ed;
 				imr.numEffectDepends++;
-				const char* cIDFilename = elem->Attribute("filename");
+				const char* cIDFilename = elem2->Attribute("filename");
 				if(cIDFilename == NULL)
 				{
 					cout << "Unable to read effect dependency filename from XML file " << ws2s(*i) << endl;
@@ -1262,7 +1268,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 			{
 				itemDependency itd;
 				imr.numItemDepends++;
-				const char* cID = elem->Attribute("id");
+				const char* cID = elem2->Attribute("id");
 				if(cID == NULL)
 				{
 					cout << "Unable to read item dependency id from XML file " << ws2s(*i) << endl;
@@ -1338,13 +1344,6 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		idh.uniqueIgniteSoundResId = DEFAULT_UNIQUEIGNITESOUNDRESID;
 		idh.unlisted = DEFAULT_UNLISTED;
 		idh.valueStamps = DEFAULT_VALUESTAMPS;
-		
-		//Fields found in other XML elements
-		idh.name.id = 0;
-		idh.name.key = 0;
-		idh.desc.id = 0;
-		idh.desc.key = 0;
-		idh.itemIdStrId = 0;
 		
 		//Redundant fields
 		idh.itemId = imr.itemId;
@@ -1454,13 +1453,14 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		elem->QueryFloatAttribute("modYSpeedMax", &idh.modYSpeedMax);
 		
 		//Read in skeletons for this itemdata
-		idh.skels.count = 0;
-		idh.joints.count = 0;
-		idh.bones.count = 0;
 		list<skelsRecord> lSkels;
 		list<jointRecord> lJoints;
 		list<boneRecord> lBones;
 		list<boneShapeRecord> lBoneShapes;
+		list<bonePartRecord> lBoneParts;
+		list<i32> lBonePartTreeValues;
+		list<byte> lBurnGrid;
+		list<boneGridCellMappingRegion> lBoneRgnCells;
 		for(XMLElement* skeletons = elem->FirstChildElement("skeleton"); skeletons != NULL; skeletons = skeletons->NextSiblingElement("skeleton"))
 		{
 			skelsRecord sr;
@@ -1686,7 +1686,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 				
 				
 				//Now read important stuff, erroring out if anything is missing
-				if(bone->QueryIntAttribute("id", &br.id) != XML_NO_ERROR)
+				if(bone->QueryUnsignedAttribute("id", &br.id) != XML_NO_ERROR)
 				{
 					cout << "Unable to read bone id from XML file " << ws2s(*i) << endl;
 					delete doc;
@@ -1829,24 +1829,12 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 					cout << "Unable to read bone mouseGrabSoundEnumValId from XML file " << ws2s(*i) << endl;
 					delete doc;
 					return false;
-				}				
+				}
 				
-	//mtx23 animBlockTransform;
-	//f32 burnGridSize;	//TODO
-	//i32 burnGridWidth;
-	//i32 burnGridHeight;
-	//i32 firstBurnUsedIdx;	//TODO
-	//i32 firstPartsIdx;
-	//i32 numParts;
-	//i32 firstPartTreeValIdx;
-	//i32 numPartTreeVals;
-	//i32 firstRgnCellIdx;
-	//i32 numRgnCells;
-				
-				//TODO Read children shapes
+				//Read children shapes
 				br.firstBoneMainShapeIdx = lBoneShapes.size();
 				br.numBoneMainShapes = 0;
-				for(XMLElement* shape = bone->FirstChildElement("shape"), shape != NULL; shape = shape->NextSiblingElement("shape"))
+				for(XMLElement* shape = bone->FirstChildElement("shape"); shape != NULL; shape = shape->NextSiblingElement("shape"))
 				{
 					boneShapeRecord bsr;
 					
@@ -1862,8 +1850,8 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 					{
 						bsr.flags = TYPE_CIRCLE;
 						bsr.numVerts = 2;
-						for(int i = 0; i < 8; i++)
-							bsr.verts[i].x = bsr.verts[i].y = 0.0f;
+						for(int j = 0; j < 8; j++)
+							bsr.verts[j].x = bsr.verts[j].y = 0.0f;
 						XMLElement* center = shape->FirstChildElement("center");
 						if(center == NULL)
 						{
@@ -1909,230 +1897,409 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 					br.numBoneMainShapes++;
 				}
 				
-				//TODO Read children parts
-				//TODO Read children parttree values
-				//TODO Read child burngrid
-				//TODO Read transforms
+				//Read children parts
+				br.firstPartsIdx = lBoneParts.size();
+				br.numParts = 0;
+				XMLElement* parts = bone->FirstChildElement("parts");
+				if(parts != NULL)
+				{
+					for(XMLElement* part = parts->FirstChildElement("part"); part != NULL; part = part->NextSiblingElement("part"))
+					{
+						bonePartRecord bpr;
+						if(part->QueryUnsignedAttribute("flags", &bpr.flags) != XML_NO_ERROR)
+						{
+							cout << "Error: Unable to read bone part flags from XML file " << ws2s(*i) << endl;
+							delete doc;
+							return false;
+						}
+						if(part->QueryUnsignedAttribute("texId", &bpr.texResId) != XML_NO_ERROR)
+						{
+							cout << "Error: Unable to read bone part texId from XML file " << ws2s(*i) << endl;
+							delete doc;
+							return false;
+						}
+						if(part->QueryUnsignedAttribute("normId", &bpr.normalMapResId) != XML_NO_ERROR)
+						{
+							cout << "Error: Unable to read bone part normId from XML file " << ws2s(*i) << endl;
+							delete doc;
+							return false;
+						}
+						if(part->QueryFloatAttribute("pupilRange", &bpr.pupilMoveRange) != XML_NO_ERROR)
+						{
+							cout << "Error: Unable to read bone part pupilRange from XML file " << ws2s(*i) << endl;
+							delete doc;
+							return false;
+						}
+						br.numParts++;
+						lBoneParts.push_back(bpr);
+					}
+				}
+				else
+					br.firstPartsIdx = -1;
+								
+				//Read children parttree values
+				br.firstPartTreeValIdx = lBonePartTreeValues.size();
+				br.numPartTreeVals = 0;
+				XMLElement* parttree = bone->FirstChildElement("parttree");
+				if(parttree != NULL)
+				{
+					for(XMLElement* value = parttree->FirstChildElement("value"); value != NULL; value = value->NextSiblingElement("value"))
+					{
+						i32 val;
+						if(value->QueryIntAttribute("val", &val) != XML_NO_ERROR)
+						{
+							cout << "Error: Unable to read bone part tree value from XML file " << ws2s(*i) << endl;
+							delete doc;
+							return false;
+						}
+						lBonePartTreeValues.push_back(val);
+						br.numPartTreeVals++;
+					}
+				}
+				else
+					br.firstPartTreeValIdx = -1;
+				
+				//Read child burngrid
+				br.firstBurnUsedIdx = lBurnGrid.size();
+				XMLElement* burngrid = bone->FirstChildElement("burngrid");
+				if(burngrid != NULL)
+				{
+					burngrid->QueryFloatAttribute("size", &br.burnGridSize);	//Don't care if this fails, default value of 10.0f was set earlier
+					if(burngrid->QueryIntAttribute("width", &br.burnGridWidth) != XML_NO_ERROR)
+					{
+						cout << "Error: Unable to read burngrid width from XML file " << ws2s(*i) << endl;
+						delete doc;
+						return false;
+					}
+					if(burngrid->QueryIntAttribute("height", &br.burnGridHeight) != XML_NO_ERROR)
+					{
+						cout << "Error: Unable to read burngrid height from XML file " << ws2s(*i) << endl;
+						delete doc;
+						return false;
+					}
+					if(burngrid->QueryIntAttribute("firstpos", &br.firstBurnUsedIdx) != XML_NO_ERROR)
+					{
+						cout << "Error: Unable to read burngrid firstpos from XML file " << ws2s(*i) << endl;
+						delete doc;
+						return false;
+					}
+					const char* grid = burngrid->Attribute("grid");
+					if(grid == NULL)
+					{
+						cout << "Error: Unable to read burngrid grid from XML file " << ws2s(*i) << endl;
+						delete doc;
+						return false;
+					}
+					if(strlen(grid) != br.burnGridWidth * br.burnGridHeight)	//Grid isn't correct size
+					{
+						cout << "Error: burngrid attribute \"grid\" is not of width*height length in XML file " << ws2s(*i) << endl;
+						delete doc;
+						return false;
+					}
+					for(int j = 0; j < br.burnGridWidth*br.burnGridHeight; j++)
+					{
+						if(grid[j] == '0')
+							lBurnGrid.push_back(0);
+						else
+							lBurnGrid.push_back(1);
+					}
+				}
+				else
+				{
+					cout << "Error: Unable to read bone burngrid from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				
+				//Read region mappings if here
+				br.firstRgnCellIdx = lBoneRgnCells.size();
+				br.numRgnCells = 0;
+				XMLElement* regions = bone->FirstChildElement("regions");
+				if(regions != NULL)
+				{
+					for(XMLElement* region = regions->FirstChildElement("regionmapping"); region != NULL; region = region->NextSiblingElement("regionmapping"))
+					{
+						boneGridCellMappingRegion bgcmr;
+						if(region->QueryIntAttribute("uid", &bgcmr.regionUID) != XML_NO_ERROR)
+						{	
+							cout << "Error: Unable to read bone regionmapping uid from XML file " << ws2s(*i) << endl;
+							delete doc;
+							return false;
+						}
+						if(region->QueryIntAttribute("index", &bgcmr.burnGridCellIdx) != XML_NO_ERROR)
+						{	
+							cout << "Error: Unable to read bone regionmapping index from XML file " << ws2s(*i) << endl;
+							delete doc;
+							return false;
+						}						
+						br.numRgnCells++;
+						lBoneRgnCells.push_back(bgcmr);
+					}
+				}
+				else
+				{
+					//Don't care, but set to -1 for no cells
+					br.firstRgnCellIdx = -1;
+				}
+				
+				//Read transforms
+				XMLElement* transforms = bone->FirstChildElement("transforms");
+				if(transforms == NULL)
+				{
+					cout << "Error: Unable to read bone transforms from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				ReadTransforms(transforms, &br.animBlockTransform);
 				
 				sr.numBones++;
 				lBones.push_back(br);
 			}
 			
 			lSkels.push_back(sr);
-			idh.skels.count++;
 		}
 		vSkeletons.push_back(lSkels);
 		vJoints.push_back(lJoints);
 		vBones.push_back(lBones);
+		vBoneShapes.push_back(lBoneShapes);
+		vBoneParts.push_back(lBoneParts);
+		vBonePartTreeValues.push_back(lBonePartTreeValues);
+		vBoneRgnCells.push_back(lBoneRgnCells);
+		vBurnGrid.push_back(lBurnGrid);
 		
-		/* TODO
-	idh.skels.offset = ;
-	idh.joints.offset = ;
-	idh.bones.offset = ;
-	BinHdrPtr boneShapes;
-	BinHdrPtr boneParts;
-	BinHdrPtr bonePartTreeVals;
-	BinHdrPtr rgnCells;
-	BinHdrPtr stringTableBytes;
-	BinHdrPtr burnGridUsedDataBytes;
-	binDataRunningTally += */
+		//TODO Read in string table
+		StringTableHeader sth;
+		sth.numStrings = sth.numPointers = 0;
+		list<StringTableEntry> lStringEntries;
+		list<StringPointerEntry> lStringPointers;
+		list<char> lStrings;
 		
+		//String Table Header
+		//i32 numStrings;
+		//i32 numPointers;
 		
-		//...
+		//String Table Entry
+		//i32 pointerIndex;
+		//i32 pointerCount;
 		
+		//String Pointer Entry
+		//u32 languageId;
+		//i32 offset;
 		
-		
-		lItemData.push_back(idh);
-		
-		delete doc;
-		lItemManifests.push_back(imr);
-	}
-	
-	/*
-	//Read in all child elements
-	list<itemManifestRecord> lItemManifests;
-	list<normalDependency> lNormalDeps;
-	list<soundDependency> lSoundDeps;
-	list<effectDependency> lEffectDeps;
-	list<itemDependency> lItemDeps;
-	for(XMLElement* elem = root->FirstChildElement("itemrecord"); elem != NULL; elem = elem->NextSiblingElement("itemrecord"))
-	{
-		itemManifestRecord imr;
-		imr.itemId = imr.animResId = imr.recentlyModifiedRank = imr.firstNormalDepends = imr.numNormalDepends = imr.firstSoundDepends = imr.numSoundDepends = imr.firstEffectDepends = imr.numEffectDepends = imr.firstItemDepends = imr.numItemDepends = imr.catalogIconColorItemTexResId = imr.catalogIconColorBGTexResId = imr.catalogIconGreyBGTexResId = imr.binDataOffsetBytes = 0;	//To supress compiler warnings
-		const char* id = elem->Attribute("id");
+		//Read in ID string
+		StringTableEntry idEntry;
+		idEntry.pointerIndex = lStringPointers.size();
+		idEntry.pointerCount = 0;
+		idh.itemIdStrId = sth.numStrings;
+		XMLElement* id = elem->FirstChildElement("id");	//Get ID string
 		if(id == NULL)
 		{
-			cout << "Error: Unable to get id of XML element in file " << ws2s(sXMLFile) << endl;
+			cout << "Unable to read item ID string from XML file " << ws2s(*i) << endl;
 			delete doc;
 			return false;
 		}
-		imr.itemId = hash(s2ws(id)); //TODO ????
-		imr.recentlyModifiedRank = 1;	//Because why not
-		
-		//get all the XML children of this
-		for(XMLElement* elem2 = elem->FirstChildElement(); elem2 != NULL; elem2 = elem2->NextSiblingElement())
+		for(XMLElement* idstring = id->FirstChildElement("string"); idstring != NULL; idstring = idstring->NextSiblingElement("string"))
 		{
-			wstring sName = s2ws(elem2->Name());
-			if(sName == TEXT("animresid"))
+			StringPointerEntry spe;
+			const char* lang = idstring->Attribute("lang");
+			if(lang == NULL)
 			{
-				const char* cTemp = elem2->Attribute("filename");
-				if(cTemp == NULL)
-				{
-					cout << "Error: Missing filename for animresid in file " << ws2s(sXMLFile) << endl;
-					delete doc;
-					return false;
-				}
-				imr.animResId = getResID(s2ws(cTemp));
+				cout << "Unable to read item ID string's language from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
 			}
-			else if(sName == TEXT("recentlymodifiedrank"))
+			spe.languageId = toLangID(s2ws(lang));
+			spe.offset = lStrings.size();
+			lStringPointers.push_back(spe);
+			idEntry.pointerCount++;
+			sth.numPointers++;
+			
+			//Read in string data
+			const char* data = idstring->Attribute("data");
+			if(data == NULL)
 			{
-				//Completely ignore //TODO Remove test case
+				cout << "Unable to read item ID string's data from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
 			}
-			else if(sName == TEXT("coloritemicon"))
-			{
-				const char* cTemp = elem2->Attribute("filename");
-				if(cTemp == NULL)
-				{
-					cout << "Error: Missing filename for coloritemicon in file " << ws2s(sXMLFile) << endl;
-					delete doc;
-					return false;
-				}
-				imr.catalogIconColorItemTexResId = getResID(s2ws(cTemp));
-			}
-			else if(sName == TEXT("colorbgicon"))
-			{
-				const char* cTemp = elem2->Attribute("filename");
-				if(cTemp == NULL)
-				{
-					cout << "Error: Missing filename for colorbgicon in file " << ws2s(sXMLFile) << endl;
-					delete doc;
-					return false;
-				}
-				imr.catalogIconColorBGTexResId = getResID(s2ws(cTemp));
-			}
-			else if(sName == TEXT("greybgicon"))
-			{
-				const char* cTemp = elem2->Attribute("filename");
-				if(cTemp == NULL)
-				{
-					cout << "Error: Missing filename for greybgicon in file " << ws2s(sXMLFile) << endl;
-					delete doc;
-					return false;
-				}
-				imr.catalogIconGreyBGTexResId = getResID(s2ws(cTemp));
-			}
-			//TODO: binDataOffsetBytes
-			else if(sName == TEXT("depends"))
-			{
-				//Store offsets for these dependencies
-				imr.firstNormalDepends = lNormalDeps.size();
-				imr.firstSoundDepends = lSoundDeps.size();
-				imr.firstEffectDepends = lEffectDeps.size();
-				imr.firstItemDepends = lItemDeps.size();
-				imr.numNormalDepends = 0;
-				imr.numSoundDepends = 0;
-				imr.numEffectDepends = 0;
-				imr.numItemDepends = 0;
-				//Get all child dependencies
-				for(XMLElement* elem3 = elem2->FirstChildElement(); elem3 != NULL; elem3 = elem3->NextSiblingElement())
-				{
-					wstring sDependName = s2ws(elem3->Name());
-					if(sDependName == TEXT("normal"))
-					{
-						const char* cTemp = elem3->Attribute("filename");
-						if(cTemp == NULL)
-						{
-							cout << "Error: Missing filename for normal dependency in file " << ws2s(sXMLFile) << endl;
-							delete doc;
-							return false;
-						}
-						normalDependency nd;
-						nd.normalTexResId = getResID(s2ws(cTemp));
-						lNormalDeps.push_back(nd);
-						imr.numNormalDepends++;
-					}
-					else if(sDependName == TEXT("sound"))
-					{
-						const char* cTemp = elem3->Attribute("id");
-						if(cTemp == NULL)
-						{
-							cout << "Error: Missing id for sound dependency in file " << ws2s(sXMLFile) << endl;
-							delete doc;
-							return false;
-						}
-						soundDependency sd;
-						sd.soundResId = getSoundId(s2ws(cTemp));
-						lSoundDeps.push_back(sd);
-						imr.numSoundDepends++;
-					}
-					else if(sDependName == TEXT("effect"))
-					{
-						const char* cTemp = elem3->Attribute("id");
-						if(cTemp == NULL)
-						{
-							cout << "Error: Missing id for effect dependency in file " << ws2s(sXMLFile) << endl;
-							delete doc;
-							return false;
-						}
-						effectDependency ed;
-						ed.effectResId = getResID(s2ws(cTemp));
-						lEffectDeps.push_back(ed);
-						imr.numEffectDepends++;
-					}
-					else if(sDependName == TEXT("item"))
-					{
-						const char* cTemp = elem3->Attribute("id");
-						if(cTemp == NULL)
-						{
-							cout << "Error: Missing id for item dependency in file " << ws2s(sXMLFile) << endl;
-							delete doc;
-							return false;
-						}
-						itemDependency id;
-						id.itemResId = hash(s2ws(cTemp));
-						lItemDeps.push_back(id);
-						imr.numItemDepends++;
-					}
-					else if(sDependName == TEXT(""))
-						cout << "Warning: Empty element name for depends in XML file " << ws2s(sXMLFile) << endl;
-					else
-						cout << "Warning: Unknown name for dependency: " << ws2s(sDependName) << " in XML file " << ws2s(sXMLFile) << ". Ignoring..." << endl;
-				}
-			}
-			else if(sName == TEXT(""))
-				cout << "Warning: XML element missing name in file " << ws2s(sXMLFile) << ". Ignoring... " << endl;
-			else
-				cout << "Warning: Unknown XML element name: " << ws2s(sName) << " in XML file " << ws2s(sXMLFile) << ". Ignoring..." << endl;
+			for(int j = 0; j < strlen(data); j++)
+				lStrings.push_back(data[j]);
+			lStrings.push_back('\0');	//Be sure to append null character, as well
 		}
+		lStringEntries.push_back(idEntry);
+		sth.numStrings++;
+		
+		//Read in name string
+		StringTableEntry nameEntry;
+		nameEntry.pointerIndex = lStringPointers.size();
+		nameEntry.pointerCount = 0;
+		idh.name.key = sth.numStrings;
+		XMLElement* namestr = elem->FirstChildElement("name");	//Get ID string
+		if(namestr == NULL)
+		{
+			cout << "Unable to read item name string from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		if(namestr->QueryUnsignedAttribute("strid", &idh.name.id) != XML_NO_ERROR)
+		{
+			cout << "Unable to read item name strid XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		for(XMLElement* namestring = namestr->FirstChildElement("string"); namestring != NULL; namestring = namestring->NextSiblingElement("string"))
+		{
+			StringPointerEntry spe;
+			const char* lang = namestring->Attribute("lang");
+			if(lang == NULL)
+			{
+				cout << "Unable to read item name string's language from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			spe.languageId = toLangID(s2ws(lang));
+			spe.offset = lStrings.size();
+			lStringPointers.push_back(spe);
+			nameEntry.pointerCount++;
+			sth.numPointers++;
+			
+			//Read in string data
+			const char* data = namestring->Attribute("data");
+			if(data == NULL)
+			{
+				cout << "Unable to read item name string's data from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			for(int j = 0; j < strlen(data); j++)
+				lStrings.push_back(data[j]);
+			lStrings.push_back('\0');	//Be sure to append null character, as well
+		}
+		lStringEntries.push_back(nameEntry);
+		sth.numStrings++;
+		
+		//Read in description string
+		StringTableEntry descEntry;
+		descEntry.pointerIndex = lStringPointers.size();
+		descEntry.pointerCount = 0;
+		idh.desc.key = sth.numStrings;
+		XMLElement* descstr = elem->FirstChildElement("description");	//Get ID string
+		if(descstr == NULL)
+		{
+			cout << "Unable to read item description string from XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		if(descstr->QueryUnsignedAttribute("strid", &idh.desc.id) != XML_NO_ERROR)
+		{
+			cout << "Unable to read item description strid XML file " << ws2s(*i) << endl;
+			delete doc;
+			return false;
+		}
+		for(XMLElement* descstring = descstr->FirstChildElement("string"); descstring != NULL; descstring = descstring->NextSiblingElement("string"))
+		{
+			StringPointerEntry spe;
+			const char* lang = descstring->Attribute("lang");
+			if(lang == NULL)
+			{
+				cout << "Unable to read item description string's language from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			spe.languageId = toLangID(s2ws(lang));
+			spe.offset = lStrings.size();
+			lStringPointers.push_back(spe);
+			descEntry.pointerCount++;
+			sth.numPointers++;
+			
+			//Read in string data
+			const char* data = descstring->Attribute("data");
+			if(data == NULL)
+			{
+				cout << "Unable to read item description string's data from XML file " << ws2s(*i) << endl;
+				delete doc;
+				return false;
+			}
+			for(int j = 0; j < strlen(data); j++)
+				lStrings.push_back(data[j]);
+			lStrings.push_back('\0');	//Be sure to append null character, as well
+		}
+		lStringEntries.push_back(descEntry);
+		sth.numStrings++;
+		
+		//Read in other string data
+		for(XMLElement* text = elem->FirstChildElement("text"); text != NULL; text = text->NextSiblingElement("text"))
+		{
+			StringTableEntry ste;
+			ste.pointerIndex = lStringPointers.size();
+			ste.pointerCount = 0;
+			for(XMLElement* textstring = text->FirstChildElement("string"); textstring != NULL; textstring = textstring->NextSiblingElement("string"))
+			{
+				StringPointerEntry spe;
+				const char* lang = textstring->Attribute("lang");
+				if(lang == NULL)
+				{
+					cout << "Unable to read text string's language from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				spe.languageId = toLangID(s2ws(lang));
+				spe.offset = lStrings.size();
+				lStringPointers.push_back(spe);
+				ste.pointerCount++;
+				sth.numPointers++;
+				
+				//Read in string data
+				const char* data = textstring->Attribute("data");
+				if(data == NULL)
+				{
+					cout << "Unable to read text string's data from XML file " << ws2s(*i) << endl;
+					delete doc;
+					return false;
+				}
+				for(int j = 0; j < strlen(data); j++)
+					lStrings.push_back(data[j]);
+				lStrings.push_back('\0');	//Be sure to append null character, as well
+			}
+			lStringEntries.push_back(ste);
+			sth.numStrings++;
+		}
+		
+		vStringTableHeaders.push_back(sth);
+		vlStringTables.push_back(lStringEntries);
+		vlStringPointers.push_back(lStringPointers);
+		vlStrings.push_back(lStrings);
+		
+		idh.skels.count = lSkels.size();
+		idh.skels.offset = sizeof(itemDataHeader);
+		idh.joints.count = lJoints.size();
+		idh.joints.offset = idh.skels.offset + idh.skels.count * sizeof(skelsRecord);
+		idh.bones.count = lBones.size();
+		idh.bones.offset = idh.joints.offset + idh.joints.count * sizeof(jointRecord);
+		idh.boneShapes.count = lBoneShapes.size();
+		idh.boneShapes.offset = idh.bones.offset + idh.bones.count * sizeof(boneRecord);
+		idh.boneParts.count = lBoneParts.size();
+		idh.boneParts.offset = idh.boneShapes.offset + idh.boneParts.count * sizeof(boneShapeRecord);
+		idh.bonePartTreeVals.count = lBonePartTreeValues.size();
+		idh.bonePartTreeVals.offset = idh.boneParts.offset + idh.boneParts.count * sizeof(bonePartRecord);
+		idh.rgnCells.count = lBoneRgnCells.size();
+		idh.rgnCells.offset = idh.bonePartTreeVals.offset + idh.bonePartTreeVals.count * sizeof(i32);
+		idh.stringTableBytes.count = sizeof(StringTableHeader) + sizeof(StringTableEntry) * lStringEntries.size() + sizeof(StringPointerEntry) * lStringPointers.size() + lStrings.size();
+		idh.stringTableBytes.offset = idh.rgnCells.offset + idh.rgnCells.count * sizeof(boneGridCellMappingRegion);
+		idh.burnGridUsedDataBytes.count = lBurnGrid.size();
+		idh.burnGridUsedDataBytes.offset = idh.stringTableBytes.offset + idh.stringTableBytes.count;
+		binDataRunningTally += idh.burnGridUsedDataBytes.offset + idh.burnGridUsedDataBytes.count;	//Update our running tally of the size of the binary data
+			
+		lItemData.push_back(idh);
 		lItemManifests.push_back(imr);
+		
+		//And we're done with this XML file
+		delete doc;
 	}
-	//Now we have all the item stuff properly in our lists
-	delete doc;	//We're done with this
 	
-	//TODO Finish parsing XML binDataOffsetBytes stuff and write to file
-	itemManifestHeader imh;
-	size_t curOffset = sizeof(itemManifestHeader);
-	imh.itemsManifest.count = lItemManifests.size();
-	imh.itemsManifest.offset = curOffset;
-	curOffset += sizeof(itemManifestRecord) * lItemManifests.size();
-	imh.normalDeps.count = lNormalDeps.size();
-	imh.normalDeps.offset = curOffset;
-	curOffset += sizeof(normalDependency) * lNormalDeps.size();
-	imh.soundDeps.count = lSoundDeps.size();
-	imh.soundDeps.offset = curOffset;
-	curOffset += sizeof(soundDependency) * lSoundDeps.size();
-	imh.effectDeps.count = lEffectDeps.size();
-	imh.effectDeps.offset = curOffset;
-	curOffset += sizeof(effectDependency) * lEffectDeps.size();
-	imh.itemDeps.count = lItemDeps.size();
-	imh.itemDeps.offset = curOffset;
-	curOffset += sizeof(itemDependency) * lItemDeps.size();
-	imh.itemsBinDataBytes.count = 0;	//TODO
-	imh.itemsBinDataBytes.offset = curOffset;
-	
-	//Open output file
+	//Write everything out to the itemmanifest file
 	wstring sFilename = cFilename;
-	sFilename += TEXT(".derp");	//TODO: Replace original file
+	//sFilename += TEXT(".derp");	//TODO: Replace original file
 	FILE* f = _wfopen(sFilename.c_str(), TEXT("wb"));
 	if(f == NULL)
 	{
@@ -2141,6 +2308,19 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	}
 	
 	//Write our itemManifestHeader
+	itemManifestHeader imh;
+	imh.itemsManifest.count = lItemManifests.size();
+	imh.itemsManifest.offset = sizeof(itemManifestHeader);
+	imh.normalDeps.count = lNormalDeps.size();
+	imh.normalDeps.offset = imh.itemsManifest.offset + imh.itemsManifest.count * sizeof(itemManifestRecord);
+	imh.soundDeps.count = lSoundDeps.size();
+	imh.soundDeps.offset = imh.normalDeps.offset + imh.normalDeps.count * sizeof(normalDependency);
+	imh.effectDeps.count = lEffectDeps.size();
+	imh.effectDeps.offset = imh.soundDeps.offset + imh.soundDeps.count * sizeof(soundDependency);
+	imh.itemDeps.count = lItemDeps.size();
+	imh.itemDeps.offset = imh.effectDeps.offset + imh.effectDeps.count * sizeof(effectDependency);
+	imh.itemsBinDataBytes.count = binDataRunningTally;
+	imh.itemsBinDataBytes.offset = imh.itemDeps.offset + imh.itemDeps.count * sizeof(itemDependency);
 	fwrite(&imh, 1, sizeof(itemManifestHeader), f);
 	
 	//Write our itemManifestRecords
@@ -2163,9 +2343,63 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	for(list<itemDependency>::iterator i = lItemDeps.begin(); i != lItemDeps.end(); i++)
 		fwrite(&(*i), 1, sizeof(itemDependency), f);
 	
-	//TODO Write our binDataOffsetBytes stuff
+	//Write binary stuff
+	int iCurItem = 0;
+	for(vector<itemDataHeader>::iterator i = lItemData.begin(); i != lItemData.end(); i++, iCurItem++)
+	{
+		//Item data header
+		fwrite(&(*i), 1, sizeof(itemDataHeader), f);
+		
+		//Skeletons for this item
+		for(list<skelsRecord>::iterator j = vSkeletons[iCurItem].begin(); j != vSkeletons[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(skelsRecord), f);
+		
+		//Joints for this skeleton
+		for(list<jointRecord>::iterator j = vJoints[iCurItem].begin(); j != vJoints[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(jointRecord), f);
+		
+		//Bones for this skeleton
+		for(list<boneRecord>::iterator j = vBones[iCurItem].begin(); j != vBones[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(boneRecord), f);
+			
+		//Shapes for this bone
+		for(list<boneShapeRecord>::iterator j = vBoneShapes[iCurItem].begin(); j != vBoneShapes[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(boneShapeRecord), f);
+		
+		//Parts for this bone
+		for(list<bonePartRecord>::iterator j = vBoneParts[iCurItem].begin(); j != vBoneParts[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(bonePartRecord), f);
+		
+		//Tree values for this bone
+		for(list<i32>::iterator j = vBonePartTreeValues[iCurItem].begin(); j != vBonePartTreeValues[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(i32), f);
+		
+		//Cell regions for this bone
+		for(list<boneGridCellMappingRegion>::iterator j = vBoneRgnCells[iCurItem].begin(); j != vBoneRgnCells[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(boneGridCellMappingRegion), f);
+		
+		//String table header
+		fwrite(&(vStringTableHeaders[iCurItem]), 1, sizeof(StringTableHeader), f);
+		
+		//String table entries
+		for(list<StringTableEntry>::iterator j = vlStringTables[iCurItem].begin(); j != vlStringTables[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(StringTableEntry), f);
+		
+		//String pointer entries
+		for(list<StringPointerEntry>::iterator j = vlStringPointers[iCurItem].begin(); j != vlStringPointers[iCurItem].end(); j++)
+			fwrite(&(*j), 1, sizeof(StringPointerEntry), f);
+		
+		//Strings
+		for(list<char>::iterator j = vlStrings[iCurItem].begin(); j != vlStrings[iCurItem].end(); j++)
+			fwrite(&(*j), 1, 1, f);
+		
+		//Burn grid
+		for(list<byte>::iterator j = vBurnGrid[iCurItem].begin(); j != vBurnGrid[iCurItem].end(); j++)
+			fwrite(&(*j), 1, 1, f);
+
+	}
 	
-	fclose(f);*/
+	fclose(f);
 	return true;
 }
 
