@@ -8,18 +8,3 @@ Add security (and bug-prevention) features to prevent any file outside of vdata/
 Support for .flac.ogg in filelists instead of .flac and stuff? (See README line 102)
 XML specification instead of .filelist.txt for mod creation?
 Work with puggsoy/others for GUI ease of use
-
-Done
-* 12/18/12 * Multithreading for faster compression/decompression
-* 12/19/12 * XML specification for vdata/wordPackDict.dat with compression/decompression routines
-* 12/19/12 * Merging capability so new mods can be added without the lengthy decompress/decompress/compress method
-* 12/22/12 * Automatic updating of vdata/sndmanifest.dat when .ogg files are modified
-* 12/22/12 * XML specification for takes, so that those can be modified as well	
-* 1/1/13 * Full UTF support
-* 1/2/13 * Minimize file I/O for speed
-* 1/2/13 * Fix random directory bug
-* 1/19/13 * Small residmap.dat in each mod where there are new files
-* 1/25/13 * fontmanifest decompression/compression
-* 1/25/13 * .font.xml decompression/compression
-* 1/31/13 * myPicturesImage.dat, smokeImage.dat, & fluidPalettes.dat compression/decompression
-* 2/16/13 * Split itemmanifest.dat.xml stuff into separate files

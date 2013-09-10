@@ -165,6 +165,7 @@ Version 0.3.6: (9/10/13)
 * vdata/combodb.dat now parsed to/from XML
 * Matrix transformations thanks to MyGod
 * Some Unicode tweaks and such
+* Added util/hash.exe for easily getting hashes of filenames or other such text strings
 
 
 Building
@@ -213,7 +214,10 @@ This program reads all the resources from inside an executable and spits out som
 Or copy "WinResource.exe" from the "util" subdirectory into the same folder as "Little Inferno.exe" and click and drag "Little Inferno.exe" into it. It'll spit out a file "resinfo.txt" containing basic information on the resources inside the Little Inferno executable. It may be useful, however, if you're unsure if your executable has been stripped or not (as if the file size alone wouldn't tell you). If resources with "Type: 20480" are all 4 bytes, you'll know it's stripped. Otherwise, probably not. At the very least, it's a fun program to play with.
 
 
-test.exe
+hash.exe
 ----------------
-When run, spits out all the files found inside data/ and vdata/, recursively. As if you didn't know how to use "ls" or "dir" already.
+Usage:
+	hash.exe [string1] [string2] ... [stringn]
+
+Spits out the hashed unsigned integer values of the input strings. Useful for debugging resource values and such.
 
