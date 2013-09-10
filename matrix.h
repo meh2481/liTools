@@ -73,12 +73,6 @@ public:
 		Y = v.Y;
 	}
 	
-	/*Vector operator *(Vector vector, double value)
-	{
-		Vector v(vector.X * value, vector.Y * value);
-		return v;
-	}*/
-	
 	Vector operator *(double value)
 	{
 		Vector v(X * value, Y * value);
@@ -89,13 +83,6 @@ public:
 	{
 		return X * v2.X + Y * v2.Y;
 	}
-	
-	/*Vector operator *(Matrix matrix)   // applying transform
-	{
-		Vector v(matrix._11 * X + matrix._12 * Y,
-				 matrix._21 * X + matrix._22 * Y);
-		return v;
-	}*/
 	
 	double CrossProduct(Vector v1, Vector v2)
 	{
@@ -138,9 +125,9 @@ public:
 	double _11, _12, _13, _21, _22, _23;
 
 	// these are assumed constants and can't be modified
-	const static double _31 = 0;//{ get { return 0; } }
-	const static double _32 = 0;//{ get { return 0; } }
-	const static double _33 = 1;//{ get { return 1; } }
+	const static double _31 = 0;
+	const static double _32 = 0;
+	const static double _33 = 1;
 	
 	void set(double a, double b, double c, double d, double e, double f)
 	{
@@ -253,7 +240,6 @@ public:
 			if (!newYValid || newXValid && abs(angleX) <= abs(angleY))
 			{
 				Vector newXUnit = newX / scaleX;
-				//scaleY = (newY - newY * newXUnit * newXUnit).Length;
 				double xUnitDouble = newY * newXUnit;
 				scaleY = (newY - newXUnit * xUnitDouble).Length();
 				theta = angleX;
@@ -272,7 +258,6 @@ public:
 			else
 			{
 				Vector newYUnit = newY / scaleY;
-				//scaleX = (newX - newX * newYUnit * newYUnit).Length;
 				double yUnitDouble = newX * newYUnit;
 				scaleX = (newX - newYUnit * yUnitDouble).Length();
 				theta = angleY;
@@ -288,12 +273,9 @@ public:
 				}
 			}
 		}
-		//ostringstream oss;
-		//oss << "<transforms>" << endl;
 		XMLElement* transforms = doc->NewElement("transforms");
 		if (abs(scaleX - 1) > Epsilon || abs(scaleY - 1) > Epsilon)
 		{
-			//oss << "\t<scale factor=\"" << scaleX << "," << scaleY << "\" />" << endl;
 			XMLElement* scale = doc->NewElement("scale");
 			ostringstream oss;
 			oss << scaleX << ", " << scaleY;
@@ -302,7 +284,6 @@ public:
 		}
 		if (abs(skewX) > Epsilon || abs(skewY) > Epsilon)
 		{
-			//oss << "\t<skew angle=\"" << RadianToDegree(skewX) << "," << RadianToDegree(skewY) << "\" />" << endl;
 			XMLElement* skew = doc->NewElement("skew");
 			ostringstream oss;
 			oss << RadianToDegree(skewX) << ", " << RadianToDegree(skewY);
@@ -311,87 +292,70 @@ public:
 		}
 		if (abs(theta) > Epsilon) 
 		{
-			//oss << "\t<rotate angle=\"" << RadianToDegree(theta) << "\" />" << endl;
 			XMLElement* rotate = doc->NewElement("rotate");
 			rotate->SetAttribute("angle", RadianToDegree(theta));
 			transforms->InsertEndChild(rotate);
 		}
 		if (abs(_13) > Epsilon || abs(_23) > Epsilon)
 		{
-			//oss << "\t<translate offset=\"" << _13 << "," << _23 << "\" />" << endl;
 			XMLElement* translate = doc->NewElement("translate");
 			ostringstream oss;
 			oss << _13 << ", " << _23;
 			translate->SetAttribute("offset", oss.str().c_str());
 			transforms->InsertEndChild(translate);
 		}
-		//oss << "</transforms>";
-		//return oss.str();
 		parent->InsertEndChild(transforms);
 	}
 	
 	Matrix ParseTransforms(XMLElement* root)
 	{
-		//var root = XDocument.Parse(xml).Root;
 		Matrix transform = DoNothingTransform();
-		//cout << "Starting: " << endl;
-		//transform.WriteMatrix();
 		for(XMLElement* child = root->FirstChildElement(); child != NULL; child = child->NextSiblingElement())
 		{
 			Matrix matrix(0,0,0,0,0,0);
 			string s = child->Name();
-			//switch (s)
-			//{
-				if(s == "rotate")
-				{
-					double angle = 0.0;
-					child->QueryDoubleAttribute("angle", &angle);
-					matrix = RotateTransform(angle);
-					// << "rotate: " << angle << endl;
-				}
-				else if(s == "scale")
-				{
-					string sVec = stripCommas(child->Attribute("factor"));
-					istringstream iss(sVec);
-					double x, y;
-					iss >> x >> y;
-					matrix = ScaleTransform(x, y);
-					// << "Scale XY: " << x << "," << y << endl;
-				}
-				else if(s == "skew")
-				{	
-					string sVec = stripCommas(child->Attribute("angle"));
-					istringstream iss(sVec);
-					double x, y;
-					iss >> x >> y;
-					matrix = SkewTransform(x, y);
-					// << "skew XY: " << x << "," << y << endl;
-				}
-				else if(s == "translate")
-				{
-					string sVec = stripCommas(child->Attribute("offset"));
-					istringstream iss(sVec);
-					double x, y;
-					iss >> x >> y;
-					// << "translate XY: " << x << "," << y << endl;
-					matrix = TranslateTransform(x, y);
-				}
-				else if(s == "matrix")
-				{
-					string smat = stripCommas(child->Attribute("matrix"));
-					istringstream iss(smat);
-					iss >> matrix._11 >> matrix._12 >> matrix._13 >> matrix._21 >> matrix._22 >> matrix._23;
-				}
-				else
-				{
-					cout << "Unknown element name: " << s << endl;
-				}
-			//}
+			if(s == "rotate")
+			{
+				double angle = 0.0;
+				child->QueryDoubleAttribute("angle", &angle);
+				matrix = RotateTransform(angle);
+			}
+			else if(s == "scale")
+			{
+				string sVec = stripCommas(child->Attribute("factor"));
+				istringstream iss(sVec);
+				double x, y;
+				iss >> x >> y;
+				matrix = ScaleTransform(x, y);
+			}
+			else if(s == "skew")
+			{	
+				string sVec = stripCommas(child->Attribute("angle"));
+				istringstream iss(sVec);
+				double x, y;
+				iss >> x >> y;
+				matrix = SkewTransform(x, y);
+			}
+			else if(s == "translate")
+			{
+				string sVec = stripCommas(child->Attribute("offset"));
+				istringstream iss(sVec);
+				double x, y;
+				iss >> x >> y;
+				matrix = TranslateTransform(x, y);
+			}
+			else if(s == "matrix")
+			{
+				string smat = stripCommas(child->Attribute("matrix"));
+				istringstream iss(smat);
+				iss >> matrix._11 >> matrix._12 >> matrix._13 >> matrix._21 >> matrix._22 >> matrix._23;
+			}
+			else
+			{
+				cout << "Unknown element name: " << s << endl;
+			}
 			transform = matrix * transform;
-			//cout << "Transforming: " << endl;
-			//transform.WriteMatrix();
 		}
-		//cerr << endl;
 		return transform;
 	}
 };

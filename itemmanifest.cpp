@@ -276,6 +276,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	vector< vector<StringPointerEntry> > vStringPointerEntries;
 	vector< vector<char> > vStrings;
 	vector< vector<byte> > vBurnGrid;
+	int iCurrentItemData = 0;
 	for(list<itemManifestRecord>::iterator i = lManifestRecords.begin(); i != lManifestRecords.end(); i++)
 	{
 		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes, SEEK_SET);	//Seek to this position to read
@@ -290,6 +291,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vItemDataHeaders.push_back(idh);
 		
 		//Read in skeleton records for this item data header
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.skels.offset, SEEK_SET);
 		list<skelsRecord> srl;
 		for(int j = 0; j < idh.skels.count; j++)
 		{
@@ -305,6 +307,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vSkeletonRecords.push_back(srl);
 		
 		//Read in joint records for this item data header
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.joints.offset, SEEK_SET);
 		vector<jointRecord> jrv;
 		for(int j = 0; j < idh.joints.count; j++)
 		{
@@ -320,6 +323,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vJointRecords.push_back(jrv);
 		
 		//Read in bone records for this item data header
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.bones.offset, SEEK_SET);
 		vector<boneRecord> brv;
 		for(int j = 0; j < idh.bones.count; j++)
 		{
@@ -335,6 +339,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vBoneRecords.push_back(brv);
 		
 		//Read in bone shape records for this item data header
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.boneShapes.offset, SEEK_SET);
 		vector<boneShapeRecord> bsrv;
 		for(int j = 0; j < idh.boneShapes.count; j++)
 		{
@@ -350,6 +355,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vBoneShapes.push_back(bsrv);
 		
 		//Read in bone part records
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.boneParts.offset, SEEK_SET);
 		vector<bonePartRecord> vbpr;
 		for(int j = 0; j < idh.boneParts.count; j++)
 		{
@@ -365,6 +371,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vBoneParts.push_back(vbpr);
 		
 		//Read in bone tree values
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.bonePartTreeVals.offset, SEEK_SET);
 		vector<i32> vbtv;
 		for(int j = 0; j < idh.bonePartTreeVals.count; j++)
 		{
@@ -380,6 +387,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vBonePartTreeValues.push_back(vbtv);
 		
 		//Read in bone grid cell mapping regions
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.rgnCells.offset, SEEK_SET);
 		vector<boneGridCellMappingRegion> vbgcmr;
 		for(int j = 0; j < idh.rgnCells.count; j++)
 		{
@@ -395,6 +403,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		vGridCellMappings.push_back(vbgcmr);
 		
 		//Read in string table-----------------------------------------------------------
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.stringTableBytes.offset, SEEK_SET);
 		int iStringSize = 0;
 		//Read in string table header
 		StringTableHeader sth;
@@ -459,6 +468,7 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		//-----------------------------------------------------
 		
 		//Read in burn grid
+		fseek(f, imh.itemsBinDataBytes.offset + i->binDataOffsetBytes + idh.burnGridUsedDataBytes.offset, SEEK_SET);
 		vector<byte> vbg;
 		for(int j = 0; j < idh.burnGridUsedDataBytes.count; j++)
 		{
@@ -844,11 +854,11 @@ bool itemManifestToXML(const wchar_t* cFilename)
 						elem5->SetAttribute("type", "polygon");
 						//Write vertices for this shape
 						XMLElement* elem6;
-						for(int m = 0; m < vBoneShapes[iCurItemData][m].numVerts; m++)
+						for(int m = 0; m < vBoneShapes[iCurItemData][l].numVerts; m++)
 						{
 							elem6 = doc->NewElement("vert");
 							
-							elem6->SetAttribute("pos", vec2ToString(vBoneShapes[iCurItemData][m].verts[m]).c_str());
+							elem6->SetAttribute("pos", vec2ToString(vBoneShapes[iCurItemData][l].verts[m]).c_str());
 							
 							elem5->InsertEndChild(elem6);
 						}
@@ -899,7 +909,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 					}
 					elem4->InsertEndChild(elem5);
 				}
-				//TODO when reading back in, else firstPartTreeValIdx is -1
 				
 				//Add mapping regions
 				if(vBoneRecords[iCurItemData][k].numRgnCells)
@@ -979,7 +988,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 		//onames << "{" << i->itemId << "u,\"" << ws2s(mItemNames[i->itemId]) << "\"}," << endl;// 967411u,\"data/items/SpiderEggSpider/colorbgicon\"},"
 		
 		iCurItemData++;
-		//TODO: Write rest of XML stuff for rest of item data
 		elem->InsertEndChild(elem2);
 		#ifndef SPLIT_XML_FILES
 		root->InsertEndChild(elem);
@@ -1054,7 +1062,6 @@ bool itemManifestToXML(const wchar_t* cFilename)
 	return true;
 }
 
-//TODO Fix problems and stuff for next release
 bool XMLToItemManifest(const wchar_t* cFilename)
 {
 	//Open this XML file for parsing
@@ -1607,7 +1614,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 				lJoints.push_back(jr);
 			}
 			
-			//TODO read children bones
+			//Read children bones
 			for(XMLElement* bone = skeletons->FirstChildElement("bone"); bone != NULL; bone = bone->NextSiblingElement("bone"))
 			{
 				boneRecord br;
@@ -2067,24 +2074,12 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		vBoneRgnCells.push_back(lBoneRgnCells);
 		vBurnGrid.push_back(lBurnGrid);
 		
-		//TODO Read in string table
+		//Read in string table
 		StringTableHeader sth;
 		sth.numStrings = sth.numPointers = 0;
 		list<StringTableEntry> lStringEntries;
 		list<StringPointerEntry> lStringPointers;
 		list<char> lStrings;
-		
-		//String Table Header
-		//i32 numStrings;
-		//i32 numPointers;
-		
-		//String Table Entry
-		//i32 pointerIndex;
-		//i32 pointerCount;
-		
-		//String Pointer Entry
-		//u32 languageId;
-		//i32 offset;
 		
 		//Read in ID string
 		StringTableEntry idEntry;
@@ -2279,7 +2274,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		idh.boneShapes.count = lBoneShapes.size();
 		idh.boneShapes.offset = idh.bones.offset + idh.bones.count * sizeof(boneRecord);
 		idh.boneParts.count = lBoneParts.size();
-		idh.boneParts.offset = idh.boneShapes.offset + idh.boneParts.count * sizeof(boneShapeRecord);
+		idh.boneParts.offset = idh.boneShapes.offset + idh.boneShapes.count * sizeof(boneShapeRecord);
 		idh.bonePartTreeVals.count = lBonePartTreeValues.size();
 		idh.bonePartTreeVals.offset = idh.boneParts.offset + idh.boneParts.count * sizeof(bonePartRecord);
 		idh.rgnCells.count = lBoneRgnCells.size();
@@ -2299,7 +2294,6 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 	
 	//Write everything out to the itemmanifest file
 	wstring sFilename = cFilename;
-	//sFilename += TEXT(".derp");	//TODO: Replace original file
 	FILE* f = _wfopen(sFilename.c_str(), TEXT("wb"));
 	if(f == NULL)
 	{
@@ -2361,7 +2355,7 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 		//Bones for this skeleton
 		for(list<boneRecord>::iterator j = vBones[iCurItem].begin(); j != vBones[iCurItem].end(); j++)
 			fwrite(&(*j), 1, sizeof(boneRecord), f);
-			
+		
 		//Shapes for this bone
 		for(list<boneShapeRecord>::iterator j = vBoneShapes[iCurItem].begin(); j != vBoneShapes[iCurItem].end(); j++)
 			fwrite(&(*j), 1, sizeof(boneShapeRecord), f);
