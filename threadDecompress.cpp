@@ -144,6 +144,20 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		else if(sFilename.find(TEXT("itemmanifest.dat")) != wstring::npos)
 		{
 			itemManifestToXML(sFilename.c_str());
+			unlink(ws2s(sFilename).c_str());
+		}
+		
+		//Convert letterdb.dat to XML
+		else if(sFilename.find(TEXT("letterdb.dat")) != wstring::npos)
+		{
+			letterToXML(sFilename.c_str());
+			//TODO unlink(ws2s(sFilename).c_str());
+		}
+		
+		//Convert catalogdb.dat to XML
+		else if(sFilename.find(TEXT("catalogdb.dat")) != wstring::npos)
+		{
+			catalogToXML(sFilename.c_str());
 			//TODO unlink(ws2s(sFilename).c_str());
 		}
 		

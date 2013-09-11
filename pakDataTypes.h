@@ -737,7 +737,12 @@ string stripCommas(string s);
 //matrix.cpp functions
 void WriteTransforms(XMLElement* elemParent, XMLDocument* doc, mtx23 mat);	//Write a 2x3 matrix to XML in the most readable format possible
 void ReadTransforms(XMLElement* elem, mtx23* mat);	//Read a 2x3 matrix from XML
-
+//letter.cpp functions
+bool letterToXML(wstring sFilename);
+bool XMLToLetter(wstring sFilename);
+//catalog.cpp functions
+bool catalogToXML(wstring sFilename);
+bool XMLToCatalog(wstring sFilename);
 
 
 

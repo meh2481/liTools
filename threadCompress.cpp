@@ -123,6 +123,16 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 			XMLToFontManifest(tch);
 			sDeleteWhenDone = tch;
 		}
+		else if(tch.find(TEXT("letterdb.dat")) != wstring::npos)
+		{
+			XMLToLetter(tch);
+			//TODO sDeleteWhenDone = tch;
+		}
+		else if(tch.find(TEXT("catalogdb.dat")) != wstring::npos)
+		{
+			XMLToCatalog(tch);
+			//TODO sDeleteWhenDone = tch;
+		}
 		else if(tch.find(TEXT(".font.xml")) != wstring::npos)
 		{
 			XMLToFont(tch);
