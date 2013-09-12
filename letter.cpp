@@ -248,17 +248,20 @@ bool letterToXML(wstring sFilename)
 			letter->SetAttribute("sendTimeSec", i->sendTimeSec);
 
 		//Requested items is an array; make it a child element
-		XMLElement* requestedItems = doc->NewElement("requested");
-		for(int j = 0; j < 3; j++)
+		if(i->requestedItemId[0] || i->requestedItemId[1] || i->requestedItemId[2])
 		{
-			if(i->requestedItemId[j])
+			XMLElement* requestedItems = doc->NewElement("requested");
+			for(int j = 0; j < 3; j++)
 			{
-				XMLElement* item = doc->NewElement("item");
-				item->SetAttribute("id", i->requestedItemId[j]);
-				requestedItems->InsertEndChild(item);
+				if(i->requestedItemId[j])
+				{
+					XMLElement* item = doc->NewElement("item");
+					item->SetAttribute("id", itemIDToName(i->requestedItemId[j]).c_str());	//TODO: Support new items
+					requestedItems->InsertEndChild(item);
+				}
 			}
+			letter->InsertEndChild(requestedItems);
 		}
-		letter->InsertEndChild(requestedItems);
 		
 		//letterIdStrId is a string; handle differently
 		XMLElement* name = doc->NewElement("name");
@@ -379,6 +382,364 @@ bool letterToXML(wstring sFilename)
 
 bool XMLToLetter(wstring sFilename)
 {
-	//TODO
+	//Open file
+	wstring sXMLFile = sFilename;
+	sXMLFile += TEXT(".xml");
+	XMLDocument* doc = new XMLDocument;
+	int iErr = doc->LoadFile(ws2s(sXMLFile).c_str());
+	if(iErr != XML_NO_ERROR)
+	{
+		cout << "Error parsing XML file " << ws2s(sXMLFile) << ": Error " << iErr << endl;
+		delete doc;
+		return false;
+	}
+	
+	//Grab root element
+	XMLElement* root = doc->RootElement();
+	if(root == NULL)
+	{
+		cout << "Error: Root element NULL in XML file " << ws2s(sXMLFile) << endl;
+		delete doc;
+		return false;
+	}
+	
+	//Read in XML data
+	list<StringTableEntry> lStringTable;
+	list<StringPointerEntry> lStringPointers;
+	list<char> lUTFData;
+	list<letter> lLetters;
+	list<letterPage> lPages;
+	for(XMLElement* letterelem = root->FirstChildElement("letter"); letterelem != NULL; letterelem = letterelem->NextSiblingElement("letter"))
+	{
+		letter l;
+		
+		l.type = DEFAULT_TYPE;
+		l.addTraySlots = DEFAULT_ADDTRAYSLOTS;
+		l.attachedCatalogId = DEFAULT_ATTACHEDCATALOGID;
+		l.attachedItemId = DEFAULT_ATTACHEDITEMID;
+		l.attachedMoneyAmount = DEFAULT_ATTACHEDMONEYAMOUNT;
+		l.blockNextCatalog = DEFAULT_BLOCKNEXTCATALOG;
+		l.burnableAfterRead = DEFAULT_BURNABLEAFTERREAD;
+		l.deliverAfterWin = DEFAULT_DELIVERAFTERWIN;
+		l.deliverable = DEFAULT_DELIVERABLE;
+		l.depAllCombo = DEFAULT_DEPALLCOMBO;
+		l.depAllItemsUsed = DEFAULT_DEPALLITEMSUSED;
+		l.depAllStars = DEFAULT_DEPALLSTARS;
+		l.depNoItems = DEFAULT_DEPNOITEMS;
+		l.dependsLetterId = DEFAULT_DEPENDSLETTERID;
+		l.jingleLetter = DEFAULT_JINGLELETTER;
+		l.postLetterSpecialExportId = DEFAULT_POSTLETTERSPECIALEXPORTID;
+		l.removeAfterRead = DEFAULT_REMOVEAFTERREAD;
+		l.reqChildWrongLetterId = DEFAULT_REQCHILDWRONGLETTERID;
+		l.reqParentLetterId = DEFAULT_REQPARENTLETTERID;
+		l.sendTimeSec = DEFAULT_SENDTIMESEC;
+			
+		//Required fields
+		if(letterelem->QueryUnsignedAttribute("depCatalogId", &l.depCatalogId) != XML_NO_ERROR)
+		{
+			cout << "Error: Unable to read letter depCatalogId from XML file " << ws2s(sXMLFile) << endl;
+			delete doc;
+			return false;
+		}
+		if(letterelem->QueryIntAttribute("depCatalogItemCount", &l.depCatalogItemCount) != XML_NO_ERROR)
+		{
+			cout << "Error: Unable to read letter depCatalogItemCount from XML file " << ws2s(sXMLFile) << endl;
+			delete doc;
+			return false;
+		}
+		if(letterelem->QueryIntAttribute("delayTimeSec", &l.delayTimeSec) != XML_NO_ERROR)
+		{
+			cout << "Error: Unable to read letter delayTimeSec from XML file " << ws2s(sXMLFile) << endl;
+			delete doc;
+			return false;
+		}
+		if(letterelem->QueryUnsignedAttribute("borderAnimExportId", &l.borderAnimExportId) != XML_NO_ERROR)
+		{
+			cout << "Error: Unable to read letter borderAnimExportId from XML file " << ws2s(sXMLFile) << endl;
+			delete doc;
+			return false;
+		}
+		if(letterelem->QueryUnsignedAttribute("id", &l.id) != XML_NO_ERROR)
+		{
+			cout << "Error: Unable to read letter id from XML file " << ws2s(sXMLFile) << endl;
+			delete doc;
+			return false;
+		}
+		
+		//Read in optional attributes
+		const char* cType = letterelem->Attribute("type");
+		if(cType != NULL)
+		{
+			string s = cType;
+			if(s == "basic")
+				l.type = DEFAULT_TYPE;
+			else if(s == "request")
+				l.type = REQUEST_LETTER;
+			else if(s == "requestFollowUp")
+				l.type = REQUESTFOLLOWUP_LETTER;
+			else if(s == "attachItem")
+				l.type = ATTACHITEM_LETTER;
+			else if(s == "attachMoney")
+				l.type = ATTACHMONEY_LETTER;
+			else if(s == "attachCatalog")
+				l.type = ATTACHCATALOG_LETTER;
+			else
+			{
+				cout << "Error: unknown letter type: " << s << " in file " << ws2s(sXMLFile) << endl;
+				delete doc;
+				return false;
+			}
+		}
+		letterelem->QueryUnsignedAttribute("dependsLetterId", &l.dependsLetterId);
+		letterelem->QueryIntAttribute("sendTimeSec", &l.sendTimeSec);
+		letterelem->QueryUnsignedAttribute("postLetterSpecialExportId", &l.postLetterSpecialExportId);
+		letterelem->QueryIntAttribute("depNoItems", &l.depNoItems);
+		letterelem->QueryIntAttribute("addTraySlots", &l.addTraySlots);
+		letterelem->QueryIntAttribute("deliverable", &l.deliverable);
+		letterelem->QueryIntAttribute("removeAfterRead", &l.removeAfterRead);
+		letterelem->QueryIntAttribute("burnableAfterRead", &l.burnableAfterRead);
+		letterelem->QueryIntAttribute("depAllStars", &l.depAllStars);
+		letterelem->QueryIntAttribute("depAllCombo", &l.depAllCombo);
+		letterelem->QueryIntAttribute("depAllItemsUsed", &l.depAllItemsUsed);
+		letterelem->QueryIntAttribute("jingleLetter", &l.jingleLetter);
+		letterelem->QueryIntAttribute("blockNextCatalog", &l.blockNextCatalog);
+		letterelem->QueryIntAttribute("deliverAfterWin", &l.deliverAfterWin);
+		letterelem->QueryIntAttribute("attachedMoneyAmount", &l.attachedMoneyAmount);
+		letterelem->QueryUnsignedAttribute("reqChildWrongLetterId", &l.reqChildWrongLetterId);
+		letterelem->QueryUnsignedAttribute("reqParentLetterId", &l.reqParentLetterId);
+		letterelem->QueryUnsignedAttribute("attachedItemId", &l.attachedItemId);
+		letterelem->QueryUnsignedAttribute("attachedCatalogId", &l.attachedCatalogId);
+		
+		//Read requested item id's
+		for(int j = 0; j < 3; j++)
+			l.requestedItemId[j] = 0;
+		XMLElement* requested = letterelem->FirstChildElement("requested");
+		if(requested != NULL)	//Don't really care if this is even here or not
+		{
+			int iTotalItems = 0;
+			for(XMLElement* item = requested->FirstChildElement("item"); item != NULL; item = item->NextSiblingElement("item"))
+			{
+				if(++iTotalItems > 3)
+				{
+					cout << "Warning: Only up to 3 requestedItemIds are allowed per letter. Ignoring extra item number " << iTotalItems << endl;
+					continue;	//Skip, printing warning multiple times if there are more
+				}
+				
+				const char* cID = item->Attribute("id");
+				if(cID == NULL)
+				{
+					cout << "Error reading requested item ID from file " << ws2s(sXMLFile) << endl;
+					delete doc;
+					return false;
+				}
+				l.requestedItemId[iTotalItems-1] = itemNameToID(cID);
+			}
+		}
+		
+		//Read letter name string
+		StringTableEntry nameEntry;
+		nameEntry.pointerIndex = lStringPointers.size();
+		nameEntry.pointerCount = 0;
+		l.letterIdStrId = lStringTable.size();
+		XMLElement* namestr = letterelem->FirstChildElement("name");	//Get ID string
+		if(namestr == NULL)
+		{
+			cout << "Error reading letter name string from file " << ws2s(sXMLFile) << endl;
+			delete doc;
+			return false;
+		}
+		for(XMLElement* namestring = namestr->FirstChildElement("string"); namestring != NULL; namestring = namestring->NextSiblingElement("string"))
+		{
+			StringPointerEntry spe;
+			const char* lang = namestring->Attribute("lang");
+			if(lang == NULL)
+			{
+				cout << "Unable to read letter id string's language from XML file " <<  ws2s(sXMLFile) << endl;
+				delete doc;
+				return false;
+			}
+			spe.languageId = toLangID(s2ws(lang));
+			spe.offset = lUTFData.size();
+			lStringPointers.push_back(spe);
+			nameEntry.pointerCount++;
+			
+			//Read in string data
+			const char* data = namestring->Attribute("data");
+			if(data == NULL)
+			{
+				cout << "Unable to read letter id string's data from XML file " <<  ws2s(sXMLFile) << endl;
+				delete doc;
+				return false;
+			}
+			for(int j = 0; j < strlen(data); j++)
+				lUTFData.push_back(data[j]);
+			lUTFData.push_back('\0');	//Be sure to append null character, as well
+		}
+		lStringTable.push_back(nameEntry);
+		
+		//TODO Read children pages
+		l.firstPageIdx = lPages.size();
+		l.numPages = 0;
+		XMLElement* pages = letterelem->FirstChildElement("pages");
+		if(pages == NULL)
+		{
+			cout << "Error reading letter pages from file " << ws2s(sXMLFile) << endl;
+			delete doc;
+			return false;
+		}
+		for(XMLElement* page = pages->FirstChildElement("page"); page != NULL; page = page->NextSiblingElement("page"))
+		{
+			letterPage lp;
+			
+			//Set default values
+			lp.allowSkip = DEFAULT_ALLOWSKIP;
+			lp.lastWordSoundResId = DEFAULT_LASTWORDSOUNDRESID;
+			lp.musicOffset = DEFAULT_MUSICOFFSET;
+			lp.musicSoundResId = DEFAULT_MUSICSOUNDRESID;
+			lp.senderPicExportId = DEFAULT_SENDERPICEXPORTID;
+			lp.specialEventExportId = DEFAULT_SPECIALEVENTEXPORTID;
+			lp.speedScale = DEFAULT_SPEEDSCALE;
+			lp.pagePicScale = 1.0;
+			lp.pagePicTexResId = 0;
+			
+			//Query necessary values
+			if(page->QueryUnsignedAttribute("wordsSoundResId", &lp.wordsSoundResId) != XML_NO_ERROR)
+			{
+				cout << "Error reading page wordsSoundResId from file " << ws2s(sXMLFile) << endl;
+				delete doc;
+				return false;
+			}
+			
+			//Query everything else, ignoring failure
+			page->QueryUnsignedAttribute("senderPicExportId", &lp.senderPicExportId);
+			page->QueryUnsignedAttribute("specialEventExportId", &lp.specialEventExportId);
+			page->QueryUnsignedAttribute("lastWordSoundResId", &lp.lastWordSoundResId);
+			page->QueryFloatAttribute("pagePicScale", &lp.pagePicScale);
+			page->QueryFloatAttribute("musicOffset", &lp.musicOffset);
+			page->QueryFloatAttribute("speedScale", &lp.speedScale);
+			page->QueryIntAttribute("allowSkip", &lp.allowSkip);
+			const char* pageTex = page->Attribute("pagePicTexResId");
+			if(pageTex != NULL)
+				lp.pagePicTexResId = getResID(s2ws(pageTex).c_str());
+			const char* musicID = page->Attribute("musicSoundResId");
+			if(musicID != NULL)
+				lp.musicSoundResId = getResID(s2ws(musicID).c_str());
+
+			StringTableEntry pageEntry;
+			pageEntry.pointerIndex = lStringPointers.size();
+			pageEntry.pointerCount = 0;
+			lp.text.key = lStringTable.size();
+			XMLElement* textstr = page->FirstChildElement("text");	//Get ID string
+			if(textstr == NULL)
+			{
+				cout << "Error reading page text string from file " << ws2s(sXMLFile) << endl;
+				delete doc;
+				return false;
+			}
+			if(textstr->QueryUnsignedAttribute("strid", &lp.text.id) != XML_NO_ERROR)
+			{
+				cout << "Error reading page text string's strid from file " << ws2s(sXMLFile) << endl;
+				delete doc;
+				return false;
+			}
+			for(XMLElement* namestring = textstr->FirstChildElement("string"); namestring != NULL; namestring = namestring->NextSiblingElement("string"))
+			{
+				StringPointerEntry spe;
+				const char* lang = namestring->Attribute("lang");
+				if(lang == NULL)
+				{
+					cout << "Unable to read page text string's language from XML file " <<  ws2s(sXMLFile) << endl;
+					delete doc;
+					return false;
+				}
+				spe.languageId = toLangID(s2ws(lang));
+				spe.offset = lUTFData.size();
+				lStringPointers.push_back(spe);
+				pageEntry.pointerCount++;
+				
+				//Read in string data
+				const char* data = namestring->Attribute("data");
+				if(data == NULL)
+				{
+					cout << "Unable to read page text string's data from XML file " <<  ws2s(sXMLFile) << endl;
+					delete doc;
+					return false;
+				}
+				for(int j = 0; j < strlen(data); j++)
+					lUTFData.push_back(data[j]);
+				lUTFData.push_back('\0');	//Be sure to append null character, as well
+			}
+			lStringTable.push_back(pageEntry);
+			
+			
+			lPages.push_back(lp);
+			l.numPages++;
+		}
+		
+		lLetters.push_back(l);
+		
+	}
+	//Done with XML file
+	delete doc;
+	
+	//Open our output file
+	FILE* f = _wfopen(sFilename.c_str(), TEXT("wb"));
+	if(f == NULL)
+	{
+		cout << "Error: Unable to open output file " << ws2s(sFilename) << endl;
+		return false;
+	}
+	
+	//Write out letter database header
+	letterHeader lh;
+	lh.letters.count = lLetters.size();
+	lh.letters.offset = sizeof(letterHeader);
+	lh.pages.count = lPages.size();
+	lh.pages.offset = lh.letters.offset + lh.letters.count * sizeof(letter);
+	lh.stringTableBytes.count = sizeof(StringTableHeader) + lStringTable.size() * sizeof(StringTableEntry) + lStringPointers.size() * sizeof(StringPointerEntry) + lUTFData.size();
+	lh.stringTableBytes.offset = lh.pages.offset + lh.pages.count * sizeof(letterPage);
+	fwrite(&lh, 1, sizeof(letterHeader), f);
+	
+	//Write out letter records
+	for(list<letter>::iterator i = lLetters.begin(); i != lLetters.end(); i++)
+		fwrite(&(*i), 1, sizeof(letter), f);
+	
+	//Write out letter pages
+	for(list<letterPage>::iterator i = lPages.begin(); i != lPages.end(); i++)
+		fwrite(&(*i), 1, sizeof(letterPage), f);
+	
+	//Write out string table header
+	StringTableHeader sth;
+	sth.numStrings = lStringTable.size();
+	sth.numPointers = lStringPointers.size();
+	fwrite(&sth, 1, sizeof(StringTableHeader), f);
+	
+	//Write out string table strings
+	for(list<StringTableEntry>::iterator i = lStringTable.begin(); i != lStringTable.end(); i++)
+		fwrite(&(*i), 1, sizeof(StringTableEntry), f);
+		
+	//Write out string table pointers
+	for(list<StringPointerEntry>::iterator i = lStringPointers.begin(); i != lStringPointers.end(); i++)
+		fwrite(&(*i), 1, sizeof(StringPointerEntry), f);
+	
+	//Write out strings
+	for(list<char>::iterator i = lUTFData.begin(); i != lUTFData.end(); i++)
+		fwrite(&(*i), 1, 1, f);
+		
+	fclose(f);
+	
 	return true;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

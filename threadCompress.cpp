@@ -126,7 +126,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		else if(tch.find(TEXT("letterdb.dat")) != wstring::npos)
 		{
 			XMLToLetter(tch);
-			//TODO sDeleteWhenDone = tch;
+			sDeleteWhenDone = tch;
 		}
 		else if(tch.find(TEXT("catalogdb.dat")) != wstring::npos)
 		{

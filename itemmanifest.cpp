@@ -1885,10 +1885,16 @@ bool XMLToItemManifest(const wchar_t* cFilename)
 					{
 						bsr.flags = TYPE_POLYGON;
 						bsr.numVerts = 0;
-						for(int i = 0; i < 8; i++)	//Set all verts to 0 to start off
-							bsr.verts[i].x = bsr.verts[i].y = 0.0f;
+						for(int k = 0; k < 8; k++)	//Set all verts to 0 to start off
+							bsr.verts[k].x = bsr.verts[k].y = 0.0f;
 						for(XMLElement* vert = shape->FirstChildElement("vert"); vert != NULL; vert = vert->NextSiblingElement("vert"))
 						{
+							if(bsr.numVerts >= 8)
+							{
+								cout << "Error: polygon shapes cannot have more than 8 vertices. Culprit file: " << ws2s(*i) << endl;
+								delete doc;
+								return false;
+							}
 							readVec2(vert, "pos", &(bsr.verts[bsr.numVerts]));
 							bsr.numVerts++;
 						}
