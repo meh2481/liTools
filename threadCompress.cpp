@@ -131,7 +131,7 @@ DWORD WINAPI compressResource(LPVOID lpParam)
 		else if(tch.find(TEXT("catalogdb.dat")) != wstring::npos)
 		{
 			XMLToCatalog(tch);
-			//TODO sDeleteWhenDone = tch;
+			sDeleteWhenDone = tch;
 		}
 		else if(tch.find(TEXT(".font.xml")) != wstring::npos)
 		{

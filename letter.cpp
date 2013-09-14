@@ -577,7 +577,7 @@ bool XMLToLetter(wstring sFilename)
 		}
 		lStringTable.push_back(nameEntry);
 		
-		//TODO Read children pages
+		//Read children pages
 		l.firstPageIdx = lPages.size();
 		l.numPages = 0;
 		XMLElement* pages = letterelem->FirstChildElement("pages");

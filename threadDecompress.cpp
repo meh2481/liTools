@@ -158,7 +158,7 @@ DWORD WINAPI decompressResource(LPVOID lpParam)
 		else if(sFilename.find(TEXT("catalogdb.dat")) != wstring::npos)
 		{
 			catalogToXML(sFilename.c_str());
-			//TODO unlink(ws2s(sFilename).c_str());
+			unlink(ws2s(sFilename).c_str());
 		}
 		
 		//Convert combodb.dat to XML

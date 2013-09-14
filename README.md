@@ -167,6 +167,10 @@ Version 0.3.6: (9/10/13)
 * Some Unicode tweaks and such
 * Added util/hash.exe for easily getting hashes of filenames or other such text strings
 
+Version 0.3.7: (9/13/13)
+* vdata/catalogdb.dat is now parsed to/from XML
+* vdata/letterdb.dat is now parsed to/from XML
+
 
 Building
 ========

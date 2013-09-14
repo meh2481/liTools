@@ -33,6 +33,21 @@ vec2 pointFromString(string s)
     return pt;
 }
 
+string RGBToString(f32 r, f32 g, f32 b)
+{
+	ostringstream oss;
+	oss << r << ", " << g << ", " << b;
+	return oss.str();
+}
+
+void RGBFromString(f32* r, f32* g, f32* b, string s)
+{
+	s = stripCommas(s);
+	istringstream iss(s);
+	if(!(iss >> *r >> *g >> *b))
+		*r = *g = *b = 0;
+}
+
 void readVec2(XMLElement* elem, string sAttributeName, vec2* vec)
 {
 	const char* c = elem->Attribute(sAttributeName.c_str());
