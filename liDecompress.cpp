@@ -3,6 +3,7 @@
 extern list<ThreadConvertHelper> g_lThreadedResources;
 extern bool g_bProgressOverwrite;
 extern unsigned int g_iNumThreads;
+extern bool biOS;
 
 ttvfs::VFSHelper vfs;
 
@@ -30,6 +31,10 @@ void parseCmdLine(int argc, char** argv)
 			}
 			g_iNumThreads = iNumThreads;
 		}
+		else if(s == "-ios")
+		{
+			biOS = true;
+		}
 		else if(argv[i][0] == '-')
 			cout << "Unknown commandline switch " << argv[i] << ". Ignoring..." << endl;
 	}
@@ -39,6 +44,7 @@ void parseCmdLine(int argc, char** argv)
 int main(int argc, char** argv)
 {
 	g_bProgressOverwrite = false;
+	biOS = false;
 	g_iNumThreads = 0;
 	DWORD iTicks = GetTickCount();	//Store the starting number of milliseconds
 	

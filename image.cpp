@@ -1,9 +1,44 @@
 #include "pakDataTypes.h"
 #include "png.h"
 
+bool biOS;	//If we're decompressing iOS pakfiles
+
+bool ios_convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
+{
+	wstring sFilename = cFilename;
+	sFilename += TEXT(".pvr");
+	//Block copy file over
+	FILE* output = _wfopen(sFilename.c_str(), TEXT("wb"));
+	if(output == NULL)
+	{
+		cout << "Output PVR file " << ws2s(sFilename) << " NULL" << endl;
+		return false;
+	}
+	
+	//Skip over the first 12 bytes of image header
+	fwrite(&data[sizeof(ImageHeader)], 1, size - sizeof(ImageHeader), output);
+	fclose(output);
+	
+	//Write image header out to separate file
+	sFilename = cFilename;
+	sFilename += TEXT(".imgheader");
+	output = _wfopen(sFilename.c_str(), TEXT("wb"));
+	if(output == NULL)
+	{
+		cout << "Output image header file " << ws2s(sFilename) << " NULL" << endl;
+		return false;
+	}
+	
+	//Write first 12 bytes
+	fwrite(data, 1, sizeof(ImageHeader), output);
+	fclose(output);
+}
+
 //Save a PNG file from decompressed data
 bool convertToPNG(const wchar_t* cFilename, uint8_t* data, u32 size)
 {
+  if(biOS)
+	return ios_convertToPNG(cFilename, data, size);
   ImageHeader ih;
   FILE          *png_file;
   png_struct    *png_ptr = NULL;
@@ -473,7 +508,10 @@ bool myPicturesToXML(wstring sFilename)
 		sName += TEXT(".");
 		sName.push_back(iCurImg + L'0');
 		sName += TEXT(".png");
+		bool bTemp = biOS;
+		biOS = false;
 		convertToPNG(sName.c_str(), data, i->width * 4);
+		biOS = bTemp;
 		XMLElement* elem = doc->NewElement("image");
 		elem->SetAttribute("filename", ws2s(sName).c_str());
 		root->InsertEndChild(elem);
@@ -664,7 +702,10 @@ bool smokeImageToXML(wstring sFilename)
 		sName += TEXT(".");
 		sName.push_back(iCurImg + L'0');
 		sName += TEXT(".png");
+		bool bTemp = biOS;
+		biOS = false;
 		convertToPNG(sName.c_str(), data, i->width * 4);
+		biOS = bTemp;
 		XMLElement* elem = doc->NewElement("image");
 		elem->SetAttribute("filename", ws2s(sName).c_str());
 		elem->SetAttribute("id", i->id);
@@ -851,7 +892,10 @@ bool fluidPalettesToXML(wstring sFilename)
 		sName += TEXT(".");
 		sName.push_back(iCurImg + L'0');
 		sName += TEXT(".png");
+		bool bTemp = biOS;
+		biOS = false;
 		convertToPNG(sName.c_str(), data, i->width * 4);
+		biOS = bTemp;
 		XMLElement* elem = doc->NewElement("image");
 		elem->SetAttribute("filename", ws2s(sName).c_str());
 		elem->SetAttribute("id", i->id);		
